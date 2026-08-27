@@ -96,6 +96,14 @@ the applicant, and states in the body that most districts still require a signed
 original. **It puts paperwork in front of a caseworker; it does not file an
 application**, and the UI says so rather than implying otherwise.
 
+Live on Resend, sharing childcare's key. The sender is `onboarding@resend.dev`,
+Resend's sandbox domain — **it will only deliver to the account owner's verified
+address until a real domain is added**. Add one before this reaches anybody
+else's inbox, or the send will silently succeed and never arrive.
+
+Verified in production: a filled LDSS-2921 delivered; office mode without
+`confirm` refused; a malformed address refused.
+
 ## Verified
 
 End to end, through the browser, against the real code path:
@@ -126,9 +134,6 @@ End to end, through the browser, against the real code path:
   LDSS-4826 (SNAP), LDSS-3421 (HEAP), DOH-4220 (Medicaid) are the next three.
 - **Susie** — an agent that emails the office and keeps asking until the
   applicant gets an answer. Parked deliberately.
-- **`RESEND_API_KEY` is not set**, so the two email doors return "Email isn't
-  configured yet". Download works. Set the key and the from-address and both
-  light up.
 
 ## Bedrock
 
