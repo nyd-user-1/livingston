@@ -97,3 +97,27 @@ export function saveAnswers(a: FormAnswers, sessionId?: string | null) {
 }
 
 export const answerCount = (a: FormAnswers) => Object.keys(a.values).length;
+
+/* ---- which form is in hand ------------------------------------------ */
+// A 40-minute interview must survive a refresh, a closed tab, and a phone
+// running out of battery. The answers already persist; this remembers which
+// form they belong to so the conversation picks up where it stopped.
+
+const ACTIVE = (sessionId?: string | null) => `sam-active-form${sessionId ? `:${sessionId}` : ""}`;
+
+export function rememberActiveForm(formId: string | null, sessionId?: string | null) {
+  try {
+    if (formId) localStorage.setItem(ACTIVE(sessionId), formId);
+    else localStorage.removeItem(ACTIVE(sessionId));
+  } catch {
+    /* private mode — the conversation is still on screen */
+  }
+}
+
+export function recallActiveForm(sessionId?: string | null): string | null {
+  try {
+    return localStorage.getItem(ACTIVE(sessionId));
+  } catch {
+    return null;
+  }
+}

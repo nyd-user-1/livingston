@@ -44,6 +44,40 @@ const PROGRAM_XY: Record<string, { x: number; y: number }> = {
   "Emergency Assistance Only (EMRG)": { x: 576.8, y: 550.3 },
 };
 
+/**
+ * Page 2's "DO ANY OF THESE APPLY TO YOU?" column — the triage flags a
+ * caseworker reads first. Eviction, a shutoff notice, no food, no income and
+ * domestic violence are what route an application to same-day handling, so
+ * these are the highest-stakes boxes on the form and worth mapping exactly.
+ * Coordinates read straight off the printed glyphs.
+ */
+const URGENT_XY: Record<string, { x: number; y: number }> = {
+  pregnant: { x: 615.6, y: 496.4 },
+  domesticViolence: { x: 615.6, y: 481.4 },
+  establishParentage: { x: 615.6, y: 466.4 },
+  needChildSupport: { x: 615.6, y: 451.4 },
+  drugAlcohol: { x: 615.6, y: 436.4 },
+  utilityShutoff: { x: 615.6, y: 421.4 },
+  homeless: { x: 615.6, y: 406.4 },
+  fireOrDisaster: { x: 615.6, y: 391.4 },
+  noIncome: { x: 615.6, y: 376.4 },
+  seriousMedical: { x: 615.6, y: 361.4 },
+  pendingEviction: { x: 615.6, y: 346.4 },
+  noFood: { x: 615.6, y: 331.4 },
+  needFosterCare: { x: 615.6, y: 316.4 },
+  needChildCare: { x: 615.6, y: 301.4 },
+  problemsWithEnglish: { x: 615.6, y: 286.4 },
+  reasonableAccommodations: { x: 615.6, y: 271.4 },
+  other: { x: 615.3, y: 255.6 },
+};
+
+/** The language boxes, also page 2. */
+const LANG_XY: Record<string, { x: number; y: number }> = {
+  english: { x: 99.7, y: 507.6 },
+  spanish: { x: 200.5, y: 507.6 },
+  other: { x: 97.7, y: 496.6 },
+};
+
 const GROUPS: { title: string; prefix: RegExp }[] = [
   { title: "Programs applied for", prefix: /^programs$/ },
   { title: "Language", prefix: /^(language|interpreter|urgent)/ },
@@ -186,13 +220,39 @@ export async function fillForm(form: ProgramForm, answers: FormAnswers): Promise
     .map((p) => p.trim())
     .filter(Boolean);
   const page2 = pages[1];
+  // A box inferred twice (said once, implied once) must still be one mark.
+  const ticked = new Set<string>();
+  const tick = (xy: { x: number; y: number }) => {
+    const at = `${xy.x}:${xy.y}`;
+    if (ticked.has(at)) return;
+    ticked.add(at);
+    page2?.drawText("X", { x: xy.x + 0.8, y: xy.y + 1.2, size: 8, font: bold, color: rgb(0, 0, 0) });
+  };
+
   if (page2) {
     for (const c of chosen) {
       const label = PROGRAM_BOX[c] ?? PROGRAM_BOX[Object.keys(PROGRAM_BOX).find((k) => k.toLowerCase() === c.toLowerCase()) ?? ""];
       const xy = label ? PROGRAM_XY[label] : undefined;
-      if (!xy) continue;
-      page2.drawText("X", { x: xy.x + 0.8, y: xy.y + 1.2, size: 8, font: bold, color: rgb(0, 0, 0) });
+      if (xy) tick(xy);
     }
+
+    // The urgent flags. Matched case-insensitively so the model's casing
+    // cannot silently drop an eviction notice on the floor.
+    const urgent = (answers.values["urgent"] ?? "").split(",").map((u) => u.trim()).filter(Boolean);
+    for (const u of urgent) {
+      if (/^none$/i.test(u)) continue;
+      const key = Object.keys(URGENT_XY).find((k) => k.toLowerCase() === u.toLowerCase());
+      if (key) tick(URGENT_XY[key]);
+    }
+    // Some of these are implied by answers given elsewhere; a person who told
+    // us they have a shutoff notice should not have to say it twice.
+    if (/^(y|yes|true)$/i.test(answers.values["utilities.shutoffNotice"] ?? "")) tick(URGENT_XY.utilityShutoff);
+    if ((answers.values["shelter.type"] ?? "").toLowerCase() === "shelter") tick(URGENT_XY.homeless);
+
+    const lang = (answers.values["language.read"] ?? answers.values["language.speak"] ?? "").toLowerCase();
+    if (lang.includes("english")) tick(LANG_XY.english);
+    else if (lang.includes("spanish")) tick(LANG_XY.spanish);
+    else if (lang) tick(LANG_XY.other);
   }
 
   appendix(doc, form, answers, helv, bold);

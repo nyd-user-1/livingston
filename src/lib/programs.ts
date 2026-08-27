@@ -210,7 +210,7 @@ export const FORM_KEYS: { key: string; what: string }[] = [
   { key: "language.read", what: "language they read" },
   { key: "language.speak", what: "language they speak" },
   { key: "interpreter", what: "yes or no" },
-  { key: "urgent", what: "comma-separated from: pregnant, domesticViolence, establishParentage, needChildSupport, none" },
+  { key: "urgent", what: "comma-separated, any of: pregnant, domesticViolence, establishParentage, needChildSupport, drugAlcohol, utilityShutoff, homeless, fireOrDisaster, noIncome, seriousMedical, pendingEviction, noFood, needFosterCare, needChildCare, problemsWithEnglish, reasonableAccommodations, other, none" },
   { key: "applicant.firstName", what: "first name" },
   { key: "applicant.middleInitial", what: "middle initial" },
   { key: "applicant.lastName", what: "last name" },

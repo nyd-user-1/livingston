@@ -8,13 +8,15 @@ import { useChat, type ChatRoom } from "@/hooks/useChat";
 import { ARCHIVE_LABEL } from "@/hooks/useArchive";
 import { subjectTitle } from "@/lib/subjects";
 import type { DragEntity } from "@/lib/drag-entity";
-import { formById } from "@/lib/programs";
+import { buildFormInterview, formById } from "@/lib/programs";
 import {
   answerCount,
   emptyAnswers,
   loadAnswers,
   mergeAnswers,
   parseAnswerBlocks,
+  recallActiveForm,
+  rememberActiveForm,
   saveAnswers,
   type FormAnswers,
 } from "@/lib/form-answers";
@@ -139,7 +141,26 @@ export default function Chat() {
   useEffect(() => {
     if (!filling) { setAnswers(null); return; }
     setAnswers(loadAnswers(filling.id, sessionId));
+    rememberActiveForm(filling.id, sessionId);
   }, [filling?.id, sessionId]);
+
+  // Coming back to a conversation that was filling something: re-attach the
+  // form so the ribbon, the placeholder and form mode all return with it.
+  useEffect(() => {
+    if (attached) return;
+    const id = recallActiveForm(sessionId);
+    if (!id) return;
+    const f = formById(id);
+    if (!f) return;
+    setAttached({
+      type: "form",
+      id: f.id,
+      label: f.code,
+      title: f.title,
+      sub: `${f.pages} pages`,
+      context: buildFormInterview(f),
+    });
+  }, [sessionId, attached]);
 
   // Harvest the machine block out of each finished assistant turn.
   useEffect(() => {
@@ -329,7 +350,7 @@ export default function Chat() {
             {filling && answers && answerCount(answers) > 0 && (
               <FormProgress form={formById(filling.id)} answers={answers} />
             )}
-            {filling && <FormRibbon label={filling.label} title={filling.title} onExit={() => setAttached(null)} />}
+            {filling && <FormRibbon label={filling.label} title={filling.title} onExit={() => { rememberActiveForm(null, sessionId); setAttached(null); }} />}
             {room && <AgentRibbon room={room} onExit={() => navigate("/new-chat")} />}
             <ChatInput
               onSubmit={submit}
@@ -345,9 +366,14 @@ export default function Chat() {
       ) : (
         /* Empty state — input vertically centered */
         <div className="flex flex-1 flex-col items-center justify-center px-4">
+          {filling && answers && answerCount(answers) > 0 && (
+            <div className="w-full">
+              <FormProgress form={formById(filling.id)} answers={answers} />
+            </div>
+          )}
           {filling && (
             <div className="w-full">
-              <FormRibbon label={filling.label} title={filling.title} onExit={() => setAttached(null)} />
+              <FormRibbon label={filling.label} title={filling.title} onExit={() => { rememberActiveForm(null, sessionId); setAttached(null); }} />
             </div>
           )}
           {room && (
