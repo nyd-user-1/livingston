@@ -1,15 +1,11 @@
 import { TexText } from "./TexText";
 import { useState, useRef, useEffect } from "react";
-import { ThumbsUp, ThumbsDown, Copy, Check, BookOpen, ExternalLink, GraduationCap, FileText, ArrowRight, ShieldCheck } from "lucide-react";
+import { ThumbsUp, ThumbsDown, Copy, Check, BookOpen, ExternalLink, GraduationCap, FileText, ShieldCheck } from "lucide-react";
 import { subjectTitle } from "@/lib/subjects";
-import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import type { MessageSources } from "@/hooks/useChat";
 import { usePaperLookup } from "@/hooks/usePaperLookup";
 import { TextSearch } from "@/components/icons/TextSearch";
-
-/** Both archives have subject agents now; a category chip always links. */
-const ROOMED_SERVERS = new Set(["medrxiv", "biorxiv"]);
 
 interface SimilarRecord {
   key_number: string;
@@ -23,7 +19,6 @@ interface SimilarRecord {
  *  suggests the next papers and subjects, so one click re-scopes the user without
  *  them ever seeing a filter. */
 function RelatedFooter({ sourceKey }: { sourceKey: string }) {
-  const navigate = useNavigate();
   const [related, setRelated] = useState<SimilarRecord[] | null>(null);
 
   useEffect(() => {
