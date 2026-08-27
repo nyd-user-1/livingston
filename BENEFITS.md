@@ -126,9 +126,26 @@ End to end, through the browser, against the real code path:
   LDSS-4826 (SNAP), LDSS-3421 (HEAP), DOH-4220 (Medicaid) are the next three.
 - **Susie** — an agent that emails the office and keeps asking until the
   applicant gets an answer. Parked deliberately.
-- **`AWS_BEARER_TOKEN_BEDROCK` is not set on the deployment**, so chat generation
-  fails in production. Retrieval and routing are verified; it needs the token.
-  `RESEND_API_KEY` likewise for email.
+- **`RESEND_API_KEY` is not set**, so the two email doors return "Email isn't
+  configured yet". Download works. Set the key and the from-address and both
+  light up.
+
+## Bedrock
+
+sam has its own IAM user, **`sam-bedrock-invoke`**, with a service-specific
+Bedrock credential. Its own identity on purpose: the policy allows
+`CallWithBearerToken` plus Invoke/Converse on anthropic foundation models and
+this account's `us.anthropic.*` inference profiles, and nothing else, so a leak
+here cannot reach the rest of the account.
+
+**Vercel reserves every `AWS_*` name**, so `AWS_BEARER_TOKEN_BEDROCK` can never
+be set there. The variable to set is **`BEDROCK_API_KEY`** (plus
+`BEDROCK_REGION`); `api/chat.ts` copies it into the SDK's bearer variable
+in-process at call time. Same pattern as tariffs, leuk and cshl.
+
+Verified in production: `/programs` → hand LDSS-2921 into chat → it answers from
+Bedrock, renders the eight programme chips as controls, records the answer, and
+carries no corpus footer.
 
 ## Working on the NY sites
 
