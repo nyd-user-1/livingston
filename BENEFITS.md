@@ -96,6 +96,22 @@ the applicant, and states in the body that most districts still require a signed
 original. **It puts paperwork in front of a caseworker; it does not file an
 application**, and the UI says so rather than implying otherwise.
 
+## Verified
+
+End to end, through the browser, against the real code path:
+
+- Drag LDSS-2921 → ribbon appends above the input, placeholder becomes
+  "Answering LDSS-2921…", form mode skips corpus retrieval.
+- First turn renders the eight programme chips as controls; submitting records
+  the answer and chip-renders it in the transcript.
+- Next turn asks language as two selects and a yes/no.
+- Progress strip counts answers and sections; "Put it on the form" builds the
+  PDF; all three delivery doors appear.
+- A reload re-attaches the form and restores the progress strip.
+- Filled PDF: 8 boxes ticked on page 2 from a test household, Section 3
+  applicant block written, Section 6 roster written across 8 rows × 5 columns,
+  answers appended as page 29. A box implied twice is ticked once.
+
 ## What is not done
 
 - **The LDSS-2921 text fields.** 1,599 write-in cells located and named
