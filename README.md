@@ -1,6 +1,10 @@
 # sam
 
-AI search and chat over the **medRxiv** preprint corpus.
+Benefits assistance, and AI search over the **medRxiv** preprint corpus.
+
+Drag an application from the Grants & Benefits rail onto the chat and the
+conversation fills it in with you, then hands you the PDF — see
+**[BENEFITS.md](BENEFITS.md)**.
 
 React 19 + Vite + TypeScript SPA, with Vercel serverless functions in `api/`
 talking to Neon Postgres (pgvector + pg_trgm) and Amazon Bedrock.
@@ -13,6 +17,9 @@ talking to Neon Postgres (pgvector + pg_trgm) and Amazon Bedrock.
 | `/new-search` | Search — Hybrid / Semantic / Keyword, with chart widgets |
 | `/medrxiv/papers` | Papers — the medRxiv browser: filters, search, pagination, result cards |
 | `/features` | Capability list, reached from the account menu |
+
+The right rail carries three panels: **Grants & Benefits** (applications you can
+fill in by conversation), recent papers, and a live activity feed.
 
 Everything else redirects to `/`.
 
