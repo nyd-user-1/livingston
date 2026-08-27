@@ -23,9 +23,8 @@ fill in by conversation), recent papers, and a live activity feed.
 
 Everything else redirects to `/`.
 
-The app shell carries a right rail with two panels — a **live feed** of your own
-activity, and a **recent-papers** rail whose cards you can search, dismiss, open,
-or drag onto the chat input to attach as context.
+Cards in any rail can be dragged onto the chat input — a paper attaches as
+reading context, an application starts filling itself in.
 
 ## Running it
 

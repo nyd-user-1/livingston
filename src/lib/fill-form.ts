@@ -78,6 +78,32 @@ const LANG_XY: Record<string, { x: number; y: number }> = {
   other: { x: 97.7, y: 496.6 },
 };
 
+/**
+ * Section 6, page 3 — the household roster. Eight rows, and the columns are
+ * regular, so this one section can be written into the real boxes rather than
+ * only appended. Geometry read from the ruled grid; row 1 is the applicant,
+ * matching how the form is printed ("List everybody who lives with you").
+ *
+ * Column x positions are the left edge of each cell; text is inset 2pt.
+ */
+const ROSTER = {
+  rowY: [462, 442.3, 422.8, 403.2, 383.5, 362.3, 340.6, 321],
+  col: {
+    name: { x: 56.2, w: 224.9 },
+    dob: { x: 390.2, w: 44.3 },
+    sex: { x: 435.2, w: 26.3 },
+    genderIdentity: { x: 462.2, w: 107.3 },
+    ssn: { x: 615.2, w: 102 },
+  },
+} as const;
+
+/** mm/dd/yyyy is what the form prints under the column. */
+function usDate(iso?: string): string {
+  if (!iso) return "";
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(iso.trim());
+  return m ? `${m[2]}/${m[3]}/${m[1]}` : iso.trim();
+}
+
 const GROUPS: { title: string; prefix: RegExp }[] = [
   { title: "Programs applied for", prefix: /^programs$/ },
   { title: "Language", prefix: /^(language|interpreter|urgent)/ },
@@ -254,6 +280,44 @@ export async function fillForm(form: ProgramForm, answers: FormAnswers): Promise
     if (lang.includes("english")) tick(LANG_XY.english);
     else if (lang.includes("spanish")) tick(LANG_XY.spanish);
     else if (lang) tick(LANG_XY.other);
+  }
+
+  /* ---- 3. Section 6, the household roster -------------------------- */
+  const page3 = pages[2];
+  if (page3) {
+    const v = answers.values;
+    const write = (row: number, col: keyof typeof ROSTER.col, text?: string) => {
+      if (!text || text === "skip" || text === "unknown") return;
+      const y = ROSTER.rowY[row];
+      if (y === undefined) return;
+      const c = ROSTER.col[col];
+      // Clip rather than overflow into the neighbouring column.
+      let t = text;
+      while (t.length > 1 && helv.widthOfTextAtSize(t, 7.5) > c.w - 4) t = t.slice(0, -1);
+      page3.drawText(t, { x: c.x + 2, y: y + 6, size: 7.5, font: helv, color: rgb(0, 0, 0) });
+    };
+
+    const people = [
+      {
+        name: [v["applicant.firstName"], v["applicant.lastName"]].filter(Boolean).join(" "),
+        dob: v["applicant.dob"], sex: v["applicant.sex"], ssn: v["applicant.ssn"],
+      },
+      ...Array.from({ length: 7 }, (_, i) => {
+        const n = i + 1;
+        return {
+          name: [v[`household[${n}].firstName`], v[`household[${n}].lastName`]].filter(Boolean).join(" "),
+          dob: v[`household[${n}].dob`], sex: v[`household[${n}].sex`], ssn: v[`household[${n}].ssn`],
+        };
+      }),
+    ];
+
+    people.forEach((person, i) => {
+      if (!person.name && !person.dob) return;
+      write(i, "name", person.name);
+      write(i, "dob", usDate(person.dob));
+      write(i, "sex", person.sex);
+      write(i, "ssn", (person.ssn ?? "").replace(/\D/g, ""));
+    });
   }
 
   appendix(doc, form, answers, helv, bold);
