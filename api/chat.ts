@@ -231,6 +231,50 @@ export default async function handler(req: any, res: any) {
     res.write(": retrieving\n\n");
     const t0 = Date.now();
 
+    // ── FORM MODE ────────────────────────────────────────────────────────
+    // A form was dropped on the conversation. The chat IS the form now, so
+    // there is nothing to retrieve — corpus context would only argue with the
+    // interview. Straight to the model with the form's own instructions.
+    if (req.body?.mode === "form" && typeof systemContext === "string" && systemContext.trim()) {
+      const history = (messages as { role: string; content: string }[])
+        .slice(-16)
+        .filter((m) => (m.role === "user" || m.role === "assistant") && m.content?.trim());
+      const firstUser = history.findIndex((m) => m.role === "user");
+      const turns: { role: "user" | "assistant"; content: { text: string }[] }[] = [];
+      for (const m of [...(firstUser === -1 ? [] : history.slice(firstUser)), { role: "user", content: userMessage }]) {
+        const role = m.role as "user" | "assistant";
+        const prev = turns[turns.length - 1];
+        if (prev && prev.role === role) prev.content.push({ text: m.content });
+        else turns.push({ role, content: [{ text: m.content }] });
+      }
+      if (!process.env.AWS_BEARER_TOKEN_BEDROCK && process.env.BEDROCK_API_KEY) {
+        process.env.AWS_BEARER_TOKEN_BEDROCK = process.env.BEDROCK_API_KEY;
+      }
+      const fClient = new BedrockRuntimeClient({ region: process.env.BEDROCK_REGION ?? "us-east-1" });
+      const fModel = typeof modelId === "string" && modelId.trim() ? modelId.trim() : DEFAULT_MODEL_ID;
+      const fRes = await fClient.send(
+        new ConverseStreamCommand({
+          modelId: fModel,
+          system: [{ text: systemContext }],
+          messages: turns,
+          inferenceConfig: { maxTokens: 2048 },
+        }),
+      );
+      if (!fRes.stream) throw new Error(`Bedrock returned no stream for ${fModel}`);
+      console.log(`chat form-mode start: ${Date.now() - t0}ms, model=${fModel}`);
+      res.write(`data: ${JSON.stringify({ sources: { nsr: [], s2: [], fulltext: [] } })}\n\n`);
+      try {
+        for await (const event of fRes.stream as AsyncIterable<Record<string, unknown>>) {
+          const delta = (event as { contentBlockDelta?: { delta?: { text?: string } } }).contentBlockDelta?.delta?.text;
+          if (delta) res.write(`data: ${JSON.stringify({ choices: [{ delta: { content: delta } }] })}\n\n`);
+        }
+        res.write("data: [DONE]\n\n");
+      } catch (e) {
+        res.write(`data: ${JSON.stringify({ error: e instanceof Error ? e.message : "stream failed" })}\n\n`);
+      }
+      return res.end();
+    }
+
     const sql = neon(process.env.DATABASE_URL!);
     const categories = await extractCategories(sql as never, userMessage);
     const authorQuery = extractAuthorQuery(userMessage);

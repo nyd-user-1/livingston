@@ -1,6 +1,6 @@
 import { useRef, useState } from "react";
 import { Outlet } from "react-router-dom";
-import { List, Activity, FileText, Info, X } from "lucide-react";
+import { List, Activity, FileText, ClipboardList, Info, X } from "lucide-react";
 import { Sidebar } from "@/components/Sidebar";
 import { ResearchFeed, type FeedMode } from "@/components/ResearchFeed";
 import { Tooltip as Hint } from "@/components/ui/tooltip";
@@ -56,6 +56,16 @@ export function AppLayout() {
           <div id="header-search" className="flex-1 mx-2" />
 
           <div className="flex items-center gap-0.5">
+            <Hint label="Forms you can fill" side="bottom">
+              <button
+                onClick={() => toggle("forms")}
+                aria-label="Forms"
+                aria-pressed={panel === "forms"}
+                className={`inline-flex items-center justify-center h-10 w-10 rounded-md transition-colors hover:bg-muted ${panel === "forms" ? "bg-muted text-foreground" : "text-foreground"}`}
+              >
+                <ClipboardList className="h-5 w-5" />
+              </button>
+            </Hint>
             <Hint label="Recent papers" side="bottom">
               <button
                 onClick={() => toggle("papers")}

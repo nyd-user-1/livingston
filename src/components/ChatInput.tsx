@@ -120,7 +120,7 @@ export function ChatInput({ onSubmit, onStop, isLoading, initialValue, searchTog
       {attached && (
         <div className="-mb-2 flex min-w-0 items-center gap-1.5 rounded-t-2xl border border-b-0 border-border bg-muted/60 px-4 pb-4 pt-2 text-[11px] text-muted-foreground">
           <Paperclip className="h-3 w-3 shrink-0" />
-          <span className="shrink-0 uppercase tracking-wide">{attached.type}</span>
+          <span className="shrink-0 uppercase tracking-wide">{attached.type === "form" ? "filling" : attached.type}</span>
           <span className="shrink-0 font-mono text-foreground">{attached.label}</span>
           {attached.title && <span className="truncate">— {attached.title}</span>}
           <button

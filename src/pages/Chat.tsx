@@ -3,7 +3,7 @@ import { useSearchParams, useNavigate, useParams, useLocation } from "react-rout
 import { ChatInput } from "@/components/ChatInput";
 import { DetailBody, type EntityType } from "@/components/EntityDetail";
 import { Badge } from "@/components/ui/badge";
-import { Search, X } from "lucide-react";
+import { ClipboardList, Search, X } from "lucide-react";
 import { useChat, type ChatRoom } from "@/hooks/useChat";
 import { ARCHIVE_LABEL } from "@/hooks/useArchive";
 import { subjectTitle } from "@/lib/subjects";
@@ -18,6 +18,29 @@ const ChatMessage = lazy(() =>
 /** The visible scope: a ribbon appended to the top of the input container —
  *  same construction as the Search page's SEARCH MODE banner. The X exits the
  *  agent, back to the archive's agent list. */
+/** The form ribbon — same construction as the agent ribbon: appended to the top
+ *  of the input container so the chat input reads as belonging to the form. */
+function FormRibbon({ label, title, onExit }: { label: string; title?: string | null; onExit: () => void }) {
+  return (
+    <div className="mx-auto w-full max-w-[720px]">
+      <div className="-mb-2 flex items-center gap-1.5 rounded-t-2xl border border-b-0 border-border bg-muted/60 px-4 pb-4 pt-2 text-[11px] text-muted-foreground">
+        <ClipboardList className="h-3 w-3 shrink-0" />
+        <span className="shrink-0 uppercase tracking-wide">Filling</span>
+        <span className="shrink-0 font-mono text-foreground">{label}</span>
+        {title && <span className="truncate">— {title}</span>}
+        <button
+          onClick={onExit}
+          aria-label="Stop filling this form"
+          className="ml-auto shrink-0 rounded hover:text-foreground"
+          title="Stop filling this form"
+        >
+          <X className="h-3 w-3" />
+        </button>
+      </div>
+    </div>
+  );
+}
+
 function AgentRibbon({ room, onExit }: { room: ChatRoom; onExit: () => void }) {
   return (
     <div className="mx-auto w-full max-w-[720px]">
@@ -93,8 +116,14 @@ export default function Chat() {
   // A paper dragged from the Papers panel onto the input. It stays attached —
   // and rides every message as context — until the chip's ✕ clears it.
   const [attached, setAttached] = useState<DragEntity | null>(null);
+  // A dropped form replaces the assistant's job entirely: its interview text is
+  // the whole system prompt and /api/chat skips corpus retrieval (mode "form").
+  // Anything else attached is a record, and rides in as reading context.
+  const filling = attached?.type === "form" ? attached : null;
   const submit = (text: string, modelId: string) =>
-    sendMessage(text, attached?.context ? buildSystemContext(attached.context) : undefined, undefined, modelId);
+    filling
+      ? sendMessage(text, filling.context, undefined, modelId, "form")
+      : sendMessage(text, attached?.context ? buildSystemContext(attached.context) : undefined, undefined, modelId);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const scrollPaneRef = useRef<HTMLDivElement>(null);
   const [autoSubmitted, setAutoSubmitted] = useState(false);
@@ -249,21 +278,27 @@ export default function Chat() {
 
           {/* Input pinned to bottom */}
           <div className="px-2 md:px-4 py-3 md:py-4 shrink-0 bg-background">
+            {filling && <FormRibbon label={filling.label} title={filling.title} onExit={() => setAttached(null)} />}
             {room && <AgentRibbon room={room} onExit={() => navigate("/new-chat")} />}
             <ChatInput
               onSubmit={submit}
               onStop={stopGeneration}
               isLoading={isLoading}
               searchToggle
-              attached={attached}
+              attached={filling ? null : attached}
               onAttach={setAttached}
-              placeholder={room ? `Chat with the ${ARCHIVE_LABEL[room.server]} ${subjectTitle(room.category)} preprints…` : undefined}
+              placeholder={filling ? `Answering ${filling.label}…` : room ? `Chat with the ${ARCHIVE_LABEL[room.server]} ${subjectTitle(room.category)} preprints…` : undefined}
             />
           </div>
         </>
       ) : (
         /* Empty state — input vertically centered */
         <div className="flex flex-1 flex-col items-center justify-center px-4">
+          {filling && (
+            <div className="w-full">
+              <FormRibbon label={filling.label} title={filling.title} onExit={() => setAttached(null)} />
+            </div>
+          )}
           {room && (
             <div className="w-full">
               <AgentRibbon room={room} onExit={() => navigate("/new-chat")} />
@@ -273,9 +308,9 @@ export default function Chat() {
             onSubmit={submit}
             isLoading={isLoading}
             searchToggle
-            attached={attached}
+            attached={filling ? null : attached}
             onAttach={setAttached}
-            placeholder={room ? `Chat with the ${ARCHIVE_LABEL[room.server]} ${subjectTitle(room.category)} preprints…` : undefined}
+            placeholder={filling ? `Answering ${filling.label}…` : room ? `Chat with the ${ARCHIVE_LABEL[room.server]} ${subjectTitle(room.category)} preprints…` : undefined}
           />
         </div>
       )}

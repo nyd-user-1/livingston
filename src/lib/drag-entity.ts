@@ -4,10 +4,12 @@
  * (add at drop point) and the chat dock (attach as context) both read it.
  */
 
+import { buildFormInterview, formById } from "@/lib/programs";
+
 export const ENTITY_MIME = "application/x-corpus-entity";
 
 export interface DragEntity {
-  type: "paper" | "author" | "nuclide" | "reaction" | "exfor" | "prompt" | "file" | "more";
+  type: "paper" | "author" | "form" | "prompt" | "file" | "more";
   id: string;
   label: string;
   sub?: string;
@@ -45,6 +47,11 @@ export async function describeEntity(g: DragEntity | null): Promise<string> {
   const head = "ACTIVE CONTEXT — the user attached this entity to the conversation:";
   // The card carried the record with it — nothing to fetch.
   if (g.context) return `${head}\n${g.context}`;
+  if (g.type === "form") {
+    const f = formById(g.id);
+    return f ? buildFormInterview(f) : `${head}
+FORM ${g.label}`;
+  }
   if (g.type === "paper") {
     try {
       const d = await fetch(`/api/graph?op=node&type=paper&id=${encodeURIComponent(g.id)}`).then((r) => r.json());

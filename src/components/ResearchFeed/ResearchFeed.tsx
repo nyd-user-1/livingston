@@ -2,9 +2,10 @@ import { useResearchFeed } from "@/hooks/useResearchFeed";
 import { FeedHeader } from "./FeedHeader";
 import { FeedItem } from "./FeedItem";
 import { PapersList } from "./PapersList";
+import { FormsList } from "./FormsList";
 
 /** What the panel is showing. Same shell, same width, same open/close. */
-export type FeedMode = "activity" | "papers";
+export type FeedMode = "activity" | "papers" | "forms";
 
 interface ResearchFeedProps {
   isOpen: boolean;
@@ -16,6 +17,7 @@ interface ResearchFeedProps {
 export function ResearchFeed({ isOpen, mode = "activity", onClose: _onClose }: ResearchFeedProps) {
   const { events } = useResearchFeed();
   const papers = mode === "papers";
+  const forms = mode === "forms";
 
   return (
     <aside
@@ -26,10 +28,12 @@ export function ResearchFeed({ isOpen, mode = "activity", onClose: _onClose }: R
       }`}
     >
       <div className="w-[300px] h-full flex flex-col bg-background">
-        <FeedHeader label={papers ? "Papers" : "Live Feed"} />
+        <FeedHeader label={forms ? "Forms" : papers ? "Papers" : "Live Feed"} />
 
         <div className="flex-1 overflow-y-auto">
-          {papers ? (
+          {forms ? (
+            <FormsList />
+          ) : papers ? (
             // Mounts instantly: AppLayout warms the same react-query key on app
             // mount, so this reads from cache and never shows a spinner. The
             // rows are not kept in the DOM while the feed is showing — the

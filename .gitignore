@@ -41,3 +41,6 @@ supabase/.temp/
 
 # Nested lane worktrees (harness default) — never commit as gitlinks
 .claude/worktrees/
+
+# Research scratch — walk captures, PDF teardown, egress scaffold
+.research/

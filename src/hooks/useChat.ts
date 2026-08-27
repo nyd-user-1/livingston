@@ -66,7 +66,7 @@ export function useChat(room?: ChatRoom | null) {
   const persistence = useChatPersistence();
 
   const sendMessage = useCallback(
-    async (userText: string, systemContext?: string, pdfUrl?: string, modelId?: string) => {
+    async (userText: string, systemContext?: string, pdfUrl?: string, modelId?: string, mode?: "form") => {
       const userMsg: Message = {
         id: makeId(),
         role: "user",
@@ -132,6 +132,7 @@ export function useChat(room?: ChatRoom | null) {
               messages: historyMessages,
               userMessage: userText,
               systemContext: systemContext || undefined,
+              mode,
               // The picker's choice. Omitted → the function falls back to its
               // own default, so an older client keeps working.
               modelId: modelId || undefined,
