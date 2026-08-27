@@ -1,0 +1,1588 @@
+{
+ "medrxiv": [
+  {
+   "category": "infectious diseases",
+   "name": "Communicable Diseases",
+   "papers": 12697,
+   "mesh": {
+    "id": "D003141",
+    "label": "Communicable Diseases",
+    "treeNumbers": [
+     "C23.550.291.531",
+     "C01.221"
+    ],
+    "scopeNote": "An illness caused by an infectious agent or its toxins that occurs through the direct or indirect transmission of the infectious agent or its products from an infected individual or via an animal, vector or the inanimate environment to a susceptible animal or human host.",
+    "seeAlso": [
+     {
+      "id": "D004197",
+      "label": "Disease Reservoirs"
+     }
+    ]
+   }
+  },
+  {
+   "category": "epidemiology",
+   "name": "Epidemiology",
+   "papers": 11813,
+   "mesh": {
+    "id": "D004813",
+    "label": "Epidemiology",
+    "treeNumbers": [
+     "H02.403.720.500"
+    ],
+    "scopeNote": "Field concerned with the determination of causes, incidence, and characteristic behavior of disease outbreaks affecting human populations. It includes the interrelationships of host, agent, and environment as related to the distribution and control of disease.",
+    "seeAlso": []
+   }
+  },
+  {
+   "category": "public and global health",
+   "name": "Global Health",
+   "papers": 7932,
+   "mesh": {
+    "id": "D014943",
+    "label": "Global Health",
+    "treeNumbers": [
+     "N01.400.337",
+     "H02.403.371"
+    ],
+    "scopeNote": "A multi- and interdisciplinary field concerned with improving health and achieving equity in health for all people. It transcends national boundaries, promotes cooperation and collaboration within and beyond health science fields, and combines population-based disease prevention with individually-based patient care.",
+    "seeAlso": [
+     {
+      "id": "D014944",
+      "label": "World Health Organization"
+     }
+    ]
+   }
+  },
+  {
+   "category": "neurology",
+   "name": "Neurology",
+   "papers": 5879,
+   "mesh": {
+    "id": "D009462",
+    "label": "Neurology",
+    "treeNumbers": [
+     "H02.403.600"
+    ],
+    "scopeNote": "A medical specialty concerned with the study of the structures, functions, and diseases of the nervous system.",
+    "seeAlso": [
+     {
+      "id": "D009422",
+      "label": "Nervous System Diseases"
+     }
+    ]
+   }
+  },
+  {
+   "category": "genetic and genomic medicine",
+   "name": "Genomic Medicine",
+   "papers": 5397,
+   "mesh": {
+    "id": "D000088744",
+    "label": "Genomic Medicine",
+    "treeNumbers": [
+     "H02.403.200.550",
+     "E02.479"
+    ],
+    "scopeNote": "A medical discipline using genomic information about an individual as part of their clinical care (e.g. for diagnostic or therapeutic decision-making) and the health outcomes and policy implications of that clinical use. (From www.genome.gov/health/Genomics-and-Medicine accessed 12/28/2020)",
+    "seeAlso": []
+   }
+  },
+  {
+   "category": "psychiatry and clinical psychology",
+   "name": "Psychiatry",
+   "papers": 4670,
+   "mesh": {
+    "id": "D011570",
+    "label": "Psychiatry",
+    "treeNumbers": [
+     "H02.403.690",
+     "F04.096.544"
+    ],
+    "scopeNote": "The medical science that deals with the origin, diagnosis, prevention, and treatment of mental disorders.",
+    "seeAlso": []
+   }
+  },
+  {
+   "category": "cardiovascular medicine",
+   "name": "Cardiology",
+   "papers": 4042,
+   "mesh": {
+    "id": "D002309",
+    "label": "Cardiology",
+    "treeNumbers": [
+     "H02.403.429.163"
+    ],
+    "scopeNote": "The study of the heart, its physiology, and its functions.",
+    "seeAlso": [
+     {
+      "id": "D002318",
+      "label": "Cardiovascular Diseases"
+     },
+     {
+      "id": "D014652",
+      "label": "Vascular Diseases"
+     },
+     {
+      "id": "D006331",
+      "label": "Heart Diseases"
+     }
+    ]
+   }
+  },
+  {
+   "category": "health informatics",
+   "name": "Medical Informatics",
+   "papers": 3772,
+   "mesh": {
+    "id": "D008490",
+    "label": "Medical Informatics",
+    "treeNumbers": [
+     "L01.313.500"
+    ],
+    "scopeNote": "The field of information science concerned with the analysis and dissemination of medical data through the application of computers to various aspects of health care and medicine.",
+    "seeAlso": [
+     {
+      "id": "D020811",
+      "label": "Biomedical Technology"
+     },
+     {
+      "id": "D057171",
+      "label": "American Recovery and Reinvestment Act"
+     }
+    ]
+   }
+  },
+  {
+   "category": "oncology",
+   "name": "Medical Oncology",
+   "papers": 2895,
+   "mesh": {
+    "id": "D008495",
+    "label": "Medical Oncology",
+    "treeNumbers": [
+     "H02.403.429.515"
+    ],
+    "scopeNote": "A subspecialty of internal medicine concerned with the study of neoplasms.",
+    "seeAlso": [
+     {
+      "id": "D009369",
+      "label": "Neoplasms"
+     }
+    ]
+   }
+  },
+  {
+   "category": "radiology and imaging",
+   "name": "Radiology",
+   "papers": 1908,
+   "mesh": {
+    "id": "D011871",
+    "label": "Radiology",
+    "treeNumbers": [
+     "H02.403.740"
+    ],
+    "scopeNote": "A specialty concerned with the use of x-ray and other forms of radiant energy in the diagnosis and treatment of disease.",
+    "seeAlso": []
+   }
+  },
+  {
+   "category": "pediatrics",
+   "name": "Pediatrics",
+   "papers": 1489,
+   "mesh": {
+    "id": "D010372",
+    "label": "Pediatrics",
+    "treeNumbers": [
+     "H02.403.670"
+    ],
+    "scopeNote": "A medical specialty concerned with maintaining health and providing medical care to children from birth to adolescence.",
+    "seeAlso": []
+   }
+  },
+  {
+   "category": "health systems and quality improvement",
+   "name": "Quality Improvement",
+   "papers": 1467,
+   "mesh": {
+    "id": "D058996",
+    "label": "Quality Improvement",
+    "treeNumbers": [
+     "N04.761.744",
+     "J01.293.754"
+    ],
+    "scopeNote": "The attainment or process of attaining a new level of performance or quality.",
+    "seeAlso": []
+   }
+  },
+  {
+   "category": "endocrinology",
+   "name": "Endocrinology",
+   "papers": 1330,
+   "mesh": {
+    "id": "D004704",
+    "label": "Endocrinology",
+    "treeNumbers": [
+     "H02.403.429.323",
+     "H01.158.782.323"
+    ],
+    "scopeNote": "A subspecialty of internal medicine concerned with the metabolism, physiology, and disorders of the ENDOCRINE SYSTEM.",
+    "seeAlso": [
+     {
+      "id": "D004700",
+      "label": "Endocrine System Diseases"
+     }
+    ]
+   }
+  },
+  {
+   "category": "rehabilitation medicine and physical therapy",
+   "name": "Physical and Rehabilitation Medicine",
+   "papers": 1173,
+   "mesh": {
+    "id": "D010810",
+    "label": "Physical and Rehabilitation Medicine",
+    "treeNumbers": [
+     "H02.403.680"
+    ],
+    "scopeNote": "A medical specialty concerned with the use of physical agents, mechanical apparatus, and manipulation in rehabilitating physically diseased or injured patients.",
+    "seeAlso": [
+     {
+      "id": "D001696",
+      "label": "Biomechanical Phenomena"
+     }
+    ]
+   }
+  },
+  {
+   "category": "hiv aids",
+   "name": "Acquired Immunodeficiency Syndrome",
+   "papers": 1147,
+   "mesh": {
+    "id": "D000163",
+    "label": "Acquired Immunodeficiency Syndrome",
+    "treeNumbers": [
+     "C20.673.480.040",
+     "C01.925.813.400.040",
+     "C01.925.839.040",
+     "C01.221.812.640.400.040",
+     "C01.778.640.400.040",
+     "C12.100.937.640.400.040",
+     "C01.221.250.875.040",
+     "C01.925.782.815.616.400.040"
+    ],
+    "scopeNote": "An acquired defect of cellular immunity associated with infection by the human immunodeficiency virus (HIV), a CD4-positive T-lymphocyte count under 200 cells/microliter or less than 14% of total lymphocytes, and increased susceptibility to opportunistic infections and malignant neoplasms. Clinical manifestations also include emaciation (wasting) and dementia. These elements reflect criteria for AIDS as defined by the CDC in 1993.",
+    "seeAlso": [
+     {
+      "id": "D015492",
+      "label": "AIDS Serodiagnosis"
+     },
+     {
+      "id": "D015526",
+      "label": "AIDS Dementia Complex"
+     },
+     {
+      "id": "D016483",
+      "label": "Lymphoma, AIDS-Related"
+     },
+     {
+      "id": "D020943",
+      "label": "AIDS Arteritis, Central Nervous System"
+     }
+    ]
+   }
+  },
+  {
+   "category": "health policy",
+   "name": "Health Policy",
+   "papers": 1146,
+   "mesh": {
+    "id": "D006291",
+    "label": "Health Policy",
+    "treeNumbers": [
+     "I01.655.500.608.400",
+     "N03.623.500.608.428",
+     "I01.880.604.825.608.400"
+    ],
+    "scopeNote": "Decisions, usually developed by government policymakers, for determining present and future objectives pertaining to the health care system.",
+    "seeAlso": []
+   }
+  },
+  {
+   "category": "obstetrics and gynecology",
+   "name": "Gynecology",
+   "papers": 1038,
+   "mesh": {
+    "id": "D006176",
+    "label": "Gynecology",
+    "treeNumbers": [
+     "H02.403.810.310",
+     "H02.403.763.750"
+    ],
+    "scopeNote": "A medical-surgical specialty concerned with the physiology and disorders primarily of the female genital tract, as well as female endocrinology and reproductive physiology.",
+    "seeAlso": [
+     {
+      "id": "D013509",
+      "label": "Gynecologic Surgical Procedures"
+     },
+     {
+      "id": "D018456",
+      "label": "Reproductive Medicine"
+     },
+     {
+      "id": "D005831",
+      "label": "Genital Diseases, Female"
+     }
+    ]
+   }
+  },
+  {
+   "category": "respiratory medicine",
+   "name": "Pulmonary Medicine",
+   "papers": 1023,
+   "mesh": {
+    "id": "D015272",
+    "label": "Pulmonary Medicine",
+    "treeNumbers": [
+     "H02.403.429.675"
+    ],
+    "scopeNote": "A subspecialty of internal medicine concerned with the study of the RESPIRATORY SYSTEM. It is especially concerned with diagnosis and treatment of diseases and defects of the lungs and bronchial tree.",
+    "seeAlso": []
+   }
+  },
+  {
+   "category": "gastroenterology",
+   "name": "Gastroenterology",
+   "papers": 1007,
+   "mesh": {
+    "id": "D005762",
+    "label": "Gastroenterology",
+    "treeNumbers": [
+     "H02.403.429.405"
+    ],
+    "scopeNote": "A subspecialty of internal medicine concerned with the study of the physiology and diseases of the digestive system and related structures (esophagus, liver, gallbladder, and pancreas).",
+    "seeAlso": [
+     {
+      "id": "D005767",
+      "label": "Gastrointestinal Diseases"
+     }
+    ]
+   }
+  },
+  {
+   "category": "intensive care and critical care medicine",
+   "name": "Critical Care",
+   "papers": 932,
+   "mesh": {
+    "id": "D003422",
+    "label": "Critical Care",
+    "treeNumbers": [
+     "N02.421.585.190",
+     "E02.760.190"
+    ],
+    "scopeNote": "Health care provided to a critically ill patient during a medical emergency or crisis.",
+    "seeAlso": []
+   }
+  },
+  {
+   "category": "nutrition",
+   "name": "Nutritional Sciences",
+   "papers": 897,
+   "mesh": {
+    "id": "D052756",
+    "label": "Nutritional Sciences",
+    "treeNumbers": [
+     "H02.533"
+    ],
+    "scopeNote": "The study of NUTRITION PROCESSES as well as the components of food, their actions, interaction, and balance in relation to health and disease.",
+    "seeAlso": [
+     {
+      "id": "D009747",
+      "label": "Nutritional Physiological Phenomena"
+     },
+     {
+      "id": "D005524",
+      "label": "Food Technology"
+     }
+    ]
+   }
+  },
+  {
+   "category": "ophthalmology",
+   "name": "Ophthalmology",
+   "papers": 869,
+   "mesh": {
+    "id": "D009885",
+    "label": "Ophthalmology",
+    "treeNumbers": [
+     "H02.403.810.468"
+    ],
+    "scopeNote": "A surgical specialty concerned with the structure and function of the eye and the medical and surgical treatment of its defects and diseases.",
+    "seeAlso": [
+     {
+      "id": "D005128",
+      "label": "Eye Diseases"
+     },
+     {
+      "id": "D014785",
+      "label": "Vision, Ocular"
+     },
+     {
+      "id": "D009988",
+      "label": "Orthoptics"
+     },
+     {
+      "id": "D013508",
+      "label": "Ophthalmologic Surgical Procedures"
+     }
+    ]
+   }
+  },
+  {
+   "category": "health economics",
+   "name": "Economics, Medical",
+   "papers": 867,
+   "mesh": {
+    "id": "D004470",
+    "label": "Economics, Medical",
+    "treeNumbers": [
+     "N03.219.300"
+    ],
+    "scopeNote": "Economic aspects of the field of medicine, the medical profession, and health care. It includes the economic and financial impact of disease in general on the patient, the physician, society, or government.",
+    "seeAlso": [
+     {
+      "id": "D009817",
+      "label": "Office Management"
+     }
+    ]
+   }
+  },
+  {
+   "category": "occupational and environmental health",
+   "name": "Occupational Health",
+   "papers": 807,
+   "mesh": {
+    "id": "D016272",
+    "label": "Occupational Health",
+    "treeNumbers": [
+     "N01.400.525"
+    ],
+    "scopeNote": "The promotion and maintenance of physical and mental health in the work environment.",
+    "seeAlso": []
+   }
+  },
+  {
+   "category": "allergy and immunology",
+   "name": "Allergy and Immunology",
+   "papers": 710,
+   "mesh": {
+    "id": "D000486",
+    "label": "Allergy and Immunology",
+    "treeNumbers": [
+     "H02.403.044"
+    ],
+    "scopeNote": "A medical specialty concerned with the hypersensitivity of the individual to foreign substances and protection from the resultant infection or disorder.",
+    "seeAlso": []
+   }
+  },
+  {
+   "category": "sexual and reproductive health",
+   "name": "Reproductive Health",
+   "papers": 660,
+   "mesh": {
+    "id": "D060728",
+    "label": "Reproductive Health",
+    "treeNumbers": [
+     "N01.400.625"
+    ],
+    "scopeNote": "The state of the REPRODUCTIVE SYSTEM when functioning optimally without evidence of disease, disorders, or deficiencies.",
+    "seeAlso": [
+     {
+      "id": "D018456",
+      "label": "Reproductive Medicine"
+     },
+     {
+      "id": "D034121",
+      "label": "Reproductive Health Services"
+     }
+    ]
+   }
+  },
+  {
+   "category": "geriatric medicine",
+   "name": "Geriatrics",
+   "papers": 639,
+   "mesh": {
+    "id": "D005853",
+    "label": "Geriatrics",
+    "treeNumbers": [
+     "H02.403.355"
+    ],
+    "scopeNote": "The branch of medicine concerned with the physiological and pathological aspects of the aged, including the clinical problems of senescence and senility.",
+    "seeAlso": [
+     {
+      "id": "D000368",
+      "label": "Aged"
+     }
+    ]
+   }
+  },
+  {
+   "category": "surgery",
+   "name": "General Surgery",
+   "papers": 637,
+   "mesh": {
+    "id": "D013502",
+    "label": "General Surgery",
+    "treeNumbers": [
+     "H02.403.810.300"
+    ],
+    "scopeNote": "A specialty in which manual or operative procedures are used in the treatment of disease, injuries, or deformities.",
+    "seeAlso": [
+     {
+      "id": "D019024",
+      "label": "Barber Surgeons"
+     },
+     {
+      "id": "D013514",
+      "label": "Surgical Procedures, Operative"
+     }
+    ]
+   }
+  },
+  {
+   "category": "primary care research",
+   "name": "Primary Health Care",
+   "papers": 635,
+   "mesh": {
+    "id": "D011320",
+    "label": "Primary Health Care",
+    "treeNumbers": [
+     "N04.590.233.727"
+    ],
+    "scopeNote": "Care which provides integrated, accessible health care services by clinicians who are accountable for addressing a large majority of personal health care needs, developing a sustained partnership with patients, and practicing in the context of family and community. (JAMA 1995;273(3):192)",
+    "seeAlso": [
+     {
+      "id": "D000092863",
+      "label": "Access to Primary Care"
+     }
+    ]
+   }
+  },
+  {
+   "category": "nephrology",
+   "name": "Nephrology",
+   "papers": 596,
+   "mesh": {
+    "id": "D009398",
+    "label": "Nephrology",
+    "treeNumbers": [
+     "H02.403.429.580"
+    ],
+    "scopeNote": "A subspecialty of internal medicine concerned with the anatomy, physiology, and pathology of the kidney.",
+    "seeAlso": [
+     {
+      "id": "D007674",
+      "label": "Kidney Diseases"
+     }
+    ]
+   }
+  },
+  {
+   "category": "pharmacology and therapeutics",
+   "name": "Pharmacology, Clinical",
+   "papers": 583,
+   "mesh": {
+    "id": "D010601",
+    "label": "Pharmacology, Clinical",
+    "treeNumbers": [
+     "H02.628.512",
+     "H01.158.703.152"
+    ],
+    "scopeNote": "The branch of pharmacology that deals directly with the effectiveness and safety of drugs in humans.",
+    "seeAlso": []
+   }
+  },
+  {
+   "category": "medical education",
+   "name": "Education, Medical",
+   "papers": 579,
+   "mesh": {
+    "id": "D004501",
+    "label": "Education, Medical",
+    "treeNumbers": [
+     "I02.358.399"
+    ],
+    "scopeNote": "Use for general articles concerning medical education.",
+    "seeAlso": []
+   }
+  },
+  {
+   "category": "pathology",
+   "name": "Pathology",
+   "papers": 566,
+   "mesh": {
+    "id": "D010336",
+    "label": "Pathology",
+    "treeNumbers": [
+     "H02.403.650"
+    ],
+    "scopeNote": "A specialty concerned with the nature and cause of disease as expressed by changes in cellular or tissue structure and function caused by the disease process.",
+    "seeAlso": []
+   }
+  },
+  {
+   "category": "emergency medicine",
+   "name": "Emergency Medicine",
+   "papers": 535,
+   "mesh": {
+    "id": "D004635",
+    "label": "Emergency Medicine",
+    "treeNumbers": [
+     "H02.403.250"
+    ],
+    "scopeNote": "The branch of medicine concerned with the evaluation and initial treatment of urgent and emergent medical problems, such as those caused by accidents, trauma, sudden illness, poisoning, or disasters. Emergency medical care can be provided at the hospital or at sites outside the medical facility.",
+    "seeAlso": [
+     {
+      "id": "D000094782",
+      "label": "Paramedicine"
+     }
+    ]
+   }
+  },
+  {
+   "category": "rheumatology",
+   "name": "Rheumatology",
+   "papers": 533,
+   "mesh": {
+    "id": "D012219",
+    "label": "Rheumatology",
+    "treeNumbers": [
+     "H02.403.429.730"
+    ],
+    "scopeNote": "A subspecialty of internal medicine concerned with the study of inflammatory or degenerative processes and metabolic derangement of connective tissue structures which pertain to a variety of musculoskeletal disorders, such as arthritis.",
+    "seeAlso": [
+     {
+      "id": "D012216",
+      "label": "Rheumatic Diseases"
+     },
+     {
+      "id": "D003095",
+      "label": "Collagen Diseases"
+     }
+    ]
+   }
+  },
+  {
+   "category": "hematology",
+   "name": "Hematology",
+   "papers": 497,
+   "mesh": {
+    "id": "D006405",
+    "label": "Hematology",
+    "treeNumbers": [
+     "H02.403.429.445"
+    ],
+    "scopeNote": "A subspecialty of internal medicine concerned with morphology, physiology, and pathology of the blood and blood-forming tissues.",
+    "seeAlso": [
+     {
+      "id": "D006402",
+      "label": "Hematologic Diseases"
+     }
+    ]
+   }
+  },
+  {
+   "category": "addiction medicine",
+   "name": "Behavior, Addictive",
+   "papers": 485,
+   "mesh": {
+    "id": "D016739",
+    "label": "Behavior, Addictive",
+    "treeNumbers": [
+     "F01.145.527.100.120"
+    ],
+    "scopeNote": "The observable, measurable, and often pathological activity of an organism that portrays its inability to overcome a habit resulting in an insatiable craving for a substance or for performing certain acts. The addictive behavior includes the emotional and physical overdependence on the object of habit in increasing amount or frequency.",
+    "seeAlso": [
+     {
+      "id": "D019966",
+      "label": "Substance-Related Disorders"
+     }
+    ]
+   }
+  },
+  {
+   "category": "sports medicine",
+   "name": "Sports Medicine",
+   "papers": 474,
+   "mesh": {
+    "id": "D013178",
+    "label": "Sports Medicine",
+    "treeNumbers": [
+     "H02.403.830"
+    ],
+    "scopeNote": "The field of medicine concerned with physical fitness and the diagnosis and treatment of injuries sustained in exercise and sports activities.",
+    "seeAlso": [
+     {
+      "id": "D001265",
+      "label": "Athletic Injuries"
+     },
+     {
+      "id": "D011482",
+      "label": "Protective Devices"
+     }
+    ]
+   }
+  },
+  {
+   "category": "dentistry and oral medicine",
+   "name": "Dentistry",
+   "papers": 397,
+   "mesh": {
+    "id": "D003813",
+    "label": "Dentistry",
+    "treeNumbers": [
+     "E06",
+     "H02.163"
+    ],
+    "scopeNote": "The profession concerned with the teeth, oral cavity, and associated structures, and the diagnosis and treatment of their diseases including prevention and the restoration of defective and missing tissue.",
+    "seeAlso": [
+     {
+      "id": "D006665",
+      "label": "History of Dentistry"
+     },
+     {
+      "id": "D003762",
+      "label": "Dental Instruments"
+     },
+     {
+      "id": "D003748",
+      "label": "Dental Equipment"
+     },
+     {
+      "id": "D004497",
+      "label": "Education, Dental"
+     }
+    ]
+   }
+  },
+  {
+   "category": "pain medicine",
+   "name": "Pain Management",
+   "papers": 379,
+   "mesh": {
+    "id": "D059408",
+    "label": "Pain Management",
+    "treeNumbers": [
+     "E02.745",
+     "N04.590.607.500"
+    ],
+    "scopeNote": "A form of therapy that employs a coordinated and interdisciplinary approach for easing the suffering and improving the quality of life of those experiencing pain.",
+    "seeAlso": [
+     {
+      "id": "D002908",
+      "label": "Chronic Disease"
+     }
+    ]
+   }
+  },
+  {
+   "category": "dermatology",
+   "name": "Dermatology",
+   "papers": 340,
+   "mesh": {
+    "id": "D003880",
+    "label": "Dermatology",
+    "treeNumbers": [
+     "H02.403.225"
+    ],
+    "scopeNote": "A medical specialty concerned with the skin, its structure, functions, diseases, and treatment.",
+    "seeAlso": [
+     {
+      "id": "D012871",
+      "label": "Skin Diseases"
+     }
+    ]
+   }
+  },
+  {
+   "category": "otolaryngology",
+   "name": "Otolaryngology",
+   "papers": 339,
+   "mesh": {
+    "id": "D010036",
+    "label": "Otolaryngology",
+    "treeNumbers": [
+     "H02.403.810.526"
+    ],
+    "scopeNote": "A surgical specialty concerned with the study and treatment of disorders of the ear, nose, and throat.",
+    "seeAlso": [
+     {
+      "id": "D001298",
+      "label": "Audiology"
+     },
+     {
+      "id": "D013517",
+      "label": "Otorhinolaryngologic Surgical Procedures"
+     },
+     {
+      "id": "D013506",
+      "label": "Otologic Surgical Procedures"
+     },
+     {
+      "id": "D059747",
+      "label": "Nasal Surgical Procedures"
+     }
+    ]
+   }
+  },
+  {
+   "category": "orthopedics",
+   "name": "Orthopedics",
+   "papers": 335,
+   "mesh": {
+    "id": "D009985",
+    "label": "Orthopedics",
+    "treeNumbers": [
+     "H02.403.810.494"
+    ],
+    "scopeNote": "A specialty which utilizes medical, surgical, and physical methods to treat and correct deformities, diseases, and injuries to the skeletal system, its articulations, and associated structures.",
+    "seeAlso": [
+     {
+      "id": "D019637",
+      "label": "Orthopedic Procedures"
+     },
+     {
+      "id": "D059166",
+      "label": "Osteology"
+     }
+    ]
+   }
+  },
+  {
+   "category": "nursing",
+   "name": "Nursing",
+   "papers": 326,
+   "mesh": {
+    "id": "D009729",
+    "label": "Nursing",
+    "treeNumbers": [
+     "H02.478",
+     "N04.452.758.377"
+    ],
+    "scopeNote": "The field of nursing care concerned with the promotion, maintenance, and restoration of health.",
+    "seeAlso": [
+     {
+      "id": "D004471",
+      "label": "Economics, Nursing"
+     },
+     {
+      "id": "D004506",
+      "label": "Education, Nursing"
+     },
+     {
+      "id": "D007884",
+      "label": "Legislation, Nursing"
+     },
+     {
+      "id": "D006676",
+      "label": "History of Nursing"
+     }
+    ]
+   }
+  },
+  {
+   "category": "anesthesia",
+   "name": "Anesthesia",
+   "papers": 269,
+   "mesh": {
+    "id": "D000758",
+    "label": "Anesthesia",
+    "treeNumbers": [
+     "E03.155"
+    ],
+    "scopeNote": "A state characterized by loss of feeling or sensation. This depression of nerve function is usually the result of pharmacologic action and is induced to allow performance of surgery or other painful procedures.",
+    "seeAlso": [
+     {
+      "id": "D000777",
+      "label": "Anesthetics"
+     }
+    ]
+   }
+  },
+  {
+   "category": "transplantation",
+   "name": "Transplantation",
+   "papers": 258,
+   "mesh": {
+    "id": "D014180",
+    "label": "Transplantation",
+    "treeNumbers": [
+     "E04.936"
+    ],
+    "scopeNote": "Transference of a tissue or organ from either an alive or deceased donor, within an individual, between individuals of the same species, or between individuals of different species.",
+    "seeAlso": [
+     {
+      "id": "D066027",
+      "label": "Transplant Recipients"
+     },
+     {
+      "id": "D006650",
+      "label": "Histocompatibility Testing"
+     },
+     {
+      "id": "D016377",
+      "label": "Organ Transplantation"
+     },
+     {
+      "id": "D019188",
+      "label": "Organ Preservation Solutions"
+     }
+    ]
+   }
+  },
+  {
+   "category": "urology",
+   "name": "Urology",
+   "papers": 238,
+   "mesh": {
+    "id": "D014572",
+    "label": "Urology",
+    "treeNumbers": [
+     "H02.403.810.860"
+    ],
+    "scopeNote": "A surgical specialty concerned with the study, diagnosis, and treatment of diseases of the urinary tract in both sexes, and the genital tract in the male. Common urological problems include urinary obstruction, URINARY INCONTINENCE, infections, and UROGENITAL NEOPLASMS.",
+    "seeAlso": [
+     {
+      "id": "D013520",
+      "label": "Urologic Surgical Procedures"
+     },
+     {
+      "id": "D033441",
+      "label": "Andrology"
+     },
+     {
+      "id": "D014570",
+      "label": "Urologic Diseases"
+     }
+    ]
+   }
+  },
+  {
+   "category": "medical ethics",
+   "name": "Ethics, Medical",
+   "papers": 126,
+   "mesh": {
+    "id": "D004992",
+    "label": "Ethics, Medical",
+    "treeNumbers": [
+     "K01.752.566.479.171.132.750",
+     "N05.350.340.162.500"
+    ],
+    "scopeNote": "The principles of professional conduct concerning the rights and duties of the physician, relations with patients and fellow practitioners, as well as actions of the physician in patient care and interpersonal relations with patient families.",
+    "seeAlso": [
+     {
+      "id": "D001675",
+      "label": "Bioethics"
+     }
+    ]
+   }
+  },
+  {
+   "category": "palliative medicine",
+   "name": "Palliative Medicine",
+   "papers": 122,
+   "mesh": {
+    "id": "D065126",
+    "label": "Palliative Medicine",
+    "treeNumbers": [
+     "H02.403.645"
+    ],
+    "scopeNote": "A branch of medicine concerned with preventing and relieving the suffering of patients in any stage of disease. Its focus is on comprehensive care and improving the quality of all areas of the patient's life.",
+    "seeAlso": [
+     {
+      "id": "D010166",
+      "label": "Palliative Care"
+     },
+     {
+      "id": "D064946",
+      "label": "Hospice and Palliative Care Nursing"
+     }
+    ]
+   }
+  },
+  {
+   "category": "toxicology",
+   "name": "Toxicology",
+   "papers": 82,
+   "mesh": {
+    "id": "D014116",
+    "label": "Toxicology",
+    "treeNumbers": [
+     "H02.884",
+     "H01.158.891"
+    ],
+    "scopeNote": "The science concerned with the detection, chemical composition, and biological action of toxic substances or poisons and the treatment and prevention of toxic manifestations.",
+    "seeAlso": [
+     {
+      "id": "D011042",
+      "label": "Poisons"
+     },
+     {
+      "id": "D010597",
+      "label": "Pharmacogenetics"
+     }
+    ]
+   }
+  },
+  {
+   "category": "forensic medicine",
+   "name": "Forensic Medicine",
+   "papers": 30,
+   "mesh": {
+    "id": "D005554",
+    "label": "Forensic Medicine",
+    "treeNumbers": [
+     "I01.198.780.937",
+     "H02.403.330"
+    ],
+    "scopeNote": "The application of medical knowledge to questions of law.",
+    "seeAlso": [
+     {
+      "id": "D059018",
+      "label": "DNA Contamination"
+     },
+     {
+      "id": "D035846",
+      "label": "Law Enforcement"
+     }
+    ]
+   }
+  }
+ ],
+ "biorxiv": [
+  {
+   "category": "neuroscience",
+   "name": "Neurosciences",
+   "papers": 62183,
+   "mesh": {
+    "id": "D009488",
+    "label": "Neurosciences",
+    "treeNumbers": [
+     "H01.158.610"
+    ],
+    "scopeNote": "The scientific disciplines concerned with the embryology, anatomy, physiology, biochemistry, pharmacology, etc., of the nervous system.",
+    "seeAlso": []
+   }
+  },
+  {
+   "category": "microbiology",
+   "name": "Microbiology",
+   "papers": 32709,
+   "mesh": {
+    "id": "D008829",
+    "label": "Microbiology",
+    "treeNumbers": [
+     "H01.158.273.540"
+    ],
+    "scopeNote": "The study of microorganisms such as fungi, bacteria, algae, archaea, and viruses.",
+    "seeAlso": [
+     {
+      "id": "D001105",
+      "label": "Archaea"
+     },
+     {
+      "id": "D014780",
+      "label": "Viruses"
+     },
+     {
+      "id": "D001419",
+      "label": "Bacteria"
+     },
+     {
+      "id": "D005658",
+      "label": "Fungi"
+     }
+    ]
+   }
+  },
+  {
+   "category": "bioinformatics",
+   "name": "Computational Biology",
+   "papers": 30152,
+   "mesh": {
+    "id": "D019295",
+    "label": "Computational Biology",
+    "treeNumbers": [
+     "L01.313.124",
+     "H01.158.273.180"
+    ],
+    "scopeNote": "A field of biology concerned with the development of techniques for the collection and manipulation of biological data, and the use of such data to make biological discoveries or predictions. This field encompasses all computational methods and theories for solving biological problems including manipulation of models and datasets.",
+    "seeAlso": [
+     {
+      "id": "D008490",
+      "label": "Medical Informatics"
+     }
+    ]
+   }
+  },
+  {
+   "category": "cell biology",
+   "name": "Cell Biology",
+   "papers": 19968,
+   "mesh": {
+    "id": "D003585",
+    "label": "Cell Biology",
+    "treeNumbers": [
+     "H01.158.100.433",
+     "H01.158.273.160"
+    ],
+    "scopeNote": "The study of the structure, behavior, growth, reproduction, and pathology of cells; and the function and chemistry of cellular components.",
+    "seeAlso": [
+     {
+      "id": "D002477",
+      "label": "Cells"
+     }
+    ]
+   }
+  },
+  {
+   "category": "genomics",
+   "name": "Genomics",
+   "papers": 16551,
+   "mesh": {
+    "id": "D023281",
+    "label": "Genomics",
+    "treeNumbers": [
+     "H01.158.273.343.350",
+     "H01.158.273.180.350"
+    ],
+    "scopeNote": "The systematic study of the complete DNA sequences (GENOME) of organisms. Included is construction of complete genetic, physical, and transcript maps, and the analysis of this structural genomic information on a global scale such as in GENOME WIDE ASSOCIATION STUDIES.",
+    "seeAlso": [
+     {
+      "id": "D019295",
+      "label": "Computational Biology"
+     },
+     {
+      "id": "D040901",
+      "label": "Proteomics"
+     },
+     {
+      "id": "D017422",
+      "label": "Sequence Analysis, DNA"
+     },
+     {
+      "id": "D016045",
+      "label": "Human Genome Project"
+     }
+    ]
+   }
+  },
+  {
+   "category": "evolutionary biology",
+   "name": "Biological Evolution",
+   "papers": 16209,
+   "mesh": {
+    "id": "D005075",
+    "label": "Biological Evolution",
+    "treeNumbers": [
+     "G05.045",
+     "G16.075"
+    ],
+    "scopeNote": "The process of cumulative change over successive generations through which organisms acquire their distinguishing morphological and physiological characteristics.",
+    "seeAlso": [
+     {
+      "id": "D035503",
+      "label": "Sociobiology"
+     }
+    ]
+   }
+  },
+  {
+   "category": "biophysics",
+   "name": "Biophysics",
+   "papers": 16153,
+   "mesh": {
+    "id": "D001703",
+    "label": "Biophysics",
+    "treeNumbers": [
+     "H01.671.100",
+     "H01.158.344"
+    ],
+    "scopeNote": "The study of PHYSICAL PHENOMENA and PHYSICAL PROCESSES as applied to living things.",
+    "seeAlso": []
+   }
+  },
+  {
+   "category": "ecology",
+   "name": "Ecology",
+   "papers": 14783,
+   "mesh": {
+    "id": "D004463",
+    "label": "Ecology",
+    "treeNumbers": [
+     "H01.277.249",
+     "H01.158.273.248"
+    ],
+    "scopeNote": "The branch of science concerned with the interrelationship of organisms and their ENVIRONMENT, especially as manifested by natural cycles and rhythms, community development and structure, interactions between different kinds of organisms, geographic distributions, and population alterations. (Webster's, 3d ed)",
+    "seeAlso": [
+     {
+      "id": "D004782",
+      "label": "Environmental Health"
+     },
+     {
+      "id": "D017753",
+      "label": "Ecosystem"
+     }
+    ]
+   }
+  },
+  {
+   "category": "cancer biology",
+   "name": "Neoplasms",
+   "papers": 14749,
+   "mesh": {
+    "id": "D009369",
+    "label": "Neoplasms",
+    "treeNumbers": [
+     "C04"
+    ],
+    "scopeNote": "New abnormal growth of tissue. Malignant neoplasms show a greater degree of anaplasia and have the properties of invasion and metastasis, compared to benign neoplasms.",
+    "seeAlso": []
+   }
+  },
+  {
+   "category": "immunology",
+   "name": "Allergy and Immunology",
+   "papers": 14474,
+   "mesh": {
+    "id": "D000486",
+    "label": "Allergy and Immunology",
+    "treeNumbers": [
+     "H02.403.044"
+    ],
+    "scopeNote": "A medical specialty concerned with the hypersensitivity of the individual to foreign substances and protection from the resultant infection or disorder.",
+    "seeAlso": []
+   }
+  },
+  {
+   "category": "biochemistry",
+   "name": "Biochemistry",
+   "papers": 14426,
+   "mesh": {
+    "id": "D001671",
+    "label": "Biochemistry",
+    "treeNumbers": [
+     "H01.158.201",
+     "H01.181.122"
+    ],
+    "scopeNote": "The study of the composition, chemical structures, and chemical reactions of living things.",
+    "seeAlso": []
+   }
+  },
+  {
+   "category": "molecular biology",
+   "name": "Molecular Biology",
+   "papers": 13729,
+   "mesh": {
+    "id": "D008967",
+    "label": "Molecular Biology",
+    "treeNumbers": [
+     "H01.158.201.636",
+     "H01.158.273.343.595",
+     "H01.181.122.650"
+    ],
+    "scopeNote": "A discipline concerned with studying biological phenomena in terms of the chemical and physical interactions of molecules.",
+    "seeAlso": [
+     {
+      "id": "D055614",
+      "label": "Genetic Phenomena"
+     },
+     {
+      "id": "D001669",
+      "label": "Biochemical Phenomena"
+     },
+     {
+      "id": "D040342",
+      "label": "Genetic Structures"
+     }
+    ]
+   }
+  },
+  {
+   "category": "plant biology",
+   "name": "Plant Physiological Phenomena",
+   "papers": 12327,
+   "mesh": {
+    "id": "D018521",
+    "label": "Plant Physiological Phenomena",
+    "treeNumbers": [
+     "G15"
+    ],
+    "scopeNote": "The physiological processes, properties, and states characteristic of plants.",
+    "seeAlso": []
+   }
+  },
+  {
+   "category": "genetics",
+   "name": "Genetics",
+   "papers": 11621,
+   "mesh": {
+    "id": "D005823",
+    "label": "Genetics",
+    "treeNumbers": [
+     "H01.158.273.343"
+    ],
+    "scopeNote": "The branch of science concerned with the means and consequences of transmission and generation of the components of biological inheritance. (Stedman, 26th ed)",
+    "seeAlso": [
+     {
+      "id": "D006650",
+      "label": "Histocompatibility Testing"
+     },
+     {
+      "id": "D040342",
+      "label": "Genetic Structures"
+     }
+    ]
+   }
+  },
+  {
+   "category": "bioengineering",
+   "name": "Bioengineering",
+   "papers": 11534,
+   "mesh": {
+    "id": "D057005",
+    "label": "Bioengineering",
+    "treeNumbers": [
+     "J01.293.069"
+    ],
+    "scopeNote": "The application of engineering principles and methods to living organisms or biological systems.",
+    "seeAlso": []
+   }
+  },
+  {
+   "category": "developmental biology",
+   "name": "Developmental Biology",
+   "papers": 10166,
+   "mesh": {
+    "id": "D015509",
+    "label": "Developmental Biology",
+    "treeNumbers": [
+     "H01.158.273.200"
+    ],
+    "scopeNote": "The field of BIOLOGY which deals with the process of the GROWTH AND DEVELOPMENT of an organism.",
+    "seeAlso": [
+     {
+      "id": "D005314",
+      "label": "Embryonic and Fetal Development"
+     },
+     {
+      "id": "D048788",
+      "label": "Growth and Development"
+     }
+    ]
+   }
+  },
+  {
+   "category": "systems biology",
+   "name": "Systems Biology",
+   "papers": 7114,
+   "mesh": {
+    "id": "D049490",
+    "label": "Systems Biology",
+    "treeNumbers": [
+     "H01.158.273.180.800"
+    ],
+    "scopeNote": "Comprehensive, methodical analysis of complex biological systems by monitoring responses to perturbations of biological processes. Large scale, computerized collection and analysis of the data are used to develop and test models of biological systems.",
+    "seeAlso": [
+     {
+      "id": "D013598",
+      "label": "Systems Theory"
+     }
+    ]
+   }
+  },
+  {
+   "category": "physiology",
+   "name": "Physiology",
+   "papers": 6203,
+   "mesh": {
+    "id": "D010827",
+    "label": "Physiology",
+    "treeNumbers": [
+     "H01.158.782"
+    ],
+    "scopeNote": "The biological science concerned with the life-supporting properties, functions, and processes of living organisms or their parts.",
+    "seeAlso": []
+   }
+  },
+  {
+   "category": "animal behavior and cognition",
+   "name": "Behavior, Animal",
+   "papers": 5384,
+   "mesh": {
+    "id": "D001522",
+    "label": "Behavior, Animal",
+    "treeNumbers": [
+     "F01.145.113"
+    ],
+    "scopeNote": "The observable response an animal makes to any situation.",
+    "seeAlso": []
+   }
+  },
+  {
+   "category": "pharmacology and toxicology",
+   "name": "Pharmacology",
+   "papers": 4059,
+   "mesh": {
+    "id": "D010600",
+    "label": "Pharmacology",
+    "treeNumbers": [
+     "H01.158.703",
+     "H02.628"
+    ],
+    "scopeNote": "The study of the origin, nature, properties, and actions of drugs and their effects on living organisms.",
+    "seeAlso": [
+     {
+      "id": "D004364",
+      "label": "Pharmaceutical Preparations"
+     }
+    ]
+   }
+  },
+  {
+   "category": "synthetic biology",
+   "name": "Synthetic Biology",
+   "papers": 3456,
+   "mesh": {
+    "id": "D058615",
+    "label": "Synthetic Biology",
+    "treeNumbers": [
+     "J01.293.069.500",
+     "H01.158.273.904"
+    ],
+    "scopeNote": "A field of biological research combining engineering in the formulation, design, and building (synthesis) of novel biological structures, functions, and systems.",
+    "seeAlso": []
+   }
+  },
+  {
+   "category": "pathology",
+   "name": "Pathology",
+   "papers": 2327,
+   "mesh": {
+    "id": "D010336",
+    "label": "Pathology",
+    "treeNumbers": [
+     "H02.403.650"
+    ],
+    "scopeNote": "A specialty concerned with the nature and cause of disease as expressed by changes in cellular or tissue structure and function caused by the disease process.",
+    "seeAlso": []
+   }
+  },
+  {
+   "category": "zoology",
+   "name": "Zoology",
+   "papers": 1865,
+   "mesh": {
+    "id": "D015046",
+    "label": "Zoology",
+    "treeNumbers": [
+     "H01.158.273.943"
+    ],
+    "scopeNote": "The study of animals - their morphology, growth, distribution, classification, and behavior.",
+    "seeAlso": [
+     {
+      "id": "D000828",
+      "label": "Animal Population Groups"
+     }
+    ]
+   }
+  },
+  {
+   "category": "epidemiology",
+   "name": "Epidemiology",
+   "papers": 1555,
+   "mesh": {
+    "id": "D004813",
+    "label": "Epidemiology",
+    "treeNumbers": [
+     "H02.403.720.500"
+    ],
+    "scopeNote": "Field concerned with the determination of causes, incidence, and characteristic behavior of disease outbreaks affecting human populations. It includes the interrelationships of host, agent, and environment as related to the distribution and control of disease.",
+    "seeAlso": []
+   }
+  },
+  {
+   "category": "scientific communication and education",
+   "name": "Communication",
+   "papers": 1546,
+   "mesh": {
+    "id": "D003142",
+    "label": "Communication",
+    "treeNumbers": [
+     "L01.143",
+     "F01.145.209"
+    ],
+    "scopeNote": "The exchange or transmission of ideas, attitudes, or beliefs between individuals or groups.",
+    "seeAlso": []
+   }
+  },
+  {
+   "category": "paleontology",
+   "name": "Paleontology",
+   "papers": 491,
+   "mesh": {
+    "id": "D010163",
+    "label": "Paleontology",
+    "treeNumbers": [
+     "I01.076.368.584",
+     "H01.277.875"
+    ],
+    "scopeNote": "The study of early forms of life through fossil remains.",
+    "seeAlso": [
+     {
+      "id": "D009106",
+      "label": "Mummies"
+     },
+     {
+      "id": "D058974",
+      "label": "Phylogeography"
+     }
+    ]
+   }
+  },
+  {
+   "category": "clinical trials",
+   "name": "Clinical Trials as Topic",
+   "papers": 99,
+   "mesh": {
+    "id": "D002986",
+    "label": "Clinical Trials as Topic",
+    "treeNumbers": [
+     "N05.715.360.330.250.250",
+     "N06.850.520.450.250.250",
+     "E05.318.372.250.250"
+    ],
+    "scopeNote": "Works about pre-planned studies of the safety, efficacy, or optimum dosage schedule (if appropriate) of one or more diagnostic, therapeutic, or prophylactic drugs, devices, or techniques selected according to predetermined criteria of eligibility and observed for predefined evidence of favorable and unfavorable effects. This concept includes clinical trials conducted both in the U.S. and in other countries.",
+    "seeAlso": [
+     {
+      "id": "D017277",
+      "label": "Drug Approval"
+     },
+     {
+      "id": "D026661",
+      "label": "Clinical Trials Data Monitoring Committees"
+     },
+     {
+      "id": "D035703",
+      "label": "Therapies, Investigational"
+     },
+     {
+      "id": "D015201",
+      "label": "Meta-Analysis as Topic"
+     }
+    ]
+   }
+  }
+ ]
+}

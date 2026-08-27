@@ -1,0 +1,129 @@
+@import "tailwindcss";
+
+@theme {
+  --color-background: oklch(1 0 0);
+  --color-foreground: oklch(0.145 0.015 285);
+  --color-card: oklch(0.985 0 0);
+  --color-card-foreground: oklch(0.145 0.015 285);
+  --color-primary: oklch(0.205 0.015 285);
+  --color-primary-foreground: oklch(0.985 0 0);
+  --color-secondary: oklch(0.965 0.002 285);
+  --color-secondary-foreground: oklch(0.205 0.015 285);
+  --color-muted: oklch(0.965 0.002 285);
+  --color-muted-foreground: oklch(0.555 0.015 285);
+  --color-accent: oklch(0.965 0.002 285);
+  --color-accent-foreground: oklch(0.205 0.015 285);
+  --color-destructive: oklch(0.577 0.245 27.325);
+  --color-border: oklch(0.922 0.004 285);
+  --color-input: oklch(0.922 0.004 285);
+  --color-ring: oklch(0.708 0.165 254);
+  --color-brand: oklch(0.708 0.165 254);
+  --color-brand-foreground: oklch(0.985 0 0);
+  /* Chart marks (src/pages/Announcing.tsx). Two categorical fills only:
+     "ours" and "not ours". Checked with the dataviz validator against this
+     surface — adjacent-pair CVD separation dE 18.9, normal-vision 19.7, both
+     >= 3:1 contrast. The neutral is deliberately low-chroma: it is a
+     de-emphasis, not a competing hue. */
+  --color-chart-ours: #3d93f5;
+  --color-chart-base: #6b6b78;
+  --radius-sm: 0.5rem;
+  --radius-md: 0.75rem;
+  --radius-lg: 1rem;
+}
+
+/*
+ * Bloomberg Terminal–inspired dark theme
+ * Amber-on-black: amber is the baseline, white is promotion,
+ * dim amber is demotion, cyan is interactive, green/red are semantic.
+ */
+.dark {
+  /* Background layers — pure black, panels barely distinguishable */
+  --color-background: #000000;
+  --color-card: #0A0A0A;
+  --color-card-foreground: #FF9933;
+
+  /* Body text — warm amber, the Bloomberg signature */
+  --color-foreground: #FF9933;
+
+  /* White reserved for headers, active states, key identifiers */
+  --color-primary: #FFFFFF;
+  --color-primary-foreground: #000000;
+
+  /* Dark surfaces for hover, inputs, secondary panels */
+  --color-secondary: #111111;
+  --color-secondary-foreground: #FF9933;
+  --color-muted: #1A1A1A;
+  --color-muted-foreground: #8B7332;
+  --color-accent: #1A1A1A;
+  --color-accent-foreground: #FF9933;
+
+  /* Semantic: red for errors/alerts */
+  --color-destructive: #FF3333;
+
+  /* Borders — thin, subtle dark gray grid lines */
+  --color-border: #222222;
+  --color-input: #1A1A1A;
+
+  /* Interactive elements — Bloomberg cyan for links/clickables */
+  --color-ring: #00BFFF;
+  --color-brand: #00BFFF;
+  --color-brand-foreground: #000000;
+
+  /* Chart marks — re-stepped for the black surface rather than flipped:
+     cyan inside the dark lightness band (L 0.48-0.67), dim amber as the
+     demotion neutral. CVD separation dE 20.8, normal-vision 21.8. */
+  --color-chart-ours: #0d9ed6;
+  --color-chart-base: #9a8340;
+}
+
+@layer base {
+  * {
+    border-color: var(--color-border);
+  }
+  body {
+    background-color: var(--color-background);
+    color: var(--color-foreground);
+    font-family: system-ui, -apple-system, sans-serif;
+    margin: 0;
+  }
+  button, a, [role="button"] {
+    cursor: pointer;
+  }
+}
+
+/* Prevent iOS Safari from zooming into inputs with font-size < 16px */
+@media screen and (max-width: 767px) {
+  input, textarea, select {
+    font-size: 16px !important;
+  }
+}
+
+/* Hide scrollbars globally while preserving scroll functionality */
+* {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+*::-webkit-scrollbar {
+  width: 0;
+  height: 0;
+  display: none;
+}
+
+/* Link "wipe" underline (ported from 44b's house standard, brand blue via
+   currentColor): no line at rest; on hover the underline fills left→right. */
+.link-wipe {
+  display: inline-block;
+  padding-bottom: 2px;
+  background-image: linear-gradient(currentColor, currentColor);
+  background-repeat: no-repeat;
+  background-position: 0 100%;
+  background-size: 0 1.5px;
+  transition: background-size 0.4s ease;
+}
+.group:hover .link-wipe,
+.link-wipe:hover {
+  background-size: 100% 1.5px;
+}
+@media (prefers-reduced-motion: reduce) {
+  .link-wipe { transition: none; }
+}
