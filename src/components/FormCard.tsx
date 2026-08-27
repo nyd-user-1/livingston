@@ -25,6 +25,7 @@ export function formEntity(f: ProgramForm): DragEntity {
 
 export function FormCard({ form, onOpen }: { form: ProgramForm; onOpen?: () => void }) {
   const stats = formStats(form);
+  const isForm = Boolean(form.pdf);
   return (
     <div
       className={`${SHELL_CLS} cursor-grab active:cursor-grabbing`}
@@ -41,7 +42,9 @@ export function FormCard({ form, onOpen }: { form: ProgramForm; onOpen?: () => v
       <div className="flex items-center gap-2 border-b border-border bg-muted/30 px-3 py-2 select-none">
         <GripVertical className="h-3 w-3 shrink-0 text-muted-foreground/60" aria-label="drag" />
         <span className="truncate text-xs font-semibold text-foreground">{form.code}</span>
-        <span className="ml-auto shrink-0 text-[10px] text-muted-foreground">{form.minutes} min</span>
+        <span className="ml-auto shrink-0 text-[10px] text-muted-foreground">
+          {isForm ? `${form.minutes} min` : "how to apply"}
+        </span>
       </div>
 
       <div className="px-3 py-3">
@@ -66,10 +69,19 @@ export function FormCard({ form, onOpen }: { form: ProgramForm; onOpen?: () => v
           )}
         </div>
 
-        <p className="mt-2 text-[11px] text-muted-foreground">
-          {form.pages} pages · {stats.questionSections} sections to fill · {stats.readingPages} pages to read
-        </p>
-        <p className="mt-1.5 text-[11px] text-muted-foreground">Drag onto the chat to fill it in together.</p>
+        {isForm ? (
+          <>
+            <p className="mt-2 text-[11px] text-muted-foreground">
+              {form.pages} pages · {stats.questionSections} sections to fill · {stats.readingPages} pages to read
+            </p>
+            <p className="mt-1.5 text-[11px] text-muted-foreground">Drag onto the chat to fill it in together.</p>
+          </>
+        ) : (
+          <>
+            {form.apply?.phone && <p className="mt-2 text-[11px] text-foreground">{form.apply.phone}</p>}
+            <p className="mt-1.5 text-[11px] text-muted-foreground">Drag onto the chat to talk it through.</p>
+          </>
+        )}
       </div>
     </div>
   );

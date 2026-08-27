@@ -39,9 +39,13 @@ export interface ProgramForm {
   pages: number;
   /** Honest estimate, said the way a person would say it. */
   minutes: number;
-  /** The blank form, served from public/. */
-  pdf: string;
+  /** The blank form, served from public/. Absent when there is no form to fill. */
+  pdf?: string;
   sections: FormSection[];
+  /** How you apply when there is no form here to fill in. */
+  apply?: { how: string; phone?: string; url?: string };
+  /** Grouping for the rail. */
+  category: "apply" | "food" | "health" | "energy" | "family" | "money" | "older";
 }
 
 /* ------------------------------------------------------------------ */
@@ -65,6 +69,7 @@ const LDSS_2921: ProgramForm = {
   revision: "07/23",
   pages: 28,
   minutes: 40,
+  category: "apply",
   pdf: "/forms/LDSS-2921.pdf",
   sections: [
     { n: "1", title: "Programs you are applying for", pages: [2], asks: [
@@ -154,6 +159,7 @@ const OCFS_6025: ProgramForm = {
   revision: "current",
   pages: 5,
   minutes: 15,
+  category: "family",
   pdf: "/forms/OCFS-6025.pdf",
   sections: [
     { n: "1", title: "About you", pages: [1], asks: [
@@ -180,7 +186,110 @@ const OCFS_6025: ProgramForm = {
   ],
 };
 
-export const FORMS: ProgramForm[] = [LDSS_2921, OCFS_6025];
+
+/* ------------------------------------------------------------------ */
+/*  Programs without a form here to fill                               */
+/*                                                                     */
+/*  Dragging one of these into the chat still works — sam walks you     */
+/*  through whether you qualify and exactly how to apply. Details and   */
+/*  numbers below came from the state's own prescreening results page,  */
+/*  not from memory.                                                    */
+/* ------------------------------------------------------------------ */
+
+const guide = (
+  o: Omit<ProgramForm, "pages" | "sections" | "revision" | "agency"> &
+    Partial<Pick<ProgramForm, "pages" | "sections" | "revision" | "agency">>,
+): ProgramForm => ({
+  pages: 0,
+  revision: "",
+  agency: o.agency ?? "New York State",
+  sections: o.sections ?? [],
+  ...o,
+});
+
+const GUIDES: ProgramForm[] = [
+  guide({
+    id: "snap", code: "SNAP", title: "Supplemental Nutrition Assistance Program",
+    blurb: "Monthly money for groceries, on a card that works like a debit card.",
+    covers: ["SNAP"], category: "food", minutes: 20,
+    agency: "NYS Office of Temporary and Disability Assistance",
+    apply: { how: "Apply online, or use the LDSS-2921 in this list.", url: "https://mybenefits.ny.gov" },
+  }),
+  guide({
+    id: "heap", code: "HEAP", title: "Home Energy Assistance Program",
+    blurb: "Help paying a heating bill, and emergency help if you are being shut off.",
+    covers: ["HEAP", "Emergency HEAP"], category: "energy", minutes: 15,
+    apply: { how: "Apply through your county district. Seasonal — benefits open at set times of year.", url: "https://otda.ny.gov/programs/heap/" },
+  }),
+  guide({
+    id: "wap", code: "WAP", title: "Weatherization Assistance Program",
+    blurb: "Insulation, heating repairs and other work to cut what your home costs to heat.",
+    covers: ["Weatherization"], category: "energy", minutes: 10,
+    agency: "NYS Homes and Community Renewal",
+    apply: { how: "Contact your local Weatherization provider. Renters qualify too — ask about apartments.", phone: "1-866-275-3427", url: "https://hcr.ny.gov/weatherization-assistance-program" },
+  }),
+  guide({
+    id: "wic", code: "WIC", title: "Women, Infants and Children",
+    blurb: "Food, formula and nutrition help while pregnant and for children under five.",
+    covers: ["WIC"], category: "family", minutes: 10,
+    agency: "NYS Department of Health",
+    apply: { how: "Call the Growing Up Healthy Hotline to find your nearest WIC office and book an appointment.", phone: "1-800-522-5006" },
+  }),
+  guide({
+    id: "school-meals", code: "School Meals", title: "Free and Reduced-Price School Meals",
+    blurb: "Free or cheaper breakfast and lunch at school, and meals over the summer.",
+    covers: ["School Meals", "Summer Meals"], category: "food", minutes: 5,
+    apply: { how: "Apply through your child's school district. Many children qualify automatically once a household gets SNAP." },
+  }),
+  guide({
+    id: "medicaid", code: "Medicaid", title: "Medicaid and Child Health Plus",
+    blurb: "Health coverage for people with lower incomes, and for children in most households.",
+    covers: ["Medicaid", "Child Health Plus", "Essential Plan"], category: "health", minutes: 25,
+    agency: "NY State of Health",
+    apply: { how: "Apply through NY State of Health, or use the LDSS-2921 in this list.", url: "https://nystateofhealth.ny.gov", phone: "1-855-355-5777" },
+  }),
+  guide({
+    id: "epic", code: "EPIC", title: "Elderly Pharmaceutical Insurance Coverage",
+    blurb: "Help with prescription costs for New Yorkers 65 and over, on top of Part D.",
+    covers: ["EPIC"], category: "older", minutes: 15,
+    agency: "NYS Department of Health",
+    apply: { how: "Call for an application. You must be 65+, a NY resident, and in or eligible for a Part D plan.", phone: "1-800-332-3742", url: "https://www.health.ny.gov/health_care/epic/" },
+  }),
+  guide({
+    id: "ny-connects", code: "NY Connects", title: "NY Connects: long term care help",
+    blurb: "Free help understanding care options and staying in your own home.",
+    covers: ["NY Connects", "HIICAP"], category: "older", minutes: 5,
+    agency: "NYS Office for the Aging",
+    apply: { how: "Contact your local NY Connects office. Free, and no income test to ask.", url: "https://www.nyconnects.ny.gov" },
+  }),
+  guide({
+    id: "eitc", code: "EITC", title: "Earned Income and Child Tax Credits",
+    blurb: "Money back at tax time if you worked — federal, state and city credits.",
+    covers: ["Earned Income Credit", "Child Tax Credit", "Empire State Child Credit", "Child & Dependent Care Credit"],
+    category: "money", minutes: 10,
+    agency: "IRS and NYS Department of Taxation and Finance",
+    apply: { how: "Claim it on your tax return. Free filing help is available if you earn under the limit.", url: "https://www.tax.ny.gov/pit/credits/earned_income_credit.htm" },
+  }),
+  guide({
+    id: "veterans", code: "Veterans", title: "Veterans' benefits and annuities",
+    blurb: "Including the Gold Star Parent Annuity and the Blind Annuity for wartime veterans.",
+    covers: ["Gold Star Parent Annuity", "Blind Annuity", "Veterans services"], category: "money", minutes: 10,
+    agency: "NYS Division of Veterans' Services",
+    apply: { how: "Call the state veterans line to be connected to a benefits advisor.", phone: "1-888-838-7697", url: "https://veterans.ny.gov" },
+  }),
+  guide({
+    id: "uninsured-care", code: "ADAP", title: "Uninsured Care Programs",
+    blurb: "Medication and care for New Yorkers who are HIV positive and uninsured.",
+    covers: ["ADAP", "ADAP Plus", "APIC", "HIV Home Care"], category: "health", minutes: 10,
+    agency: "NYS Department of Health",
+    apply: { how: "Call the programme directly. You need not be a citizen; you must be a NY resident.", phone: "1-800-542-2437" },
+  }),
+];
+
+/** The fillable ones first — those are the ones sam can actually complete. */
+export const FORMS: ProgramForm[] = [LDSS_2921, OCFS_6025, ...GUIDES];
+
+export const fillable = (f: ProgramForm) => Boolean(f.pdf);
 
 export const formById = (id: string): ProgramForm | undefined => FORMS.find((f) => f.id === id);
 
@@ -270,6 +379,25 @@ export const FORM_KEYS: { key: string; what: string }[] = [
  * form mode — no corpus retrieval, nothing else competing with it.
  */
 export function buildFormInterview(f: ProgramForm): string {
+  // No form here to fill: sam explains the programme and how to apply,
+  // and does not pretend to be filling anything in.
+  if (!f.pdf) {
+    return [
+      `You are sam. The user is asking about ${f.code} — ${f.title}.`,
+      `${f.blurb}`,
+      f.covers.length ? `It covers: ${f.covers.join(", ")}.` : "",
+      f.apply ? `How to apply: ${f.apply.how}` : "",
+      f.apply?.phone ? `Phone: ${f.apply.phone}` : "",
+      f.apply?.url ? `Online: ${f.apply.url}` : "",
+      "",
+      "- Help them work out whether it is worth applying, and how to do it.",
+      "- Never tell them they do not qualify. You are not the decision — say what the rule is and who decides.",
+      "- They always have the right to apply, whatever any screening says. Say so if they sound discouraged.",
+      "- If another programme in the list would suit them better, say which and why.",
+      "- Keep it short. Give the phone number or the link plainly, not buried in a paragraph.",
+      "- If they want the paperwork done with them, the LDSS-2921 covers cash, food, medical, heating and child care in one application.",
+    ].filter(Boolean).join("\n");
+  }
   const stats = formStats(f);
   return [
     `You are sam, filling out ${f.code} with the user, one section at a time.`,

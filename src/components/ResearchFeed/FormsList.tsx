@@ -1,6 +1,6 @@
 import { useAppPanel } from "@/hooks/useAppPanel";
 import { FormCard } from "@/components/FormCard";
-import { FORMS, formStats, type ProgramForm } from "@/lib/programs";
+import { FORMS, fillable, formStats, type ProgramForm } from "@/lib/programs";
 
 /**
  * The forms rail. Same construction as the Papers rail — a column of cards you
@@ -29,11 +29,27 @@ function FormDetail({ form }: { form: ProgramForm }) {
         </ul>
       </div>
 
-      <p className="text-xs text-muted-foreground">
-        {form.pages} pages. {stats.questionSections} sections ask you something; {stats.readingPages} pages are
-        notices to read, with nothing to fill in.
-      </p>
+      {form.pdf ? (
+        <p className="text-xs text-muted-foreground">
+          {form.pages} pages. {stats.questionSections} sections ask you something; {stats.readingPages} pages are
+          notices to read, with nothing to fill in.
+        </p>
+      ) : (
+        form.apply && (
+          <div className="rounded-md border bg-muted/30 p-3">
+            <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">How to apply</p>
+            <p className="mt-1 text-xs text-foreground">{form.apply.how}</p>
+            {form.apply.phone && <p className="mt-1.5 text-xs font-medium text-foreground">{form.apply.phone}</p>}
+            {form.apply.url && (
+              <a href={form.apply.url} target="_blank" rel="noopener noreferrer" className="mt-1 block truncate text-xs text-brand hover:underline">
+                {form.apply.url}
+              </a>
+            )}
+          </div>
+        )
+      )}
 
+      {form.sections.length > 0 && (
       <div>
         <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">Sections</p>
         <ol className="mt-1.5 space-y-1.5">
@@ -52,7 +68,9 @@ function FormDetail({ form }: { form: ProgramForm }) {
           ))}
         </ol>
       </div>
+      )}
 
+      {form.pdf && (
       <a
         href={form.pdf}
         target="_blank"
@@ -61,6 +79,7 @@ function FormDetail({ form }: { form: ProgramForm }) {
       >
         Open the blank form
       </a>
+      )}
     </div>
   );
 }
@@ -71,14 +90,21 @@ export function FormsList() {
   return (
     <div className="flex flex-col gap-3 px-3 pb-3 pt-2">
       <p className="px-1 text-[11px] leading-relaxed text-muted-foreground">
-        Drag one onto the chat and sam will fill it in with you, one section at a time.
+        Drag one onto the chat. sam fills the applications in with you, and talks the rest through.
       </p>
-      {FORMS.map((f) => (
-        <FormCard
-          key={f.id}
-          form={f}
-          onOpen={() => openPanel({ title: f.code, content: <FormDetail form={f} /> })}
-        />
+
+      <p className="px-1 pt-1 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
+        Fill it in together
+      </p>
+      {FORMS.filter(fillable).map((f) => (
+        <FormCard key={f.id} form={f} onOpen={() => openPanel({ title: f.code, content: <FormDetail form={f} /> })} />
+      ))}
+
+      <p className="px-1 pt-2 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
+        Other help you may qualify for
+      </p>
+      {FORMS.filter((f) => !fillable(f)).map((f) => (
+        <FormCard key={f.id} form={f} onOpen={() => openPanel({ title: f.code, content: <FormDetail form={f} /> })} />
       ))}
     </div>
   );
