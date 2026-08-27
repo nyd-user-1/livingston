@@ -37,11 +37,17 @@ const KINDS: FieldKind[] = ["text", "textarea", "number", "money", "date", "tel"
 export function parseFieldBlock(text: string): ChatField[] | null {
   const m = BLOCK.exec(text);
   if (!m) return null;
+  const body = m[1].trim();
   let raw: unknown;
   try {
-    raw = JSON.parse(m[1].trim());
+    raw = JSON.parse(body);
   } catch {
-    return null;
+    // The model sometimes writes the block as YAML-ish key/value lines instead
+    // of JSON. Silently rendering nothing would be the worst outcome — the user
+    // gets prose with no controls and no idea anything was meant to be there —
+    // so read that shape too rather than dropping the questions on the floor.
+    raw = parseLoose(body);
+    if (!raw) return null;
   }
   const list = Array.isArray(raw) ? raw : [raw];
   const out: ChatField[] = [];
@@ -50,14 +56,15 @@ export function parseFieldBlock(text: string): ChatField[] | null {
     const f = r as Record<string, unknown>;
     const key = typeof f.key === "string" ? f.key.trim() : "";
     const label = typeof f.label === "string" ? f.label.trim() : "";
-    if (!key || !label) continue;
+    if (!key) continue;
+    const shown = label || key.split(".").pop()!.replace(/\[\d+\]/, "").replace(/([a-z])([A-Z])/g, "$1 $2");
     const kind = KINDS.includes(f.kind as FieldKind) ? (f.kind as FieldKind) : "text";
     const options = Array.isArray(f.options) ? f.options.filter((o): o is string => typeof o === "string") : undefined;
     // A select with nothing to select from is a text box, not a dead dropdown.
     const settled: FieldKind = (kind === "select" || kind === "radio" || kind === "checkbox") && !options?.length ? "text" : kind;
     out.push({
       key,
-      label,
+      label: shown,
       kind: settled,
       options,
       placeholder: typeof f.placeholder === "string" ? f.placeholder : undefined,
@@ -66,6 +73,53 @@ export function parseFieldBlock(text: string): ChatField[] | null {
       optional: f.optional === true,
     });
   }
+  return out.length ? out : null;
+}
+
+/**
+ * A tolerant reader for the non-JSON shape:
+ *
+ *   key: programs
+ *   kind: checkbox
+ *   options:
+ *     - PA|Public Assistance
+ *
+ * A blank line or a repeated `key:` starts the next field.
+ */
+function parseLoose(body: string): Record<string, unknown>[] | null {
+  const out: Record<string, unknown>[] = [];
+  let cur: Record<string, unknown> | null = null;
+  let inOptions = false;
+  for (const raw of body.split("\n")) {
+    const line = raw.trim();
+    if (!line || line === "-") {
+      if (!line) inOptions = false;
+      continue;
+    }
+    if (line.startsWith("-")) {
+      if (cur && inOptions) ((cur.options as string[]) ??= []).push(line.replace(/^-\s*/, "").replace(/^["']|["']$/g, ""));
+      continue;
+    }
+    const i = line.indexOf(":");
+    if (i < 1) continue;
+    const k = line.slice(0, i).trim();
+    const v = line.slice(i + 1).trim().replace(/^["']|["']$/g, "").replace(/,$/, "");
+    if (k === "key") {
+      if (cur) out.push(cur);
+      cur = { key: v };
+      inOptions = false;
+      continue;
+    }
+    if (!cur) continue;
+    if (k === "options") {
+      inOptions = true;
+      if (v) cur.options = v.replace(/^\[|\]$/g, "").split(",").map((o) => o.trim().replace(/^["']|["']$/g, "")).filter(Boolean);
+      continue;
+    }
+    inOptions = false;
+    cur[k] = k === "optional" ? /^(true|yes)$/i.test(v) : v;
+  }
+  if (cur) out.push(cur);
   return out.length ? out : null;
 }
 
