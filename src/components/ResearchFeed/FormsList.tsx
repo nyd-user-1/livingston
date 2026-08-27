@@ -71,7 +71,7 @@ export function FormsList() {
   return (
     <div className="flex flex-col gap-3 px-3 pb-3 pt-2">
       <p className="px-1 text-[11px] leading-relaxed text-muted-foreground">
-        Drag a form onto the chat and sam will fill it in with you, one section at a time.
+        Drag one onto the chat and sam will fill it in with you, one section at a time.
       </p>
       {FORMS.map((f) => (
         <FormCard

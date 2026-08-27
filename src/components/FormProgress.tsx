@@ -1,7 +1,8 @@
 import { useState } from "react";
-import { Download, Check, Loader2, ChevronDown } from "lucide-react";
+import { Check, Loader2, ChevronDown } from "lucide-react";
 import { answerCount, type FormAnswers } from "@/lib/form-answers";
 import type { ProgramForm } from "@/lib/programs";
+import { FormDelivery } from "@/components/FormDelivery";
 
 /**
  * What the form knows so far, sitting above the input.
@@ -15,6 +16,7 @@ export function FormProgress({ form, answers }: { form?: ProgramForm; answers: F
   const [open, setOpen] = useState(false);
   const [busy, setBusy] = useState(false);
   const [url, setUrl] = useState<string | null>(null);
+  const [bytes, setBytes] = useState<Uint8Array | null>(null);
   const [err, setErr] = useState<string | null>(null);
 
   if (!form) return null;
@@ -29,8 +31,9 @@ export function FormProgress({ form, answers }: { form?: ProgramForm; answers: F
       // pdf-lib is ~350 KB; it has no business loading until someone asks for
       // the document.
       const { fillForm } = await import("@/lib/fill-form");
-      const bytes = await fillForm(form!, answers);
-      const blob = new Blob([bytes as BlobPart], { type: "application/pdf" });
+      const out = await fillForm(form!, answers);
+      setBytes(out);
+      const blob = new Blob([out as BlobPart], { type: "application/pdf" });
       setUrl((old) => {
         if (old) URL.revokeObjectURL(old);
         return URL.createObjectURL(blob);
@@ -57,16 +60,6 @@ export function FormProgress({ form, answers }: { form?: ProgramForm; answers: F
           </button>
 
           <div className="ml-auto flex shrink-0 items-center gap-1.5">
-            {url && (
-              <a
-                href={url}
-                download={`${form.code}-draft.pdf`}
-                className="inline-flex items-center gap-1 rounded-md border border-border px-2 py-1 text-[11px] text-brand hover:bg-muted"
-              >
-                <Download className="h-3 w-3" />
-                Download draft
-              </a>
-            )}
             <button
               onClick={build}
               disabled={busy}
@@ -79,6 +72,22 @@ export function FormProgress({ form, answers }: { form?: ProgramForm; answers: F
         </div>
 
         {err && <p className="mt-1.5 text-[11px] text-destructive">{err}</p>}
+
+        {url && bytes && (
+          <FormDelivery
+            form={form}
+            url={url}
+            county={answers.values["address.county"]}
+            pdfBase64={async () => {
+              // Chunked so a 2 MB form does not blow the argument limit.
+              let bin = "";
+              for (let i = 0; i < bytes.length; i += 0x8000) {
+                bin += String.fromCharCode(...bytes.subarray(i, i + 0x8000));
+              }
+              return btoa(bin);
+            }}
+          />
+        )}
 
         {open && (
           <dl className="mt-2 grid max-h-48 grid-cols-1 gap-x-6 gap-y-1 overflow-y-auto border-t border-border pt-2 sm:grid-cols-2">

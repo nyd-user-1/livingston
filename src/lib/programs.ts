@@ -139,7 +139,48 @@ const LDSS_2921: ProgramForm = {
   ],
 };
 
-export const FORMS: ProgramForm[] = [LDSS_2921];
+
+/* ------------------------------------------------------------------ */
+/*  OCFS-6025 — Child Care Assistance                                  */
+/* ------------------------------------------------------------------ */
+
+const OCFS_6025: ProgramForm = {
+  id: "ocfs-6025",
+  code: "OCFS-6025",
+  title: "New York State Application for Child Care Assistance",
+  blurb: "Help paying for child care while you work, study or look for work.",
+  covers: ["Child Care Assistance Program (CCAP)"],
+  agency: "NYS Office of Children and Family Services",
+  revision: "current",
+  pages: 5,
+  minutes: 15,
+  pdf: "/forms/OCFS-6025.pdf",
+  sections: [
+    { n: "1", title: "About you", pages: [1], asks: [
+      "Name, address, phone, email, and how you would rather be contacted",
+      "The language you read and speak",
+    ] },
+    { n: "2", title: "Everyone in your home", pages: [1, 2], asks: [
+      "For each person: name, date of birth, sex, Social Security number, relationship to you",
+      "Which children need care, and whether any has special needs",
+    ] },
+    { n: "3", title: "Why you need care", pages: [2, 3], asks: [
+      "Whether you are working, looking for work, in training, or in college — and your schedule",
+      "Other reasons care is needed: homelessness, domestic violence, disability, a treatment programme",
+    ] },
+    { n: "4", title: "Income", pages: [3, 4], asks: [
+      "Every kind of money coming in: work, child support, disability, pensions, alimony, public assistance, interest",
+    ] },
+    { n: "5", title: "Other benefits", pages: [4], asks: [
+      "Whether anyone gets SNAP, Medicaid, TANF, HEAP, WIC, Head Start or housing help",
+    ] },
+    { n: "6", title: "Signing it", pages: [5], consent: true, asks: [
+      "What you are attesting to, and your signature",
+    ] },
+  ],
+};
+
+export const FORMS: ProgramForm[] = [LDSS_2921, OCFS_6025];
 
 export const formById = (id: string): ProgramForm | undefined => FORMS.find((f) => f.id === id);
 

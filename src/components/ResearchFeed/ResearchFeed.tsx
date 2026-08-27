@@ -28,7 +28,7 @@ export function ResearchFeed({ isOpen, mode = "activity", onClose: _onClose }: R
       }`}
     >
       <div className="w-[300px] h-full flex flex-col bg-background">
-        <FeedHeader label={forms ? "Forms" : papers ? "Papers" : "Live Feed"} />
+        <FeedHeader label={forms ? "Grants & Benefits" : papers ? "Papers" : "Live Feed"} />
 
         <div className="flex-1 overflow-y-auto">
           {forms ? (

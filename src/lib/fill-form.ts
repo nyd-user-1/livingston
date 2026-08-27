@@ -59,6 +59,110 @@ const GROUPS: { title: string; prefix: RegExp }[] = [
   { title: "Other", prefix: /^(other|voter)\./ },
 ];
 
+/* ------------------------------------------------------------------ */
+/*  OCFS-6025 — a form that ships its own named fields                 */
+/* ------------------------------------------------------------------ */
+
+/**
+ * The child-care application arrives with 429 semantically named AcroForm
+ * fields, so this one gets written properly rather than appended to. The
+ * adapter is the whole trick from the Jobright pattern: one stored profile,
+ * one per-form map from our vocabulary onto that form's schema.
+ */
+function fillOcfs6025(doc: PDFDocument, v: Record<string, string>) {
+  const form = doc.getForm();
+  const tf = (name: string, val?: string) => {
+    if (!val || val === "skip" || val === "unknown") return;
+    try { form.getTextField(name).setText(val); } catch { /* field absent in this revision */ }
+  };
+  const cb = (name: string, on: boolean) => {
+    if (!on) return;
+    try { form.getCheckBox(name).check(); } catch { /* field absent */ }
+  };
+  const yn = (base: string, val?: string) => {
+    if (!val) return;
+    const y = /^(y|yes|true)$/i.test(val.trim());
+    cb(`${base}_yes`, y);
+    cb(`${base}_no`, !y && /^(n|no|false)$/i.test(val.trim()));
+  };
+
+  const first = v["applicant.firstName"] ?? "";
+  const last = v["applicant.lastName"] ?? "";
+  tf("full_name", [first, last].filter(Boolean).join(" "));
+  tf("address_street", v["address.street"]);
+  tf("address_apt", v["address.apt"]);
+  tf("address_city", v["address.city"]);
+  tf("address_state", v["address.state"] ?? "NY");
+  tf("address_county", v["address.county"]);
+  tf("address_zip", v["address.zip"]);
+  tf("email", v["applicant.email"]);
+
+  const digits = (v["applicant.phone"] ?? "").replace(/\D/g, "");
+  if (digits.length >= 10) {
+    tf("phone_area", digits.slice(0, 3));
+    tf("phone_prefix", digits.slice(3, 6));
+    tf("phone_line", digits.slice(6, 10));
+  }
+  if (v["applicant.email"]) cb("contact_pref_email", true);
+
+  const lang = (v["language.speak"] ?? v["language.read"] ?? "").toLowerCase();
+  if (lang) {
+    cb("lang_english", lang.includes("english"));
+    cb("lang_spanish", lang.includes("spanish"));
+    if (!lang.includes("english") && !lang.includes("spanish")) {
+      cb("lang_other", true);
+      tf("lang_other_text", v["language.speak"] ?? v["language.read"]);
+    }
+  }
+
+  // Household roster. hh1 is the applicant on this form; the people the user
+  // listed start at hh2, matching household[1..] in our vocabulary.
+  tf("hh1_name", [first, last].filter(Boolean).join(" "));
+  tf("hh1_dob", v["applicant.dob"]);
+  tf("hh1_sex", v["applicant.sex"]);
+  tf("hh1_ssn", (v["applicant.ssn"] ?? "").replace(/\D/g, ""));
+  for (let i = 1; i <= 7; i++) {
+    const slot = i + 1;
+    const name = [v[`household[${i}].firstName`], v[`household[${i}].lastName`]].filter(Boolean).join(" ");
+    tf(`hh${slot}_name`, name);
+    tf(`hh${slot}_dob`, v[`household[${i}].dob`]);
+    tf(`hh${slot}_sex`, v[`household[${i}].sex`]);
+    tf(`hh${slot}_ssn`, (v[`household[${i}].ssn`] ?? "").replace(/\D/g, ""));
+    tf(`hh${slot}_relationship`, v[`household[${i}].relationship`]);
+    yn(`hh${slot}_us_citizen`, v[`household[${i}].citizenship`]?.toLowerCase().includes("citizen") ? "yes" : undefined);
+  }
+
+  yn("homeless", v["shelter.type"]?.toLowerCase() === "shelter" ? "yes" : "no");
+
+  // Benefits already received — the form asks which, as checkboxes.
+  const progs = (v["programs"] ?? "").toLowerCase();
+  cb("benefit_snap", progs.includes("snap"));
+  cb("benefit_medicaid", progs.includes("medicaid"));
+  cb("benefit_tanf", progs.includes("pa"));
+
+  // Income: each kind is a yes/no plus who and how much.
+  for (let i = 1; i <= 6; i++) {
+    const src = (v[`income[${i}].source`] ?? "").toLowerCase();
+    if (!src) continue;
+    const who = v[`income[${i}].who`] ?? "";
+    const amt = v[`income[${i}].amount`] ?? "";
+    const per = v[`income[${i}].period`] ?? "";
+    const target =
+      src.includes("child") ? "income_child_support" :
+      src.includes("disab") ? "income_disability" :
+      src.includes("pension") || src.includes("retire") ? "income_pensions" :
+      src.includes("alimony") ? "income_alimony" :
+      src.includes("public") || src.includes("tanf") ? "income_public_assistance" :
+      src.includes("divid") || src.includes("interest") ? "income_dividends" :
+      src.includes("job") || src.includes("work") || src.includes("wage") || src.includes("employ") ? "income_work" :
+      "income_other";
+    yn(target, "yes");
+    tf(`${target}_who1`, who);
+    tf(`${target}_amount1`, amt);
+    tf(`${target}_period1`, per);
+  }
+}
+
 export async function fillForm(form: ProgramForm, answers: FormAnswers): Promise<Uint8Array> {
   const res = await fetch(form.pdf);
   if (!res.ok) throw new Error(`Could not load ${form.code} (${res.status})`);
@@ -66,6 +170,15 @@ export async function fillForm(form: ProgramForm, answers: FormAnswers): Promise
   const helv = await doc.embedFont(StandardFonts.Helvetica);
   const bold = await doc.embedFont(StandardFonts.HelveticaBold);
   const pages = doc.getPages();
+
+  /* ---- 0. forms that carry their own field layer ------------------- */
+  if (form.id === "ocfs-6025") {
+    fillOcfs6025(doc, answers.values);
+    // Still append the record: a caseworker reading the appendix can see every
+    // answer given, including the ones this form has no box for.
+    appendix(doc, form, answers, helv, bold);
+    return doc.save();
+  }
 
   /* ---- 1. the program checkboxes ---------------------------------- */
   const chosen = (answers.values["programs"] ?? "")
@@ -82,7 +195,17 @@ export async function fillForm(form: ProgramForm, answers: FormAnswers): Promise
     }
   }
 
-  /* ---- 2. the answers appendix ------------------------------------ */
+  appendix(doc, form, answers, helv, bold);
+  return doc.save();
+}
+
+function appendix(
+  doc: PDFDocument,
+  form: ProgramForm,
+  answers: FormAnswers,
+  helv: Awaited<ReturnType<PDFDocument["embedFont"]>>,
+  bold: Awaited<ReturnType<PDFDocument["embedFont"]>>,
+) {
   const entries = Object.entries(answers.values).filter(([, v]) => v && v !== "skip" && v !== "unknown");
   const skipped = Object.entries(answers.values).filter(([, v]) => v === "skip" || v === "unknown");
 
@@ -134,6 +257,4 @@ export async function fillForm(form: ProgramForm, answers: FormAnswers): Promise
     line("ASKED, NOT GIVEN", 8, bold, rgb(0.3, 0.3, 0.3));
     for (const [k, v] of skipped) line(`${k}   (${v})`, 9, helv, rgb(0.45, 0.45, 0.45));
   }
-
-  return doc.save();
 }
