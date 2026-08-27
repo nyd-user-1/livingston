@@ -3,6 +3,7 @@ import {
   SquarePen,
   Search,
   ChevronDown,
+  ClipboardList,
   Share2,
   MoreHorizontal,
   Pencil,
@@ -169,7 +170,7 @@ const WORKSPACE_ITEMS: { label: string; path: string; prefetch: () => Promise<un
 
 /** medRxiv's sub-nav. sam shows Papers only. */
 const archiveItems = (server: "medrxiv") => [
-  { label: "Papers", path: `/${server}/papers`, prefetch: () => import("@/pages/References") },
+  { label: "Papers", path: `/papers`, prefetch: () => import("@/pages/References") },
 ];
 
 /** A collapsible nav group: the label opens its landing (or toggles when there is none); the chevron only toggles. */
@@ -221,7 +222,7 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
   const location = useLocation();
   const [chatsExpanded, setChatsExpanded] = useState(true);
   const [workspaceExpanded, setWorkspaceExpanded] = useState(false);
-  const onMedrxiv = location.pathname.startsWith("/medrxiv");
+  const onMedrxiv = location.pathname.startsWith("/papers");
   const [medrxivExpanded, setMedrxivExpanded] = useState(onMedrxiv);
   const { data: sessions, refresh } = useChatSessions();
 
@@ -267,6 +268,17 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
           >
             <Search className="h-4 w-4" />
             New Search
+          </button>
+
+          <button
+            onClick={() => { navigate("/programs"); closeMobile(); }}
+            onMouseEnter={() => { import("@/pages/Programs"); }}
+            className={`flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors ${
+              location.pathname === "/programs" ? "bg-muted" : "hover:bg-muted"
+            }`}
+          >
+            <ClipboardList className="h-4 w-4" />
+            Grants &amp; Benefits
           </button>
 
           {/* The archive. The label toggles the group; the sub-items are the

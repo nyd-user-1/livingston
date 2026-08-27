@@ -105,7 +105,7 @@ const YEAR_OPTIONS = Array.from(
 /*  Page                                                               */
 /* ------------------------------------------------------------------ */
 
-/** With `server`, this page is an archive's Papers view (/medrxiv/papers,
+/** With `server`, this page is an archive's Papers view (/papers,
  *  browse, search, and filters all confined to that archive. */
 export default function References({ server }: { server?: "biorxiv" | "medrxiv" }) {
   const [searchParams, setSearchParams] = useSearchParams();

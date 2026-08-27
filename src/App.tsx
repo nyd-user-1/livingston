@@ -13,6 +13,7 @@ const Chat = lazy(() => import("@/pages/Chat"));
 const References = lazy(() => import("@/pages/References"));
 const Search = lazy(() => import("@/pages/Search"));
 const Features = lazy(() => import("@/pages/Features"));
+const Programs = lazy(() => import("@/pages/Programs"));
 
 const queryClient = new QueryClient();
 
@@ -40,9 +41,13 @@ function App() {
                 <Route path="/new-search" element={<Search />} />
                 {/* /search was the pre-sam name for the same page */}
                 <Route path="/search" element={<Navigate to="/new-search" replace />} />
-                {/* sam is medRxiv-only, and medRxiv is Papers only. */}
-                <Route path="/medrxiv" element={<Navigate to="/medrxiv/papers" replace />} />
-                <Route path="/medrxiv/papers" element={<References key="medrxiv-papers" server="medrxiv" />} />
+                {/* Grants & benefits — the shelf of things you can apply for. */}
+                <Route path="/programs" element={<Programs />} />
+                {/* The browse grid is programmes now. The preprint browser it
+                    replaced still exists at /papers. */}
+                <Route path="/medrxiv" element={<Navigate to="/programs" replace />} />
+                <Route path="/medrxiv/papers" element={<Navigate to="/programs" replace />} />
+                <Route path="/papers" element={<References key="medrxiv-papers" server="medrxiv" />} />
                 {/* Reached from the account menu. */}
                 <Route path="/features" element={<Features />} />
                 {/* Everything else — the dropped bioRxiv section, medRxiv

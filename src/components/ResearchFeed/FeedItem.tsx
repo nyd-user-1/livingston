@@ -69,23 +69,23 @@ function buildFeedItemPath(event: FeedEvent): string | null {
     }
     case "record_inquiry":
       return entity_value
-        ? `/medrxiv/papers?q=${encodeURIComponent(entity_value)}&mode=keyword`
+        ? `/papers?q=${encodeURIComponent(entity_value)}&mode=keyword`
         : null;
     case "semantic_search":
       return entity_value
-        ? `/medrxiv/papers?q=${encodeURIComponent(entity_value)}&mode=semantic`
+        ? `/papers?q=${encodeURIComponent(entity_value)}&mode=semantic`
         : null;
     case "keyword_search":
       return entity_value
-        ? `/medrxiv/papers?q=${encodeURIComponent(entity_value)}&mode=keyword`
+        ? `/papers?q=${encodeURIComponent(entity_value)}&mode=keyword`
         : null;
     case "category_filter":
       return entity_value
-        ? `/medrxiv/papers?category=${encodeURIComponent(entity_value)}`
+        ? `/papers?category=${encodeURIComponent(entity_value)}`
         : null;
     case "journal_filter":
       return entity_value
-        ? `/medrxiv/papers?journal=${encodeURIComponent(entity_value)}`
+        ? `/papers?journal=${encodeURIComponent(entity_value)}`
         : null;
     default:
       return null;

@@ -146,9 +146,13 @@ export default function Chat() {
 
   // Coming back to a conversation that was filling something: re-attach the
   // form so the ribbon, the placeholder and form mode all return with it.
+  // A programme handed over from the browse grid takes precedence — that is a
+  // fresh intent, not a resumed one.
   useEffect(() => {
     if (attached) return;
-    const id = recallActiveForm(sessionId);
+    const handed = sessionStorage.getItem("sam-open-form");
+    if (handed) sessionStorage.removeItem("sam-open-form");
+    const id = handed ?? recallActiveForm(sessionId);
     if (!id) return;
     const f = formById(id);
     if (!f) return;
