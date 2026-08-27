@@ -146,8 +146,8 @@ export function ChatMessage({
           }}
         >
           {citeMarkdown(content)}
-          {fields && onFieldSubmit && <ChatFormFields fields={fields} onSubmit={onFieldSubmit} />}
         </ReactMarkdown>
+        {fields && onFieldSubmit && <ChatFormFields fields={fields} onSubmit={onFieldSubmit} />}
         {isStreaming && !content && (
           <span className="inline-block w-1.5 h-4 bg-foreground animate-pulse" />
         )}
