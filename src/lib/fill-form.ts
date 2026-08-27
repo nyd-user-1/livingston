@@ -198,6 +198,7 @@ function fillOcfs6025(doc: PDFDocument, v: Record<string, string>) {
 }
 
 export async function fillForm(form: ProgramForm, answers: FormAnswers): Promise<Uint8Array> {
+  if (!form.pdf) throw new Error(`${form.code} has no form to fill — it is applied for another way.`);
   const res = await fetch(form.pdf);
   if (!res.ok) throw new Error(`Could not load ${form.code} (${res.status})`);
   const doc = await PDFDocument.load(await res.arrayBuffer(), { ignoreEncryption: true });
