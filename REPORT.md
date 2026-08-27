@@ -251,3 +251,51 @@ normal Chrome UA — this is a harness detail, not an app issue).
   announcing, graph, models, resources, code, references, nsr, preprints) all
   redirect to `/`; 7 kept routes resolve correctly.
 - **Branding** — grep is clean of user-visible `RxivGPT` / `CSHL` / `CSHL-CPT`.
+
+---
+
+## 10. Deployment
+
+Vercel project **`nys-gpt/sam`** (`prj_6qotmODWWiu6jvAO6DSKi4VN00bJ`), connected
+to `github.com/nyd-user-1/sam` — **push to `main` is the deploy**, same as cshl.
+
+Production alias: **https://sam-mu-coral.vercel.app**
+
+Verified live: Papers renders 99 medRxiv cards; hybrid search returns real hits;
+`/api/{records,feed,chat-sessions,dict}` all 200; the sidebar shows `sam` with
+no bioRxiv; `/biorxiv/papers` redirects home; and **the feed fix works on sam's
+own functions** (`POST /api/feed` → `{"ok":true}`, the row reads back) where the
+same call still 500s on cshl.
+
+### Env set on the deployment
+`DATABASE_URL`, `CF_ACCOUNT_ID`, `CF_AI_TOKEN`, `SEARCH_ENCODER=bge`,
+`SEMANTIC_SCHOLAR_API_KEY`, `OPENALEX_MAILTO`, `NCBI_API_KEY` — all three
+environments, sourced from `.env.local`.
+
+`SEARCH_ENCODER=bge` means queries are encoded by stock bge-m3 on Cloudflare
+Workers AI and matched against `preprint_embeddings`. cshl runs `=nsr` against
+`preprint_embeddings_cshl_qp2` via a self-hosted box; to match it, set
+`SEARCH_ENCODER=nsr` plus `NSR_ENCODER_URL`, `NSR_RERANKER_URL`, `NSR_SERVE_KEY`.
+
+### Outstanding: chat needs a Bedrock token
+
+`AWS_BEARER_TOKEN_BEDROCK` is **not set**. It is a Vercel *sensitive* variable on
+cshl, which is write-only — it cannot be read back by CLI or dashboard, and it
+exists in no local file. Chat therefore retrieves correctly but fails at
+generation with `Could not load credentials from any providers`. Everything else
+works. To finish:
+
+```sh
+vercel env add AWS_BEARER_TOKEN_BEDROCK production   # paste the token
+vercel deploy --prod
+```
+
+Add it to `preview` and `development` too if you want chat working on branch
+deploys.
+
+### Remote build is the type-check
+This machine blocks whole-project `tsc` (an 8 GB memory guard), and the local
+`vite build` is esbuild-only, so it does not type-check. The first deploy failed
+on three `TS6133` unused-symbol errors in `ChatResponseFooter.tsx` left by the
+agent-link removal — caught exactly where it should be, fixed in `5976555`.
+Treat a green Vercel build as the gate, not a green local one.
