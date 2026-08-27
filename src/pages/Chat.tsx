@@ -8,6 +8,18 @@ import { useChat, type ChatRoom } from "@/hooks/useChat";
 import { ARCHIVE_LABEL } from "@/hooks/useArchive";
 import { subjectTitle } from "@/lib/subjects";
 import type { DragEntity } from "@/lib/drag-entity";
+import { formById } from "@/lib/programs";
+import {
+  answerCount,
+  emptyAnswers,
+  loadAnswers,
+  mergeAnswers,
+  parseAnswerBlocks,
+  saveAnswers,
+  type FormAnswers,
+} from "@/lib/form-answers";
+import { FormProgress } from "@/components/FormProgress";
+import { answersMessage } from "@/lib/form-fields";
 
 // ChatMessage drags in react-markdown + KaTeX (~200 KB gz). A fresh landing
 // renders zero messages, so that weight loads only once a conversation exists.
@@ -120,6 +132,28 @@ export default function Chat() {
   // the whole system prompt and /api/chat skips corpus retrieval (mode "form").
   // Anything else attached is a record, and rides in as reading context.
   const filling = attached?.type === "form" ? attached : null;
+  const [answers, setAnswers] = useState<FormAnswers | null>(null);
+
+  // Answers survive the tab. A benefits interview is forty minutes and people
+  // get interrupted; losing a refresh must never mean starting over.
+  useEffect(() => {
+    if (!filling) { setAnswers(null); return; }
+    setAnswers(loadAnswers(filling.id, sessionId));
+  }, [filling?.id, sessionId]);
+
+  // Harvest the machine block out of each finished assistant turn.
+  useEffect(() => {
+    if (!filling || isLoading) return;
+    const last = messages[messages.length - 1];
+    if (!last?.content) return;
+    const found = parseAnswerBlocks(last.content);
+    if (!Object.keys(found.values).length && !found.done.length) return;
+    setAnswers((prev) => {
+      const next = mergeAnswers(prev ?? emptyAnswers(filling.id), found);
+      saveAnswers(next, sessionId);
+      return next;
+    });
+  }, [messages, isLoading, filling, sessionId]);
   const submit = (text: string, modelId: string) =>
     filling
       ? sendMessage(text, filling.context, undefined, modelId, "form")
@@ -269,6 +303,20 @@ export default function Chat() {
                       ? messages.slice(0, i).reverse().find((m) => m.role === "user")?.content
                       : undefined
                   }
+                  onFieldSubmit={
+                    filling && i === messages.length - 1
+                      ? (values) => {
+                          // Record locally first — the answer is the user's, not
+                          // the model's recollection of it.
+                          setAnswers((prev) => {
+                            const next = mergeAnswers(prev ?? emptyAnswers(filling.id), { values, done: [] });
+                            saveAnswers(next, sessionId);
+                            return next;
+                          });
+                          void sendMessage(answersMessage(values), filling.context, undefined, undefined, "form");
+                        }
+                      : undefined
+                  }
                 />
                 </Suspense>
               ))}
@@ -278,6 +326,9 @@ export default function Chat() {
 
           {/* Input pinned to bottom */}
           <div className="px-2 md:px-4 py-3 md:py-4 shrink-0 bg-background">
+            {filling && answers && answerCount(answers) > 0 && (
+              <FormProgress form={formById(filling.id)} answers={answers} />
+            )}
             {filling && <FormRibbon label={filling.label} title={filling.title} onExit={() => setAttached(null)} />}
             {room && <AgentRibbon room={room} onExit={() => navigate("/new-chat")} />}
             <ChatInput

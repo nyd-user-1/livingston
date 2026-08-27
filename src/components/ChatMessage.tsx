@@ -3,6 +3,9 @@ import remarkMath from "remark-math";
 import remarkGfm from "remark-gfm";
 import rehypeKatex from "rehype-katex";
 import "katex/dist/katex.min.css";
+import { parseAnswerBlocks, stripAnswerBlocks } from "@/lib/form-answers";
+import { parseFieldBlock, stripFieldBlock } from "@/lib/form-fields";
+import { ChatFormFields } from "@/components/ChatFormFields";
 import { ChatResponseFooter } from "./ChatResponseFooter";
 
 // Inline citations: preprint key numbers in the response become live chips that
@@ -25,21 +28,45 @@ interface ChatMessageProps {
   pdfUrl?: string;
   /** the question this answer replies to — the grounding check needs it */
   query?: string;
+  /** Set while a form is driving; submitting the inline fields answers the turn. */
+  onFieldSubmit?: (values: Record<string, string>) => void;
 }
 
 export function ChatMessage({
   role,
-  content,
+  content: rawContent,
   isStreaming,
   sources,
   query,
   pdfUrl,
+  onFieldSubmit,
 }: ChatMessageProps) {
+  // Both blocks are machinery, not conversation.
+  const content = stripFieldBlock(stripAnswerBlocks(rawContent));
+  const fields = onFieldSubmit && !isStreaming ? parseFieldBlock(rawContent) : null;
   if (role === "user") {
+    // Submitting the inline fields sends an answers block as the user's turn.
+    // Show what was sent, not an empty bubble.
+    const sent = !content.trim() ? parseAnswerBlocks(rawContent).values : null;
     return (
       <div className="flex justify-end mb-6">
         <div className="bg-muted/40 rounded-lg p-3 md:p-4 border-0 max-w-[90%] md:max-w-[70%]">
-          <p className="text-base leading-relaxed">{content}</p>
+          {sent && Object.keys(sent).length ? (
+            <div className="flex flex-wrap justify-end gap-1.5">
+              {Object.entries(sent).map(([k, v]) => (
+                <span
+                  key={k}
+                  className="inline-flex items-center gap-1 rounded-full border border-border bg-background px-2 py-0.5 text-[11px]"
+                  title={k}
+                >
+                  <span className="text-muted-foreground">{k.split(".").pop()?.replace(/\[\d+\]/, "")}</span>
+                  <span className="font-medium text-foreground">{v}</span>
+                </span>
+              ))}
+            </div>
+          ) : (
+            <p className="text-base leading-relaxed">{content}</p>
+          )}
         </div>
       </div>
     );
@@ -119,6 +146,7 @@ export function ChatMessage({
           }}
         >
           {citeMarkdown(content)}
+          {fields && onFieldSubmit && <ChatFormFields fields={fields} onSubmit={onFieldSubmit} />}
         </ReactMarkdown>
         {isStreaming && !content && (
           <span className="inline-block w-1.5 h-4 bg-foreground animate-pulse" />
