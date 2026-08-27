@@ -97,6 +97,31 @@ const ROSTER = {
   },
 } as const;
 
+/**
+ * Section 3, page 2 — the applicant's own details. Here the printed label sits
+ * *inside* each box and you write underneath it, so the write position is the
+ * cell's bottom-left rather than its middle.
+ */
+const APPLICANT = {
+  firstName: { x: 18.4, y: 452, w: 147.6 },
+  lastName: { x: 184.2, y: 452, w: 193.1 },
+  maritalStatus: { x: 378.4, y: 452, w: 107.3 },
+  phoneArea: { x: 486.4, y: 452, w: 63.1 },
+  phoneRest: { x: 550.2, y: 452, w: 61.6 },
+  street: { x: 18.4, y: 428.4, w: 231.1 },
+  apt: { x: 250, y: 428.4, w: 29.2 },
+  city: { x: 279.8, y: 428.4, w: 130.2 },
+  county: { x: 410.8, y: 428.4, w: 88.6 },
+  state: { x: 500, y: 428.4, w: 28 },
+  zip: { x: 528.7, y: 428.4, w: 83 },
+  mailStreet: { x: 18.4, y: 381.4, w: 231.1 },
+  mailApt: { x: 250, y: 381.4, w: 29.2 },
+  mailCity: { x: 279.8, y: 381.4, w: 130.2 },
+  mailCounty: { x: 410.8, y: 381.4, w: 88.6 },
+  mailState: { x: 500, y: 381.4, w: 28 },
+  mailZip: { x: 528.7, y: 381.4, w: 83 },
+} as const;
+
 /** mm/dd/yyyy is what the form prints under the column. */
 function usDate(iso?: string): string {
   if (!iso) return "";
@@ -280,6 +305,43 @@ export async function fillForm(form: ProgramForm, answers: FormAnswers): Promise
     if (lang.includes("english")) tick(LANG_XY.english);
     else if (lang.includes("spanish")) tick(LANG_XY.spanish);
     else if (lang) tick(LANG_XY.other);
+  }
+
+  /* ---- 2b. Section 3, the applicant's own details ------------------ */
+  if (page2) {
+    const v = answers.values;
+    const put = (c: { x: number; y: number; w: number }, text?: string) => {
+      if (!text || text === "skip" || text === "unknown") return;
+      let t = text;
+      while (t.length > 1 && helv.widthOfTextAtSize(t, 8) > c.w - 5) t = t.slice(0, -1);
+      // The label is printed inside the box; write below it, not over it.
+      page2.drawText(t, { x: c.x + 3, y: c.y + 4, size: 8, font: helv, color: rgb(0, 0, 0) });
+    };
+    put(APPLICANT.firstName, v["applicant.firstName"]);
+    put(APPLICANT.lastName, v["applicant.lastName"]);
+    put(APPLICANT.street, v["address.street"]);
+    put(APPLICANT.apt, v["address.apt"]);
+    put(APPLICANT.city, v["address.city"]);
+    put(APPLICANT.county, v["address.county"]);
+    put(APPLICANT.state, v["address.state"] ?? (v["address.city"] ? "NY" : undefined));
+    put(APPLICANT.zip, v["address.zip"]);
+
+    const digits = (v["applicant.phone"] ?? "").replace(/\D/g, "");
+    if (digits.length >= 10) {
+      put(APPLICANT.phoneArea, digits.slice(0, 3));
+      put(APPLICANT.phoneRest, `${digits.slice(3, 6)}-${digits.slice(6, 10)}`);
+    }
+
+    // The mailing block is only filled when it actually differs — a duplicated
+    // address reads as a second address and gets queried.
+    if (v["mailing.same"] && !/^(y|yes|true|same)$/i.test(v["mailing.same"])) {
+      put(APPLICANT.mailStreet, v["mailing.street"]);
+      put(APPLICANT.mailApt, v["mailing.apt"]);
+      put(APPLICANT.mailCity, v["mailing.city"]);
+      put(APPLICANT.mailCounty, v["mailing.county"]);
+      put(APPLICANT.mailState, v["mailing.state"]);
+      put(APPLICANT.mailZip, v["mailing.zip"]);
+    }
   }
 
   /* ---- 3. Section 6, the household roster -------------------------- */
