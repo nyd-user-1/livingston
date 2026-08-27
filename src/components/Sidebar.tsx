@@ -168,9 +168,10 @@ interface SidebarProps {
  *  the nav, and deliberately leads nowhere. Fill this in to wire it up. */
 const WORKSPACE_ITEMS: { label: string; path: string; prefetch: () => Promise<unknown> }[] = [];
 
-/** medRxiv's sub-nav. sam shows Papers only. */
-const archiveItems = (server: "medrxiv") => [
-  { label: "Papers", path: `/papers`, prefetch: () => import("@/pages/References") },
+/** medRxiv's sub-nav. sam shows Papers only, and it lives at /papers now that
+ *  the browse grid belongs to Grants & Benefits. */
+const ARCHIVE_ITEMS = [
+  { label: "Papers", path: "/papers", prefetch: () => import("@/pages/References") },
 ];
 
 /** A collapsible nav group: the label opens its landing (or toggles when there is none); the chevron only toggles. */
@@ -291,7 +292,7 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
             onToggle={() => setMedrxivExpanded((v) => !v)}
             onOpen={() => setMedrxivExpanded((v) => !v)}
             onHover={() => { import("@/pages/References"); }}
-            items={archiveItems("medrxiv")}
+            items={ARCHIVE_ITEMS}
             pathname={location.pathname}
             go={(p) => { navigate(p); closeMobile(); }}
           />
