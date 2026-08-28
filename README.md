@@ -1,4 +1,4 @@
-# sam
+# livingston
 
 Benefits assistance, and AI search over the **medRxiv** preprint corpus.
 
@@ -63,7 +63,7 @@ everything else is optional or encoder-specific. Env files are gitignored.
   pass the probe as a bound `$1::vector` parameter — a join-sourced probe
   defeats the HNSW index — and `SET LOCAL hnsw.ef_search` needs
   `sql.transaction([...])`.
-- **sam does not own the database.** It reads a corpus it shares with another
+- **livingston does not own the database.** It reads a corpus it shares with another
   app and must never run migrations or schema changes against it. See
   `REPORT.md` for what is shared and where the coupling is.
 

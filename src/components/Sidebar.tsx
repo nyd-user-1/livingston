@@ -168,7 +168,7 @@ interface SidebarProps {
  *  the nav, and deliberately leads nowhere. Fill this in to wire it up. */
 const WORKSPACE_ITEMS: { label: string; path: string; prefetch: () => Promise<unknown> }[] = [];
 
-/** medRxiv's sub-nav. sam shows Papers only, and it lives at /papers now that
+/** medRxiv's sub-nav. livingston shows Papers only, and it lives at /papers now that
  *  the browse grid belongs to Grants & Benefits. */
 const ARCHIVE_ITEMS = [
   { label: "Papers", path: "/papers", prefetch: () => import("@/pages/References") },
@@ -248,7 +248,7 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
               onClick={() => { navigate("/new-chat"); window.dispatchEvent(new Event("new-chat")); closeMobile(); }}
               className="hover:opacity-80 transition-opacity"
             >
-              sam
+              livingston
             </button>
           </h1>
 

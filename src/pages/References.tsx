@@ -437,7 +437,7 @@ export default function References({ server }: { server?: "biorxiv" | "medrxiv" 
       {/* Desktop sticky filter bar — hidden on mobile */}
       <div className="hidden md:block sticky top-0 z-10 bg-background px-6 pt-3 pb-2">
         <div className="flex flex-wrap items-center gap-2">
-          {/* Page scope. sam has one archive and one section, so this is a
+          {/* Page scope. livingston has one archive and one section, so this is a
               label rather than a switcher. */}
           {server && (
             <span className="px-1.5 py-1 -mx-1.5 text-sm font-medium text-foreground">

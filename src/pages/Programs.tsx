@@ -19,7 +19,7 @@ import { FORMS, fillable, formStats, type ProgramForm } from "@/lib/programs";
 
 const CATEGORIES: { key: ProgramForm["category"] | "all" | "forms"; label: string }[] = [
   { key: "all", label: "Everything" },
-  { key: "forms", label: "Fill in with sam" },
+  { key: "forms", label: "Fill in with livingston" },
   { key: "food", label: "Food" },
   { key: "health", label: "Health" },
   { key: "energy", label: "Heat & utilities" },
@@ -153,7 +153,7 @@ export default function Programs() {
 
   /** Drop a programme into a fresh chat without needing to drag it. */
   const ask = (f: ProgramForm) => {
-    sessionStorage.setItem("sam-open-form", f.id);
+    sessionStorage.setItem("livingston-open-form", f.id);
     navigate("/new-chat");
   };
 
@@ -189,7 +189,7 @@ export default function Programs() {
       <div className="px-4 md:px-6">
         <p className="py-2 text-sm text-muted-foreground">
           Showing {shown.length} of {FORMS.length} programs
-          {cat === "forms" ? " sam can fill in with you" : ""}
+          {cat === "forms" ? " livingston can fill in with you" : ""}
         </p>
 
         {shown.length === 0 ? (

@@ -409,7 +409,7 @@ function appendix(
     y -= size + 5;
   };
 
-  line(`${form.code} — answers collected with sam`, 13, bold);
+  line(`${form.code} — answers collected with livingston`, 13, bold);
   line(form.title, 9, helv, rgb(0.35, 0.35, 0.35));
   line(
     `${entries.length} answered · ${skipped.length} asked and not given · ${answers.done.length} of ${form.sections.filter((s) => !s.consent).length} sections complete`,

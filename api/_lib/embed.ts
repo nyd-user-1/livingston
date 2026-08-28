@@ -1,4 +1,4 @@
-// Query-side encoder + reranker clients for sam's retrieval.
+// Query-side encoder + reranker clients for livingston's retrieval.
 //
 // The corpus vectors are permanent sidecars on `preprints`, one table per model.
 // Every search still has to encode the user's text in the SAME model as the table

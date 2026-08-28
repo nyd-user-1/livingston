@@ -1,5 +1,5 @@
 /**
- * The forms sam can walk you through.
+ * The forms livingston can walk you through.
  *
  * A program card is a form plus the interview that fills it. The card is the
  * drag unit: drop it on the chat input and the conversation becomes that form's
@@ -133,7 +133,7 @@ const LDSS_2921: ProgramForm = {
       "Anything bought or sold recently, strikes, prior benefits or disqualifications, veteran status, and whether you have applied in another county",
     ] },
     { n: "notices", title: "Notices, rights and consents", pages: [19, 20, 21, 22, 23, 24], consent: true, asks: [
-      "Nothing to fill in. Seven pages of legal notices — how your Social Security number is used, consent to investigation, the penalties for lying, assignment of support rights, and the Early Intervention release. sam can explain any of it in plain language.",
+      "Nothing to fill in. Seven pages of legal notices — how your Social Security number is used, consent to investigation, the penalties for lying, assignment of support rights, and the Early Intervention release. livingston can explain any of it in plain language.",
     ] },
     { n: "withdraw", title: "Withdrawing an application", pages: [25], consent: true, asks: [
       "Only if you want to withdraw an application for one or more programs",
@@ -190,7 +190,7 @@ const OCFS_6025: ProgramForm = {
 /* ------------------------------------------------------------------ */
 /*  Programs without a form here to fill                               */
 /*                                                                     */
-/*  Dragging one of these into the chat still works — sam walks you     */
+/*  Dragging one of these into the chat still works — livingston walks you     */
 /*  through whether you qualify and exactly how to apply. Details and   */
 /*  numbers below came from the state's own prescreening results page,  */
 /*  not from memory.                                                    */
@@ -334,7 +334,7 @@ const GUIDES: ProgramForm[] = [
   }),
 ];
 
-/** The fillable ones first — those are the ones sam can actually complete. */
+/** The fillable ones first — those are the ones livingston can actually complete. */
 export const FORMS: ProgramForm[] = [LDSS_2921, OCFS_6025, ...GUIDES];
 
 export const fillable = (f: ProgramForm) => Boolean(f.pdf);
@@ -434,11 +434,11 @@ export const FORM_KEYS: { key: string; what: string }[] = [
  * form mode — no corpus retrieval, nothing else competing with it.
  */
 export function buildFormInterview(f: ProgramForm): string {
-  // No form here to fill: sam explains the programme and how to apply,
+  // No form here to fill: livingston explains the programme and how to apply,
   // and does not pretend to be filling anything in.
   if (!f.pdf) {
     return [
-      `You are sam. The user is asking about ${f.code} — ${f.title}.`,
+      `You are livingston. The user is asking about ${f.code} — ${f.title}.`,
       `${f.blurb}`,
       f.covers.length ? `It covers: ${f.covers.join(", ")}.` : "",
       f.apply ? `How to apply: ${f.apply.how}` : "",
@@ -455,14 +455,14 @@ export function buildFormInterview(f: ProgramForm): string {
   }
   const stats = formStats(f);
   return [
-    `You are sam, filling out ${f.code} with the user, one section at a time.`,
+    `You are livingston, filling out ${f.code} with the user, one section at a time.`,
     `You are not advising and not deciding anything — you are the form's interface.`,
     "",
     "THE ONE RULE THAT MATTERS MOST",
     "Every question you ask must be a control, not a list in prose. Write one or two",
-    "sentences, then a ```sam-fields``` block. Do NOT write questions as bullet points",
+    "sentences, then a ```livingston-fields``` block. Do NOT write questions as bullet points",
     "or numbered lists and ask them to reply in words — that is the failure mode. If",
-    "you are asking for anything at all, there is a sam-fields block in your message.",
+    "you are asking for anything at all, there is a livingston-fields block in your message.",
     "",
     `${f.code} — ${f.title}`,
     `${f.agency}, rev. ${f.revision}. ${f.pages} pages: ${stats.questionSections} sections that ask questions and ${stats.readingPages} pages that are only notices to read.`,
@@ -488,14 +488,14 @@ export function buildFormInterview(f: ProgramForm): string {
     "",
     "Which of these are you applying for?",
     "",
-    "```sam-fields",
+    "```livingston-fields",
     '[{"key":"programs","label":"Programs","kind":"checkbox","options":["PA|Public Assistance (cash)","SNAP|SNAP (food)","MedicaidAndPA|Medicaid + Public Assistance","MedicaidAndSNAP|Medicaid + SNAP","ChildCare|Child Care Assistance","Services|Services including Foster Care","Emergency|Emergency Assistance only"]}]',
     "```",
     "",
     "ASKING WITH CONTROLS",
     "Put the questions in the message as real inputs. Write a short line of prose, then one fenced block:",
     "",
-    "```sam-fields",
+    "```livingston-fields",
     '[{"key":"applicant.firstName","label":"First name","kind":"text"},',
     ' {"key":"applicant.dob","label":"Date of birth","kind":"date"},',
     ' {"key":"shelter.heatIncluded","label":"Is heat included in your rent?","kind":"radio","options":["yes|Yes","no|No"]}]',
@@ -512,7 +512,7 @@ export function buildFormInterview(f: ProgramForm): string {
     "RECORDING ANSWERS — do this every single time you learn something",
     "After your reply, append one fenced block. The user never sees it; it is how the answer reaches the form.",
     "",
-    "```sam-answers",
+    "```livingston-answers",
     "applicant.firstName: Maria",
     "household[1].dob: 2016-04-02",
     "#done 1",

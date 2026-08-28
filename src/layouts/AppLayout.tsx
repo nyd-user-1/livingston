@@ -127,7 +127,7 @@ export function AppLayout() {
                 </button>
               </div>
               <p className="text-sm text-muted-foreground leading-relaxed">
-                sam is an independent project and is not affiliated with, endorsed by, or sponsored by medRxiv.
+                livingston is an independent project and is not affiliated with, endorsed by, or sponsored by medRxiv.
               </p>
               <p className="text-sm text-muted-foreground leading-relaxed mt-3">
                 Preprint metadata is publicly available from the medRxiv API. Preprints are not peer reviewed. This application is provided as-is for research and educational purposes.

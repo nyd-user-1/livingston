@@ -3,13 +3,13 @@
  *
  * A benefits interview needs values, not prose, and asking a model to restate
  * an answer it just read back in a machine block is a game of telephone. So the
- * assistant asks with real controls: it emits a ```sam-fields``` block and the
+ * assistant asks with real controls: it emits a ```livingston-fields``` block and the
  * transcript renders actual inputs. Whatever the user types there is the value,
  * exactly as typed — no re-parsing, no transcription drift.
  *
  * The user can still ignore the controls and just say it in the chat box; the
  * assistant handles that turn the ordinary way. Both roads lead to the same
- * `sam-answers` block, which is also what the submit button sends back — one
+ * `livingston-answers` block, which is also what the submit button sends back — one
  * format in both directions, harvested by one parser.
  */
 
@@ -29,7 +29,7 @@ export interface ChatField {
   optional?: boolean;
 }
 
-const BLOCK = /```sam-fields\s*([\s\S]*?)```/;
+const BLOCK = /```livingston-fields\s*([\s\S]*?)```/;
 
 const KINDS: FieldKind[] = ["text", "textarea", "number", "money", "date", "tel", "email", "ssn", "select", "radio", "checkbox"];
 
@@ -136,9 +136,9 @@ export function optionParts(o: string): { value: string; label: string } {
 
 /**
  * What the user turn looks like when they submit the controls: the same
- * `sam-answers` block the assistant emits, so one parser harvests both.
+ * `livingston-answers` block the assistant emits, so one parser harvests both.
  */
 export function answersMessage(values: Record<string, string>): string {
   const lines = Object.entries(values).map(([k, v]) => `${k}: ${v}`);
-  return "```sam-answers\n" + lines.join("\n") + "\n```";
+  return "```livingston-answers\n" + lines.join("\n") + "\n```";
 }

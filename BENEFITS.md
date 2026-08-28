@@ -1,6 +1,6 @@
-# sam — benefits assistance
+# livingston — benefits assistance
 
-What sam is becoming: drag a benefits application into the chat and the
+What livingston is becoming: drag a benefits application into the chat and the
 conversation fills it in with you, then hands you the PDF.
 
 This is the design and the state of it. `REPORT.md` covers the fork from cshl;
@@ -23,7 +23,7 @@ rebuilding the interview.
                                                       │
                                        inline fields ─┤─ chat box
                                                       ▼
-                                              sam-answers block
+                                              livingston-answers block
                                                       │
                                               FormAnswers (localStorage)
                                                       │
@@ -37,8 +37,8 @@ rebuilding the interview.
 | | |
 | --- | --- |
 | `src/lib/programs.ts` | The catalog. Every form's printed sections in printed order, the answer vocabulary (`FORM_KEYS`), and `buildFormInterview` — the system prompt that turns the chat into a given form. |
-| `src/lib/form-fields.ts` | The `sam-fields` block: the assistant asking with real controls. |
-| `src/lib/form-answers.ts` | The `sam-answers` block, the record, and persistence. |
+| `src/lib/form-fields.ts` | The `livingston-fields` block: the assistant asking with real controls. |
+| `src/lib/form-answers.ts` | The `livingston-answers` block, the record, and persistence. |
 | `src/lib/fill-form.ts` | The adapters. Vocabulary → each form's own field schema. |
 | `src/components/ChatFormFields.tsx` | Those controls, rendered in the transcript. |
 | `src/components/FormProgress.tsx` | What is recorded so far; builds the PDF. |
@@ -50,12 +50,12 @@ rebuilding the interview.
 
 ## Two block formats, and why
 
-The assistant asks with **`sam-fields`** — a JSON array rendered as real inputs
+The assistant asks with **`livingston-fields`** — a JSON array rendered as real inputs
 inside its own message. Whatever the user types there *is* the value; there is
 no round trip through the model to transcribe it, so there is no transcription
 drift on a Social Security number or a dollar figure.
 
-Everything comes back as **`sam-answers`** — `key: value` lines. The assistant
+Everything comes back as **`livingston-answers`** — `key: value` lines. The assistant
 emits it when it learns something in conversation; the inline form's submit
 button sends the same block as the user's turn. One parser harvests both
 directions. Neither block is ever rendered as prose.
@@ -89,7 +89,7 @@ yes/who/amount row.
 
 ## Sending it
 
-Three doors: download, email it to yourself, or have sam email the county.
+Three doors: download, email it to yourself, or have livingston email the county.
 
 The third acts for someone else, so it requires `confirm: true`, always copies
 the applicant, and states in the body that most districts still require a signed
@@ -128,7 +128,7 @@ End to end, through the browser, against the real code path:
   `-check.pdf` tints them so placement can be eyeballed. Page 4 (268 fields) is
   over-detected from nested grid paths and is the worst case.
 - **Server-side answers.** localStorage only. Needs a database that is *not* the
-  shared cshl one — see `REPORT.md` §5; sam must never migrate that schema.
+  shared cshl one — see `REPORT.md` §5; livingston must never migrate that schema.
 - **More forms.** `otda.ny.gov` resets connections from here and
   `health.ny.gov` returns 403, so the PDFs have to be supplied by hand.
   LDSS-4826 (SNAP), LDSS-3421 (HEAP), DOH-4220 (Medicaid) are the next three.
@@ -137,7 +137,7 @@ End to end, through the browser, against the real code path:
 
 ## Bedrock
 
-sam has its own IAM user, **`sam-bedrock-invoke`**, with a service-specific
+livingston has its own IAM user, **`livingston-bedrock-invoke`**, with a service-specific
 Bedrock credential. Its own identity on purpose: the policy allows
 `CallWithBearerToken` plus Invoke/Converse on anthropic foundation models and
 this account's `us.anthropic.*` inference profiles, and nothing else, so a leak

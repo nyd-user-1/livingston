@@ -4,7 +4,7 @@ import type { CorpusRecord } from "@/types/record";
 /** Small first page so the panel paints immediately; the rest arrives on scroll. */
 export const PAPERS_PAGE = 12;
 
-/** sam is a medRxiv app: the rail browses that archive, not the whole corpus. */
+/** livingston is a medRxiv app: the rail browses that archive, not the whole corpus. */
 const SERVER = "medrxiv";
 
 async function fetchPage(page: number): Promise<CorpusRecord[]> {

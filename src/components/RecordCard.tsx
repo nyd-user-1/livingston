@@ -181,7 +181,7 @@ export const RecordCard = memo(function RecordCard({ record, searchQuery, search
         <button
           onClick={handleSendToChat}
           className="flex h-10 w-10 items-center justify-center rounded-full bg-foreground text-background shadow-lg transition-all hover:scale-110"
-          title="Ask sam about this preprint"
+          title="Ask livingston about this preprint"
         >
           <ArrowUp className="h-4 w-4" />
         </button>

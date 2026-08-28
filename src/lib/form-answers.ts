@@ -2,7 +2,7 @@
  * Answers collected during a form interview.
  *
  * The model runs the conversation, but a conversation is not a record. So each
- * time it learns something it emits a fenced `sam-answers` block of plain
+ * time it learns something it emits a fenced `livingston-answers` block of plain
  * key/value pairs; the client parses those out of the stream, keeps them, and
  * hides the block from the transcript. The user sees a conversation; we get a
  * record we can write onto the PDF.
@@ -21,8 +21,8 @@ export interface FormAnswers {
   updatedAt: string;
 }
 
-/** Matches ```sam-answers … ``` anywhere in a message. */
-const BLOCK = /```sam-answers\s*([\s\S]*?)```/g;
+/** Matches ```livingston-answers … ``` anywhere in a message. */
+const BLOCK = /```livingston-answers\s*([\s\S]*?)```/g;
 
 export function emptyAnswers(formId: string): FormAnswers {
   return { formId, values: {}, done: [], updatedAt: new Date().toISOString() };
@@ -76,7 +76,7 @@ export function mergeAnswers(prev: FormAnswers, next: { values: Record<string, s
 // The server copy comes later; losing a tab must never lose the answers.
 
 const key = (formId: string, sessionId?: string | null) =>
-  `sam-answers:${formId}${sessionId ? `:${sessionId}` : ""}`;
+  `livingston-answers:${formId}${sessionId ? `:${sessionId}` : ""}`;
 
 export function loadAnswers(formId: string, sessionId?: string | null): FormAnswers {
   try {
@@ -103,7 +103,7 @@ export const answerCount = (a: FormAnswers) => Object.keys(a.values).length;
 // running out of battery. The answers already persist; this remembers which
 // form they belong to so the conversation picks up where it stopped.
 
-const ACTIVE = (sessionId?: string | null) => `sam-active-form${sessionId ? `:${sessionId}` : ""}`;
+const ACTIVE = (sessionId?: string | null) => `livingston-active-form${sessionId ? `:${sessionId}` : ""}`;
 
 export function rememberActiveForm(formId: string | null, sessionId?: string | null) {
   try {

@@ -84,7 +84,7 @@ function AgentRibbon({ room, onExit }: { room: ChatRoom; onExit: () => void }) {
  */
 function buildSystemContext(context?: string | null, url?: string | null): string {
   let s =
-    "You are sam, an AI research assistant for the biomedical and life-science " +
+    "You are livingston, an AI research assistant for the biomedical and life-science " +
     "preprint literature. You help researchers explore bioRxiv and medRxiv " +
     "preprints. Preprints have not been peer reviewed — say so " +
     "when it bears on how a finding should be read, and note when a preprint has since " +
@@ -150,8 +150,8 @@ export default function Chat() {
   // fresh intent, not a resumed one.
   useEffect(() => {
     if (attached) return;
-    const handed = sessionStorage.getItem("sam-open-form");
-    if (handed) sessionStorage.removeItem("sam-open-form");
+    const handed = sessionStorage.getItem("livingston-open-form");
+    if (handed) sessionStorage.removeItem("livingston-open-form");
     const id = handed ?? recallActiveForm(sessionId);
     if (!id) return;
     const f = formById(id);

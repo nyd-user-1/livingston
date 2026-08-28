@@ -6,7 +6,7 @@ import type { ProgramForm } from "@/lib/programs";
  * What happens to the finished application.
  *
  * Three ways out, in the order a person would want them: take the file, have it
- * emailed to yourself, or have sam email it to the county for you.
+ * emailed to yourself, or have livingston email it to the county for you.
  *
  * The third is doing something on someone else's behalf, so it is gated behind
  * an explicit confirmation and always copies them — they should hold a record

@@ -50,7 +50,7 @@ export function DetailBody({ type, detail, navigate }: {
         </div>
         <div className="mt-3 flex flex-wrap gap-2">
           <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => navigate(`/?prompt=${encodeURIComponent(`Tell me about ${node.key_number}: ${node.title ?? ""}`)}&key=${encodeURIComponent(String(node.key_number))}`)}>
-            Ask sam
+            Ask livingston
           </Button>
           {node.doi != null && (
             <a href={`https://doi.org/${node.doi}`} target="_blank" rel="noopener noreferrer" className="inline-flex h-7 items-center rounded-md border px-2 text-xs text-brand hover:bg-muted">

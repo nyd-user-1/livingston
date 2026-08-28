@@ -1,11 +1,11 @@
 import { CheckCircle2, ArrowRight } from "lucide-react";
 
 /* ------------------------------------------------------------------ */
-/*  What sam does                                                       */
+/*  What livingston does                                                       */
 /*                                                                      */
 /*  The upstream page here was a comparison table inherited from an       */
 /*  earlier app, with claims that no longer described it. Same layout,    */
-/*  describing what sam actually ships. Keep it honest: every line below  */
+/*  describing what livingston actually ships. Keep it honest: every line below  */
 /*  is a capability in the code, not a roadmap item.                      */
 /* ------------------------------------------------------------------ */
 
@@ -125,7 +125,7 @@ export default function Features() {
         {/* Header */}
         <div className="text-center mb-10">
           <h1 className="text-2xl md:text-4xl font-bold tracking-tight">
-            sam — Features
+            livingston — Features
           </h1>
           <p className="mt-2 text-sm md:text-base text-muted-foreground max-w-[600px] mx-auto">
             Search, browse, and ask questions of the medRxiv preprint corpus.
@@ -139,7 +139,7 @@ export default function Features() {
               <span className="text-xs font-bold uppercase tracking-wider">Area</span>
             </div>
             <div className="px-5 py-3 border-l border-background/20">
-              <span className="text-xs font-bold uppercase tracking-wider">What sam does</span>
+              <span className="text-xs font-bold uppercase tracking-wider">What livingston does</span>
             </div>
           </div>
 
@@ -150,7 +150,7 @@ export default function Features() {
 
         {/* Footer */}
         <p className="text-center text-xs text-muted-foreground mt-8 max-w-[600px] mx-auto leading-relaxed">
-          sam is an independent project and is not affiliated with, endorsed by, or
+          livingston is an independent project and is not affiliated with, endorsed by, or
           sponsored by medRxiv. Preprint metadata is publicly available from the
           medRxiv API. Preprints are not peer reviewed.
         </p>
@@ -161,7 +161,7 @@ export default function Features() {
             href="/new-search"
             className="inline-flex items-center gap-2 rounded-lg bg-foreground text-background px-5 py-2.5 text-sm font-medium hover:bg-foreground/85 transition-colors"
           >
-            Try sam Search
+            Try livingston Search
             <ArrowRight className="h-4 w-4" />
           </a>
         </div>

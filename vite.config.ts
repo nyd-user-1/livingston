@@ -27,7 +27,7 @@ export default defineConfig({
   server: {
     port: 3000,
     // /api/* → a deployment so every page works locally against real data
-    // (Vercel functions don't run under vite). Point this at sam's own
+    // (Vercel functions don't run under vite). Point this at livingston's own
     // deployment once it exists; until then the upstream one serves the same
     // database and the same endpoints. Override with SAM_API_ORIGIN.
     proxy: {

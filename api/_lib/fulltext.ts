@@ -75,7 +75,7 @@ export interface FulltextResult {
 const PER_PAPER_CHARS = 60_000;
 const HARD_FETCH_MS = 20_000;
 const UA =
-  "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0 Safari/537.36 sam/1.0";
+  "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0 Safari/537.36 livingston/1.0";
 
 /* ── text extraction ─────────────────────────────────────────────────────── */
 

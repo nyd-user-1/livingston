@@ -59,7 +59,7 @@ export default async function handler(req: any, res: any) {
     `<p>Attached is a <strong>${code}</strong> application draft${county ? ` for ${String(county).slice(0, 40)} County` : ""}, prepared with the applicant and sent at their request.</p>`,
     `<p>The applicant is copied on this message.</p>`,
     note ? `<p>${String(note).slice(0, 800)}</p>` : "",
-    `<p style="color:#666;font-size:12px">Prepared with sam. If a signed original or a different filing method is required, please reply so the applicant can complete it.</p>`,
+    `<p style="color:#666;font-size:12px">Prepared with livingston. If a signed original or a different filing method is required, please reply so the applicant can complete it.</p>`,
   ].join("");
 
   const recipients = [addr];
@@ -70,7 +70,7 @@ export default async function handler(req: any, res: any) {
       method: "POST",
       headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
       body: JSON.stringify({
-        from: process.env.RESEND_FROM_EMAIL || "sam <onboarding@resend.dev>",
+        from: process.env.RESEND_FROM_EMAIL || "livingston <onboarding@resend.dev>",
         to: recipients,
         cc: ccList.length ? ccList : undefined,
         subject: mode === "self" ? `Your ${code} draft` : `${code} application${county ? ` — ${county} County` : ""}`,

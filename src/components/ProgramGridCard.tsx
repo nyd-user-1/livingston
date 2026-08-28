@@ -94,7 +94,7 @@ export const ProgramGridCard = memo(function ProgramGridCard({
         <p className="mt-0.5 font-medium leading-snug text-foreground">
           {isForm
             ? `${program.pages} pages · ${stats.questionSections} sections · about ${program.minutes} min`
-            : (program.apply?.how ?? "Ask sam how this one works.")}
+            : (program.apply?.how ?? "Ask livingston how this one works.")}
         </p>
       </div>
 
@@ -133,7 +133,7 @@ export const ProgramGridCard = memo(function ProgramGridCard({
               onAsk?.();
             }}
             className="flex h-10 w-10 items-center justify-center rounded-full bg-foreground text-background shadow-lg transition-all hover:scale-110"
-            title={isForm ? `Fill in ${program.code} with sam` : `Ask sam about ${program.code}`}
+            title={isForm ? `Fill in ${program.code} with livingston` : `Ask livingston about ${program.code}`}
           >
             <ArrowUp className="h-4 w-4" />
           </button>

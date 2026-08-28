@@ -1,6 +1,6 @@
-# sam — build report
+# livingston — build report
 
-sam is a stripped, rebranded copy of **cshl** (RxivGPT, `cshl.nysgpt.com`),
+livingston is a stripped, rebranded copy of **cshl** (RxivGPT, `cshl.nysgpt.com`),
 copied from `~/Code/cshl` on 2026-08-27. Nothing was rebuilt from scratch and
 nothing was scraped from the deployed site.
 
@@ -16,13 +16,13 @@ Copied verbatim from `~/Code/cshl`, then edited in place:
 | `api/` | All serverless functions except `community.ts` |
 | `public/logos/`, `public/robots.txt` | Model-picker logos are referenced by `src/lib/models.ts` |
 | `index.html`, `vite.config.ts`, `vercel.json`, `tsconfig*.json`, `eslint.config.js` | Rewritten where noted below |
-| `package.json`, `package-lock.json` | Renamed to `sam`; five unused deps dropped |
+| `package.json`, `package-lock.json` | Renamed to `livingston`; five unused deps dropped |
 | `.gitignore` | Plus a `!.env.example` negation |
 | `.env.local` | Copied with identical values. Gitignored, never committed |
 
 **Not copied:** `.git`, `node_modules`, `dist`, `.vercel`, `data/`, `docs/`,
 `scripts/`, `sql/`, `supabase/`, `prompts/`, `.state`. `scripts/` and `sql/` are
-the loaders and migrations — deliberately left behind so sam has no mechanism to
+the loaders and migrations — deliberately left behind so livingston has no mechanism to
 write schema to the shared database (see §5).
 
 `public/data/` (48 MB of NSR-era nuclear JSON) was also skipped: it was read only
@@ -49,7 +49,7 @@ Env vars are read via `process.env` in `api/*`; the frontend reads none except
   `CodePage.tsx`, `GraphPage.tsx`, `Models.tsx`, `Resources.tsx`,
   `archive/AgentsPage.tsx`, `archive/SubjectsPage.tsx`, `templates/CardPage.tsx`
 - `/references`, `/nsr`, `/preprints*` (the corpus-wide browser and NSR-era
-  redirects — sam's only browser is `/medrxiv/papers`)
+  redirects — livingston's only browser is `/medrxiv/papers`)
 - `api/community.ts`
 
 **Dead code removed** (already unreachable in cshl, verified with a reachability
@@ -59,7 +59,7 @@ scan from `src/main.tsx`): `ChatDock.tsx`, `FlowSettings.tsx`,
 `api/_lib/ensdf{,-render}.ts`.
 
 **Sidebar:** bioRxiv group gone; medRxiv shows Papers only; the promo line is
-gone; the wordmark is `sam`.
+gone; the wordmark is `livingston`.
 
 **Deps dropped:** `@xyflow/react`, `@dagrejs/dagre`, `@radix-ui/react-tabs`,
 `vaul`, `csv-parse` — all only used by deleted pages.
@@ -78,7 +78,7 @@ A catch-all `<Route path="*">` redirects everything unrecognised to `/`.
 
 ## 3. Rebranding
 
-`sam` everywhere: sidebar wordmark, `<title>`, meta description, chat input
+`livingston` everywhere: sidebar wordmark, `<title>`, meta description, chat input
 placeholder, both system prompts, the disclaimer, the Features page, and the
 outbound fetcher's User-Agent. The CSH avatar was replaced with a neutral
 `public/avatar.svg`; the favicon is a neutral `public/favicon.svg`.
@@ -93,14 +93,14 @@ RxivGPT" comparison inherited from the NSR era, and its claims did not describe
 cshl either (it advertised GPT-4o, OpenAI embeddings, and Deno Edge Functions;
 cshl runs Bedrock + bge-m3 on Vercel). Since the spec keeps the account-menu
 Features entry but drops cshl-specific marketing, I kept the route and the
-layout and rewrote the content to describe what sam actually ships. Every bullet
+layout and rewrote the content to describe what livingston actually ships. Every bullet
 on it is a capability present in this codebase.
 
 ---
 
 ## 4. Environment
 
-`.env.example` lists everything with placeholders. What sam actually needs:
+`.env.example` lists everything with placeholders. What livingston actually needs:
 
 | Var | Required | Used by |
 | --- | --- | --- |
@@ -112,7 +112,7 @@ on it is a capability present in this codebase.
 | `SEARCH_RERANK` | no | `api/search.ts` |
 | `BEDROCK_REGION`, `BEDROCK_API_KEY`, `BEDROCK_GUARDRAIL_ID`, `BEDROCK_GUARDRAIL_VERSION` | no | `api/grounding.ts` |
 | `SEMANTIC_SCHOLAR_API_KEY`, `OPENALEX_MAILTO`, `NCBI_API_KEY`, `HF_TOKEN` | no | enrichment / full-text fetch |
-| `DATABASE_URL_UNPOOLED` | no — **sam never loads data** | bulk loaders only (not shipped) |
+| `DATABASE_URL_UNPOOLED` | no — **livingston never loads data** | bulk loaders only (not shipped) |
 
 `.gitignore` covers `.env*` with a `!.env.example` negation. Verified: `git add
 .env.local` is refused; `.env.example` is tracked.
@@ -121,12 +121,12 @@ on it is a capability present in this codebase.
 
 ## 5. What is shared with cshl — and the coupling risks
 
-sam points at **the same Neon database as cshl** (`ep-orange-water-aut2eymf`,
+livingston points at **the same Neon database as cshl** (`ep-orange-water-aut2eymf`,
 433,449 preprints — 87,567 medRxiv, 345,882 bioRxiv). That is deliberate, and it
 is what makes Papers render real data on first boot. The consequences:
 
 **Read-only, and safe:**
-- `preprints` and its relational/embedding tables. sam only ever SELECTs.
+- `preprints` and its relational/embedding tables. livingston only ever SELECTs.
 - No migration or DDL path exists in this repo — `sql/` and `scripts/` were not
   copied. **Do not add them.** If the schema needs to change, change it from
   cshl, which owns it.
@@ -135,12 +135,12 @@ is what makes Papers render real data on first boot. The consequences:
 
 1. **`chat_sessions` is global and unauthenticated.** There is no user column and
    no auth (`api/chat-sessions.ts` says so explicitly: *"No auth by ruling"*).
-   sam's sidebar currently lists **cshl's 20 existing conversations**, and any
-   chat started in sam appears in cshl's sidebar too — including rename and
+   livingston's sidebar currently lists **cshl's 20 existing conversations**, and any
+   chat started in livingston appears in cshl's sidebar too — including rename and
    delete. This is the biggest coupling risk. Splitting it later means either a
    separate database or a `app`/`owner` column plus a filter on both sides.
 
-2. **`research_feed` is shared.** Activity generated by browsing sam shows up in
+2. **`research_feed` is shared.** Activity generated by browsing livingston shows up in
    cshl's live feed and vice versa.
 
 **Auth:** there is none, in either app. The account block at the sidebar bottom
@@ -174,7 +174,7 @@ exists yet.
    would have shipped a permanently-empty panel. It now does a plain `INSERT`
    into `research_feed`, whose columns already exist with defaults for `id` and
    `created_at`. **No schema change was made.** Verified end-to-end by running
-   sam's own handler against the real database (POST 200 → GET returns the row);
+   livingston's own handler against the real database (POST 200 → GET returns the row);
    the verification rows were deleted afterwards.
 
 4. **Workspace is inert by design.** It renders as a normal sidebar group —
@@ -184,9 +184,9 @@ exists yet.
 5. **Dev proxy retargeted.** `vite.config.ts` pointed `/api` at
    `nsr.nysgpt.com` (stale from cshl's own cloning). It now points at
    `cshl.nysgpt.com`, overridable with `SAM_API_ORIGIN`. Note the consequence:
-   **until sam is deployed, local `/api` calls are served by cshl's deployment,
+   **until livingston is deployed, local `/api` calls are served by cshl's deployment,
    which still has the old broken feed POST.** The feed fix takes effect once
-   sam runs its own functions.
+   livingston runs its own functions.
 
 ---
 
@@ -217,7 +217,7 @@ exists yet.
    `active={false}` on the Workspace `<Group>` with a pathname test — cshl's
    version was `WORKSPACE_ITEMS.some(i => location.pathname.startsWith(i.path))`.
 4. There is a `workspace_views` table already in the shared database, unused by
-   this code. If you intend to use it, treat §5 as binding: sam does not own the
+   this code. If you intend to use it, treat §5 as binding: livingston does not own the
    schema.
 
 ---
@@ -229,7 +229,7 @@ Playwright against real data (note: the upstream deployment's bot protection
 returns `403 x-vercel-mitigated: deny` to a `HeadlessChrome` UA, so tests set a
 normal Chrome UA — this is a harness detail, not an app issue).
 
-- **Sidebar** — `sam` wordmark, New Chat, New Search, medRxiv → Papers only,
+- **Sidebar** — `livingston` wordmark, New Chat, New Search, medRxiv → Papers only,
   Workspace visible and navigating nowhere, Your Chats listing 20 sessions,
   Account block. No bioRxiv, no Agents, no Subjects, no promo line.
 - **Account menu** — Upgrade plan, Settings, Features, Theme (Light/Dark, and
@@ -256,14 +256,14 @@ normal Chrome UA — this is a harness detail, not an app issue).
 
 ## 10. Deployment
 
-Vercel project **`nys-gpt/sam`** (`prj_6qotmODWWiu6jvAO6DSKi4VN00bJ`), connected
-to `github.com/nyd-user-1/sam` — **push to `main` is the deploy**, same as cshl.
+Vercel project **`nys-gpt/livingston`** (`prj_6qotmODWWiu6jvAO6DSKi4VN00bJ`), connected
+to `github.com/nyd-user-1/livingston` — **push to `main` is the deploy**, same as cshl.
 
-Production alias: **https://sam-mu-coral.vercel.app**
+Production alias: **https://livingston-nysgpt.vercel.app**
 
 Verified live: Papers renders 99 medRxiv cards; hybrid search returns real hits;
-`/api/{records,feed,chat-sessions,dict}` all 200; the sidebar shows `sam` with
-no bioRxiv; `/biorxiv/papers` redirects home; and **the feed fix works on sam's
+`/api/{records,feed,chat-sessions,dict}` all 200; the sidebar shows `livingston` with
+no bioRxiv; `/biorxiv/papers` redirects home; and **the feed fix works on livingston's
 own functions** (`POST /api/feed` → `{"ok":true}`, the row reads back) where the
 same call still 500s on cshl.
 

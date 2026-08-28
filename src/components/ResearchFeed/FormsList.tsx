@@ -90,7 +90,7 @@ export function FormsList() {
   return (
     <div className="flex flex-col gap-3 px-3 pb-3 pt-2">
       <p className="px-1 text-[11px] leading-relaxed text-muted-foreground">
-        Drag one onto the chat. sam fills the applications in with you, and talks the rest through.
+        Drag one onto the chat. livingston fills the applications in with you, and talks the rest through.
       </p>
 
       <p className="px-1 pt-1 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">

@@ -550,7 +550,7 @@ export default function Search() {
     setHiddenWidgets(new Set());
   }, [urlQuery]);
 
-  // sam searches medRxiv only — the archive its Papers page browses.
+  // livingston searches medRxiv only — the archive its Papers page browses.
   const { data, isLoading } = useRecordSearch(urlQuery, mode, "medrxiv");
   const records = useMemo(() => data?.records ?? [], [data]);
 

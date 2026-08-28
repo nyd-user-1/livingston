@@ -52,7 +52,7 @@ export const config = { maxDuration: 120 };
 // and a wall of undifferentiated prose is its own failure, one a reader pays
 // for on every answer. Structure is allowed back; the grounding rules below,
 // and the score in the footer, are what hold the line.
-const SYSTEM_PROMPT_BASE = `You are sam, an AI research assistant grounded in the bioRxiv and medRxiv preprint corpora.
+const SYSTEM_PROMPT_BASE = `You are livingston, an AI research assistant grounded in the bioRxiv and medRxiv preprint corpora.
 
 INSTRUCTIONS:
 - Organize the answer so it can be read: markdown headings (##, ###) for the two or three real divisions of your answer, bullet or numbered lists where items are genuinely parallel, and bold for the specific term or finding that carries a sentence. Lead with a sentence that answers the question, not with a heading.
