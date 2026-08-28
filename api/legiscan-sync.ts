@@ -51,12 +51,14 @@ async function legiscan(key: string, op: string, params: Record<string, string |
 /** LegiScan chamber codes: S, A, H — and Congress calls its lower house the House. */
 const chamberName = (c: unknown) => {
   const x = String(c ?? "").toUpperCase();
-  return x.startsWith("S") ? "Senate" : x.startsWith("A") ? "Assembly" : x.startsWith("H") ? "House" : x || null;
+  return x.startsWith("S") ? "Senate" : x.startsWith("A") ? "Assembly" : x.startsWith("H") ? "House" : x.startsWith("L") ? "Legislature" : x.startsWith("C") ? "Council" : x || null;
 };
 
-/** LegiScan state_id → postal code, for the states we carry. */
+/** LegiScan state_id → postal code, for the states we have seen it on. Runs always pass ?state=, so this is a backstop. */
 const STATE_BY_ID: Record<number, string> = { 32: "NY", 31: "NJ", 52: "US" };
-const lowerHouse = (state: string) => (state === "US" ? "House" : "Assembly");
+/** What each legislature calls its lower house. House unless listed. */
+const LOWER_HOUSE: Record<string, string> = { NY: "Assembly", NJ: "Assembly", CA: "Assembly", NV: "Assembly", WI: "Assembly", NE: "Legislature", DC: "Council", US: "House" };
+const lowerHouse = (state: string) => LOWER_HOUSE[state] ?? "House";
 
 /**
  * Status, in the codes policy's UI already filters on (1 introduced, 2 in
