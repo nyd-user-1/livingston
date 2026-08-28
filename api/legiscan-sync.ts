@@ -490,13 +490,15 @@ async function runDataset(sql: Sql, key: string, state: string, sessionId: numbe
   const unzip = new Unzip();
   unzip.register(UnzipInflate);
   unzip.onfile = (file) => {
-    const parts: Uint8Array[] = [];
+    // Decode as the chunks arrive. Some archives (Colorado's) deliver one file in
+    // tens of thousands of tiny chunks, and Buffer.concat over that many overflows the stack.
+    const decoder = new TextDecoder();
+    let text = "";
     file.ondata = (err, data, final) => {
       if (err) throw err;
-      parts.push(data);
+      text += decoder.decode(data, { stream: !final });
       if (!final) return;
       files += 1;
-      const text = Buffer.concat(parts).toString("utf8");
       const name = file.name;
       try {
         if (/\/bill\/[^/]+\.json$/.test(name)) {
@@ -520,8 +522,9 @@ async function runDataset(sql: Sql, key: string, state: string, sessionId: numbe
     };
     file.start();
   };
-  // Feed the zip in slices so the inflater can run between them.
-  const STEP = 1 << 20;
+  // Feed the zip in small slices: fflate's Unzip recurses once per file boundary
+  // inside a slice, and an archive of thousands of 1 KB files overflows the stack at 1 MB.
+  const STEP = 1 << 16;
   for (let i = 0; i < zip.length; i += STEP) unzip.push(zip.subarray(i, Math.min(i + STEP, zip.length)), i + STEP >= zip.length);
   await pending;
   await flush(sql, rows, counts);
