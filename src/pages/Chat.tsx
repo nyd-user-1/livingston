@@ -1,14 +1,14 @@
-import { lazy, Suspense, useEffect, useMemo, useRef, useState } from "react";
+import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams, useNavigate, useParams, useLocation } from "react-router-dom";
 import { ChatInput } from "@/components/ChatInput";
 import { DetailBody, type EntityType } from "@/components/EntityDetail";
 import { Badge } from "@/components/ui/badge";
 import { ClipboardList, Search, X } from "lucide-react";
-import { useChat, type ChatRoom } from "@/hooks/useChat";
+import { useChat, type ChatRoom, type Message } from "@/hooks/useChat";
 import { ARCHIVE_LABEL } from "@/hooks/useArchive";
 import { subjectTitle } from "@/lib/subjects";
 import type { DragEntity } from "@/lib/drag-entity";
-import { buildFormInterview, formById } from "@/lib/programs";
+import { buildFormInterview, formById, recordedSoFar, sectionForKey, sectionLabel, type ProgramForm } from "@/lib/programs";
 import {
   answerCount,
   emptyAnswers,
@@ -18,10 +18,13 @@ import {
   recallActiveForm,
   rememberActiveForm,
   saveAnswers,
+  stripAnswerBlocks,
   type FormAnswers,
 } from "@/lib/form-answers";
 import { FormProgress } from "@/components/FormProgress";
-import { answersMessage } from "@/lib/form-fields";
+import { answersMessage, parseFieldBlock, stripFieldBlock } from "@/lib/form-fields";
+import { EXPAND_QUESTION } from "@/components/ChatFormFields";
+import type { FormNav, FormNavSection } from "@/components/ChatResponseFooter";
 
 // ChatMessage drags in react-markdown + KaTeX (~200 KB gz). A fresh landing
 // renders zero messages, so that weight loads only once a conversation exists.
@@ -107,6 +110,76 @@ function buildSystemContext(context?: string | null, url?: string | null): strin
   return s;
 }
 
+/* ---- the interview's questions -------------------------------------- */
+
+/** An assistant turn that asked with controls. */
+interface Question {
+  id: string;
+  keys: string[];
+  /** The printed section it belongs to, when it can be told. */
+  section?: string;
+  /** Where `section` came from — reported, so the fallback rate is known. */
+  via: "prose" | "keys" | "none";
+  answered: boolean;
+}
+
+// The prompt tells the model to say where it is ("Section 17 — Employment").
+// A heading with the dash or "continued" is the surest sign; failing that the
+// last bare "Section N" in the prose (a recap line names the section just
+// finished, and the question comes after it); failing that, the keys.
+const SECTION_HEAD = /Section\s+(\d+(?:–\d+)?)\s*(?:—|,\s*continued)/g;
+const SECTION_ANY = /Section\s+(\d+(?:–\d+)?)/g;
+
+function detectSection(prose: string, keys: string[]): Pick<Question, "section" | "via"> {
+  const heads = [...prose.matchAll(SECTION_HEAD)];
+  if (heads.length) return { section: heads[heads.length - 1][1], via: "prose" };
+  const any = [...prose.matchAll(SECTION_ANY)];
+  if (any.length) return { section: any[any.length - 1][1], via: "prose" };
+  for (const k of keys) {
+    const s = sectionForKey(k);
+    if (s) return { section: s, via: "keys" };
+  }
+  return { via: "none" };
+}
+
+function questionsOf(messages: Message[], answers: FormAnswers | null): Question[] {
+  const out: Question[] = [];
+  messages.forEach((m, i) => {
+    if (m.role !== "assistant" || m.isStreaming) return;
+    const fields = parseFieldBlock(m.content);
+    if (!fields) return;
+    const keys = fields.map((f) => f.key);
+    const next = messages[i + 1];
+    const followedByAnswers =
+      next?.role === "user" && Object.keys(parseAnswerBlocks(next.content).values).length > 0;
+    const answered = keys.some((k) => (answers?.values[k] ?? "").trim() !== "") || followedByAnswers;
+    out.push({ id: m.id, keys, answered, ...detectSection(stripFieldBlock(stripAnswerBlocks(m.content)), keys) });
+  });
+  return out;
+}
+
+/** Scroll a question into view and open its accordion. */
+function jumpToQuestion(id: string) {
+  const el = document.getElementById(`q-${id}`);
+  const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  el?.scrollIntoView({ behavior: reduced ? "auto" : "smooth", block: "start" });
+  window.dispatchEvent(new CustomEvent(EXPAND_QUESTION, { detail: id }));
+}
+
+/** The form's sections, in printed order, with what the interview has done to each. */
+function sectionStates(form: ProgramForm, questions: Question[], answers: FormAnswers | null): FormNavSection[] {
+  const lastId = questions[questions.length - 1]?.id;
+  return form.sections
+    .filter((s) => !s.consent)
+    .map((s) => {
+      const qs = questions.filter((q) => q.section === s.n);
+      const allAnswered = qs.length > 0 && qs.every((q) => q.answered);
+      const touched = qs.some((q) => q.answered || q.id === lastId);
+      const state = answers?.done.includes(s.n) || allAnswered ? "done" : touched ? "progress" : "none";
+      return { n: s.n, label: sectionLabel(form, s.n), state, firstId: qs[0]?.id };
+    });
+}
+
 export default function Chat() {
   const [searchParams] = useSearchParams();
   const { sessionId: routeSessionId, category: routeCategory } = useParams();
@@ -125,7 +198,7 @@ export default function Chat() {
       : null;
   }, [routeCategory, location.pathname]);
 
-  const { messages, isLoading, sendMessage, stopGeneration, clearMessages, loadSession, sessionId } =
+  const { messages, isLoading, sendMessage, editMessage, stopGeneration, clearMessages, loadSession, sessionId } =
     useChat(room);
   // A paper dragged from the Papers panel onto the input. It stays attached —
   // and rides every message as context — until the chip's ✕ clears it.
@@ -134,7 +207,51 @@ export default function Chat() {
   // the whole system prompt and /api/chat skips corpus retrieval (mode "form").
   // Anything else attached is a record, and rides in as reading context.
   const filling = attached?.type === "form" ? attached : null;
+  const form = filling ? formById(filling.id) : undefined;
   const [answers, setAnswers] = useState<FormAnswers | null>(null);
+  // The latest record, for handlers that fire between renders.
+  const answersRef = useRef<FormAnswers | null>(null);
+  useEffect(() => {
+    answersRef.current = answers;
+  }, [answers]);
+
+  /** Merge into the record, save it, and hand back the result. */
+  const record = useCallback(
+    (values: Record<string, string>) => {
+      if (!filling) return null;
+      const next = mergeAnswers(answersRef.current ?? emptyAnswers(filling.id), { values, done: [] });
+      answersRef.current = next;
+      saveAnswers(next, sessionId);
+      setAnswers(next);
+      return next;
+    },
+    [filling, sessionId],
+  );
+
+  /**
+   * The form's system prompt, plus the record. History is the last 16
+   * turns, so early answers scroll out and a corrected chip never enters
+   * it — the RECORDED block is how both reach the model.
+   */
+  const formContext = useCallback(
+    (a: FormAnswers | null = answersRef.current) => {
+      if (!filling) return undefined;
+      const rec = form && a ? recordedSoFar(form, a) : "";
+      return rec ? `${filling.context}\n\n${rec}` : filling.context;
+    },
+    [filling, form],
+  );
+
+  const questions = useMemo(() => (filling ? questionsOf(messages, answers) : []), [messages, answers, filling]);
+  const sections = useMemo(() => (form ? sectionStates(form, questions, answers) : []), [form, questions, answers]);
+  const lastQuestion = questions[questions.length - 1];
+  const navFor = (id: string): FormNav | undefined => {
+    const i = questions.findIndex((q) => q.id === id);
+    if (i < 0) return undefined;
+    const prev = questions[i - 1];
+    const next = questions[i + 1];
+    return { prevId: prev?.id, nextId: next?.id, nextAnswered: Boolean(next?.answered), sections, onJump: jumpToQuestion };
+  };
 
   // Answers survive the tab. A benefits interview is forty minutes and people
   // get interrupted; losing a refresh must never mean starting over.
@@ -142,7 +259,7 @@ export default function Chat() {
     if (!filling) { setAnswers(null); return; }
     setAnswers(loadAnswers(filling.id, sessionId));
     rememberActiveForm(filling.id, sessionId);
-  }, [filling?.id, sessionId]);
+  }, [filling, sessionId]);
 
   // Coming back to a conversation that was filling something: re-attach the
   // form so the ribbon, the placeholder and form mode all return with it.
@@ -181,7 +298,7 @@ export default function Chat() {
   }, [messages, isLoading, filling, sessionId]);
   const submit = (text: string, modelId: string) =>
     filling
-      ? sendMessage(text, filling.context, undefined, modelId, "form")
+      ? sendMessage(text, formContext(), undefined, modelId, "form")
       : sendMessage(text, attached?.context ? buildSystemContext(attached.context) : undefined, undefined, modelId);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const scrollPaneRef = useRef<HTMLDivElement>(null);
@@ -283,7 +400,7 @@ export default function Chat() {
     if (prompt) {
       setAutoSubmitted(true);
 
-      let systemContext = buildSystemContext(context, url);
+      const systemContext = buildSystemContext(context, url);
 
       // Point the PDF viewer at /api/pdf, which resolves the canonical URL and the
       // Google-viewer wrapper. Prefer an explicit ?key= from the caller; fall back to the
@@ -305,22 +422,30 @@ export default function Chat() {
   const hasMessages = messages.length > 0;
 
   return (
-    <div className="flex h-full min-h-0">
+    // The page bleeds up under the floating top bar (AppLayout pads #app-main
+    // by --spacing-header; this pulls the scroll pane back up by the same),
+    // so the transcript passes beneath the bar and fades, Claude-style.
+    <div className="-mt-header flex h-[calc(100%+var(--spacing-header))] min-h-0">
     <div className="flex h-full min-w-0 flex-1 flex-col">
       {hasMessages ? (
         <>
           {/* Messages — scrollable */}
           <div ref={scrollPaneRef} className="flex-1 overflow-y-auto">
-            <div className="mx-auto max-w-[720px] px-2 md:px-4 py-4 md:py-8">
-              {messages.map((msg, i) => (
+            <div className="mx-auto max-w-[720px] px-2 md:px-4 pb-4 md:pb-8 pt-[calc(var(--spacing-header)+0.5rem)]">
+              {messages.map((msg, i) => {
+                const q = filling ? questions.find((x) => x.id === msg.id) : undefined;
+                return (
                 <Suspense key={msg.id} fallback={<div className="mb-6 h-16 animate-pulse rounded-lg bg-muted/40" />}>
                 <ChatMessage
                   key={msg.id}
+                  id={msg.id}
                   role={msg.role}
                   content={msg.content}
                   isStreaming={msg.isStreaming}
                   sources={msg.sources}
                   pdfUrl={msg.pdfUrl}
+                  timestamp={msg.timestamp}
+                  form={form}
                   // the question this answer replies to — the grounding check
                   // scores the answer against the papers FOR that question
                   query={
@@ -328,23 +453,35 @@ export default function Chat() {
                       ? messages.slice(0, i).reverse().find((m) => m.role === "user")?.content
                       : undefined
                   }
+                  // Every question in form mode, not just the last: an earlier
+                  // one renders collapsed and reopens to be corrected.
                   onFieldSubmit={
-                    filling && i === messages.length - 1
+                    filling
                       ? (values) => {
                           // Record locally first — the answer is the user's, not
-                          // the model's recollection of it.
-                          setAnswers((prev) => {
-                            const next = mergeAnswers(prev ?? emptyAnswers(filling.id), { values, done: [] });
-                            saveAnswers(next, sessionId);
-                            return next;
-                          });
-                          void sendMessage(answersMessage(values), filling.context, undefined, undefined, "form");
+                          // the model's recollection of it. Then the model hears
+                          // it as a turn, with the whole record riding along.
+                          const next = record(values);
+                          void sendMessage(answersMessage(values), formContext(next), undefined, undefined, "form");
                         }
                       : undefined
                   }
+                  valueFor={filling ? (key) => answers?.values[key] : undefined}
+                  answered={q?.answered}
+                  current={q ? q.id === lastQuestion?.id && !q.answered : undefined}
+                  sectionLabel={q?.section ? (/^\d/.test(q.section) ? `Section ${q.section}` : sectionLabel(form, q.section)) : undefined}
+                  disabled={isLoading}
+                  nav={q ? navFor(q.id) : undefined}
+                  // Editing a user turn rewrites it in place; chip edits also
+                  // land in the record. Nothing is sent to the model.
+                  onEdit={(content, changed) => {
+                    editMessage(msg.id, content);
+                    if (changed && Object.keys(changed).length) record(changed);
+                  }}
                 />
                 </Suspense>
-              ))}
+                );
+              })}
               <div ref={messagesEndRef} />
             </div>
           </div>
@@ -369,7 +506,7 @@ export default function Chat() {
         </>
       ) : (
         /* Empty state — input vertically centered */
-        <div className="flex flex-1 flex-col items-center justify-center px-4">
+        <div className="flex flex-1 flex-col items-center justify-center px-4 pt-header">
           {filling && answers && answerCount(answers) > 0 && (
             <div className="w-full">
               <FormProgress form={formById(filling.id)} answers={answers} />
@@ -397,7 +534,7 @@ export default function Chat() {
       )}
     </div>
     {entity && (
-      <div className="hidden w-80 shrink-0 overflow-y-auto border-l bg-card p-4 md:block">
+      <div className="hidden w-80 shrink-0 overflow-y-auto border-l bg-card p-4 pt-[calc(var(--spacing-header)+1rem)] md:block">
         <div className="mb-2 flex items-start justify-between">
           <Badge variant="secondary" className="text-[10px]">{entity.type}</Badge>
           <button onClick={() => setEntity(null)} className="text-muted-foreground hover:text-foreground"><X className="h-4 w-4" /></button>

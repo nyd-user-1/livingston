@@ -8,7 +8,7 @@ import { createPortal } from "react-dom";
  * it too.
  */
 export const TOOLTIP_SURFACE =
-  "rounded-md border border-border bg-background px-2 py-1 text-xs text-foreground shadow";
+  "rounded-md border border-border bg-popover px-2 py-1 text-xs text-popover-foreground shadow-popover";
 
 /**
  * Hover/focus label for an icon button.
@@ -28,11 +28,14 @@ export function Tooltip({
   label,
   children,
   side = "top",
+  wide = false,
 }: {
   label: string;
   children: ReactNode;
   /** Which side of the trigger the bubble sits on. Default `top`. */
   side?: "top" | "bottom";
+  /** A sentence rather than a word: wraps at ~260px instead of one line. */
+  wide?: boolean;
 }) {
   const anchor = useRef<HTMLSpanElement>(null);
   const [at, setAt] = useState<{ top: number; left: number } | null>(null);
@@ -63,7 +66,7 @@ export function Tooltip({
         createPortal(
           <span
             aria-hidden
-            className={`pointer-events-none fixed z-[300] whitespace-nowrap ${TOOLTIP_SURFACE}`}
+            className={`pointer-events-none fixed z-[300] ${wide ? "w-max max-w-[260px] whitespace-normal px-3 py-2 text-left leading-snug" : "whitespace-nowrap"} ${TOOLTIP_SURFACE}`}
             style={{
               top: at.top,
               left: at.left,

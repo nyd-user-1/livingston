@@ -214,7 +214,9 @@ function fillOcfs6025(doc: PDFDocument, v: Record<string, string>) {
     tf(`hh${slot}_sex`, v[`household[${i}].sex`]);
     tf(`hh${slot}_ssn`, (v[`household[${i}].ssn`] ?? "").replace(/\D/g, ""));
     tf(`hh${slot}_relationship`, v[`household[${i}].relationship`]);
-    yn(`hh${slot}_us_citizen`, v[`household[${i}].citizenship`]?.toLowerCase().includes("citizen") ? "yes" : undefined);
+    // Exactly `citizen`: "qualified non-citizen" contains the word too, and
+    // the select now offers it by name.
+    yn(`hh${slot}_us_citizen`, v[`household[${i}].citizenship`]?.trim().toLowerCase() === "citizen" ? "yes" : undefined);
   }
 
   yn("homeless", v["shelter.type"]?.toLowerCase() === "shelter" ? "yes" : "no");

@@ -361,68 +361,255 @@ export function formStats(f: ProgramForm) {
  * than PDF field names — the PDF's field layer can be re-cut without
  * invalidating an answer someone already gave. `n` in a bracket is 1-based and
  * matches the roster order the user gave.
+ *
+ * `label` is what a person sees on a chip or a control. `options` are the
+ * fixed values the form allows, `value|Label`; a key that has them is always
+ * asked as a select (or checkboxes when `multi`) — the client enforces that in
+ * `parseFieldBlock`, whatever the model wrote.
  */
-export const FORM_KEYS: { key: string; what: string }[] = [
-  { key: "programs", what: "comma-separated from: PA, ChildCareInLieuOfPA, SNAP, MedicaidAndSNAP, MedicaidAndPA, Services, ChildCare, Emergency" },
-  { key: "language.read", what: "language they read" },
-  { key: "language.speak", what: "language they speak" },
-  { key: "interpreter", what: "yes or no" },
-  { key: "urgent", what: "comma-separated, any of: pregnant, domesticViolence, establishParentage, needChildSupport, drugAlcohol, utilityShutoff, homeless, fireOrDisaster, noIncome, seriousMedical, pendingEviction, noFood, needFosterCare, needChildCare, problemsWithEnglish, reasonableAccommodations, other, none" },
-  { key: "applicant.firstName", what: "first name" },
-  { key: "applicant.middleInitial", what: "middle initial" },
-  { key: "applicant.lastName", what: "last name" },
-  { key: "applicant.dob", what: "date of birth, YYYY-MM-DD" },
-  { key: "applicant.ssn", what: "Social Security number, digits only — only if freely given" },
-  { key: "applicant.sex", what: "M, F or X" },
-  { key: "applicant.phone", what: "phone, digits only" },
-  { key: "applicant.email", what: "email" },
-  { key: "address.street", what: "street address" },
-  { key: "address.apt", what: "apartment" },
-  { key: "address.city", what: "city" },
-  { key: "address.state", what: "two-letter state" },
-  { key: "address.zip", what: "ZIP" },
-  { key: "address.county", what: "county" },
-  { key: "mailing.same", what: "yes if mail goes to the home address, no if it is different" },
-  { key: "mailing.street", what: "mailing street, only if different" },
-  { key: "mailing.apt", what: "mailing apartment" },
-  { key: "mailing.city", what: "mailing city" },
-  { key: "mailing.county", what: "mailing county" },
-  { key: "mailing.state", what: "mailing state" },
-  { key: "mailing.zip", what: "mailing ZIP" },
-  { key: "applicant.maritalStatus", what: "single, married, separated, divorced or widowed" },
-  { key: "household.count", what: "how many people live there, including them" },
-  { key: "household[n].firstName", what: "each other person's first name" },
-  { key: "household[n].lastName", what: "last name" },
-  { key: "household[n].dob", what: "date of birth, YYYY-MM-DD" },
-  { key: "household[n].sex", what: "M, F or X" },
-  { key: "household[n].ssn", what: "SSN, digits only — only if freely given" },
-  { key: "household[n].relationship", what: "relationship to the applicant" },
-  { key: "household[n].buysFoodTogether", what: "yes or no" },
-  { key: "household[n].citizenship", what: "citizen, qualified non-citizen, or other" },
-  { key: "income[n].source", what: "kind of income, e.g. job, SSI, SocialSecurity, childSupport" },
-  { key: "income[n].who", what: "whose income it is" },
-  { key: "income[n].amount", what: "amount in dollars" },
-  { key: "income[n].period", what: "weekly, biweekly, monthly or yearly" },
-  { key: "employment.status", what: "employed, unemployed, self-employed, unable to work" },
-  { key: "employment.employer", what: "employer name" },
-  { key: "employment.lastWorked", what: "when they last worked" },
-  { key: "education.highestGrade", what: "highest grade or degree completed" },
-  { key: "resources[n].kind", what: "savings, checking, cash, vehicle, property, life insurance, other" },
-  { key: "resources[n].value", what: "value in dollars" },
-  { key: "medical.insurance", what: "current health insurance, or none" },
-  { key: "medical.pregnant", what: "who is pregnant, or no" },
-  { key: "medical.disabled", what: "who is disabled, or no" },
-  { key: "shelter.type", what: "rent, mortgage, room, shelter, or none" },
-  { key: "shelter.amount", what: "monthly rent or mortgage in dollars" },
-  { key: "shelter.heatIncluded", what: "yes or no" },
-  { key: "utilities.heatCost", what: "monthly heating cost in dollars" },
-  { key: "utilities.shutoffNotice", what: "yes or no" },
-  { key: "expenses.childCare", what: "monthly child or dependent care paid" },
-  { key: "expenses.childSupportPaid", what: "monthly child support they pay out" },
-  { key: "other.veteran", what: "yes or no" },
-  { key: "other.appliedElsewhere", what: "yes or no — applied in another county recently" },
-  { key: "voter.register", what: "yes, no, or already registered" },
+export interface FormKey {
+  key: string;
+  label: string;
+  what: string;
+  options?: string[];
+  /** Several values may be chosen; stored comma-separated. */
+  multi?: boolean;
+}
+
+const YN = ["yes|Yes", "no|No"];
+const SEX = ["M|Male", "F|Female", "X|X"];
+const CITIZENSHIP = ["citizen|U.S. citizen", "qualified non-citizen|Qualified non-citizen", "other|Other"];
+
+export const FORM_KEYS: FormKey[] = [
+  { key: "programs", label: "Programs", what: "which programs they are applying for", multi: true, options: [
+    "PA|Public Assistance (cash)", "ChildCareInLieuOfPA|Child Care in lieu of PA", "SNAP|SNAP (food)", "MedicaidAndSNAP|Medicaid + SNAP",
+    "MedicaidAndPA|Medicaid + Public Assistance", "Services|Services including Foster Care", "ChildCare|Child Care Assistance", "Emergency|Emergency Assistance only",
+  ] },
+  { key: "language.read", label: "Language you read", what: "language they read" },
+  { key: "language.speak", label: "Language you speak", what: "language they speak" },
+  { key: "interpreter", label: "Interpreter", what: "whether they want an interpreter", options: YN },
+  { key: "urgent", label: "Urgent", what: "anything urgent that applies", multi: true, options: [
+    "pregnant|Pregnant", "domesticViolence|Victim of domestic violence", "establishParentage|Need to establish parentage", "needChildSupport|Need child support",
+    "drugAlcohol|Drug or alcohol problem", "utilityShutoff|Fuel or utility shut-off", "homeless|No place to stay", "fireOrDisaster|Fire or other disaster",
+    "noIncome|No income", "seriousMedical|Serious medical problem", "pendingEviction|Pending eviction", "noFood|No food", "needFosterCare|Need foster care",
+    "needChildCare|Need child care", "problemsWithEnglish|Problems with English", "reasonableAccommodations|Reasonable accommodations", "other|Other", "none|None of these",
+  ] },
+  { key: "applicant.firstName", label: "First Name", what: "first name" },
+  { key: "applicant.middleInitial", label: "Middle Initial", what: "middle initial" },
+  { key: "applicant.lastName", label: "Last Name", what: "last name" },
+  { key: "applicant.dob", label: "DOB", what: "date of birth, YYYY-MM-DD" },
+  { key: "applicant.ssn", label: "SSN", what: "Social Security number, digits only — only if freely given" },
+  { key: "applicant.sex", label: "Sex", what: "sex", options: SEX },
+  { key: "applicant.phone", label: "Phone", what: "phone, digits only" },
+  { key: "applicant.email", label: "Email", what: "email" },
+  { key: "address.street", label: "Street", what: "street address" },
+  { key: "address.apt", label: "Apt", what: "apartment" },
+  { key: "address.city", label: "City", what: "city" },
+  { key: "address.state", label: "State", what: "two-letter state" },
+  { key: "address.zip", label: "ZIP", what: "ZIP" },
+  { key: "address.county", label: "County", what: "county" },
+  { key: "mailing.same", label: "Same mailing address", what: "whether mail goes to the home address", options: ["yes|Yes, the same", "no|No, a different address"] },
+  { key: "mailing.street", label: "Mailing street", what: "mailing street, only if different" },
+  { key: "mailing.apt", label: "Mailing apt", what: "mailing apartment" },
+  { key: "mailing.city", label: "Mailing city", what: "mailing city" },
+  { key: "mailing.county", label: "Mailing county", what: "mailing county" },
+  { key: "mailing.state", label: "Mailing state", what: "mailing state" },
+  { key: "mailing.zip", label: "Mailing ZIP", what: "mailing ZIP" },
+  { key: "applicant.maritalStatus", label: "Marital status", what: "marital status", options: ["single|Single", "married|Married", "separated|Separated", "divorced|Divorced", "widowed|Widowed"] },
+  { key: "household.count", label: "People in home", what: "how many people live there, including them" },
+  { key: "household[n].firstName", label: "First Name", what: "each other person's first name" },
+  { key: "household[n].lastName", label: "Last Name", what: "last name" },
+  { key: "household[n].dob", label: "DOB", what: "date of birth, YYYY-MM-DD" },
+  { key: "household[n].sex", label: "Sex", what: "sex", options: SEX },
+  { key: "household[n].ssn", label: "SSN", what: "SSN, digits only — only if freely given" },
+  { key: "household[n].relationship", label: "Relationship", what: "relationship to the applicant" },
+  { key: "household[n].buysFoodTogether", label: "Buys food together", what: "whether they buy food or prepare meals with the applicant", options: YN },
+  { key: "raceEthnicity.provide", label: "Share race and ethnicity", what: "whether they want to answer the optional race and ethnicity question", options: YN },
+  { key: "applicant.race", label: "Race and ethnicity", what: "the applicant's race and ethnicity, in their words — optional" },
+  { key: "household[n].race", label: "Race and ethnicity", what: "that person's race and ethnicity — optional" },
+  { key: "applicant.citizenship", label: "Citizenship", what: "the applicant's citizenship or immigration status", options: CITIZENSHIP },
+  { key: "household[n].citizenship", label: "Citizenship", what: "citizenship or immigration status", options: CITIZENSHIP },
+  { key: "childSupport.absentParent", label: "Parent absent from home", what: "whether a child's parent is absent from the home", options: YN },
+  { key: "childSupport.absentParent.firstName", label: "First Name", what: "the absent parent's first name" },
+  { key: "childSupport.absentParent.lastName", label: "Last Name", what: "the absent parent's last name" },
+  { key: "childSupport.absentParent.dob", label: "DOB", what: "the absent parent's date of birth, YYYY-MM-DD, if known" },
+  { key: "childSupport.absentParent.lastAddress", label: "Last Address", what: "the absent parent's last known address" },
+  { key: "childSupport.absentParent.forChild", label: "For which child", what: "which child or children the absent parent is a parent of" },
+  { key: "taxes.files", label: "Files taxes", what: "whether they file a tax return", options: YN },
+  { key: "taxes.dependents", label: "Dependents claimed", what: "who they claim as a dependent" },
+  { key: "spouse.absent", label: "Spouse absent", what: "whether a spouse is absent from the home", options: YN },
+  { key: "spouse.deceased", label: "Spouse deceased", what: "whether a spouse has died", options: YN },
+  { key: "spouse.firstName", label: "First Name", what: "the spouse's first name" },
+  { key: "spouse.lastName", label: "Last Name", what: "the spouse's last name" },
+  { key: "child.absent", label: "Child living elsewhere", what: "whether a child of theirs lives elsewhere", options: YN },
+  { key: "teenParent", label: "Teen parent", what: "whether a parent in the home is under 18", options: YN },
+  { key: "income.hasAny", label: "Any income", what: "whether anyone in the home has any money coming in", options: YN },
+  { key: "income[n].source", label: "Income source", what: "kind of income, e.g. job, SSI, SocialSecurity, childSupport" },
+  { key: "income[n].who", label: "Whose income", what: "whose income it is" },
+  { key: "income[n].amount", label: "Amount", what: "amount in dollars" },
+  { key: "income[n].period", label: "How often", what: "how often it comes", options: ["weekly|Weekly", "biweekly|Every two weeks", "monthly|Monthly", "yearly|Yearly"] },
+  { key: "stepparent.income", label: "Stepparent income", what: "a stepparent's income, if one lives in the home — amount, or none" },
+  { key: "sponsor.income", label: "Sponsor income", what: "an immigration sponsor's income, if that applies — amount, or none" },
+  { key: "employment.status", label: "Employment status", what: "employment status", options: ["employed|Employed", "self-employed|Self-employed", "unemployed|Unemployed", "unable to work|Unable to work"] },
+  { key: "employment.employer", label: "Employer", what: "employer name" },
+  { key: "employment.lastWorked", label: "Last worked", what: "when they last worked, YYYY-MM-DD" },
+  { key: "employment.lastEmployer", label: "Last employer", what: "the last employer, if not working now" },
+  { key: "employment.endReason", label: "Why it ended", what: "why the last job ended" },
+  { key: "employment.lookingForWork", label: "Looking for work", what: "whether they are looking for work", options: YN },
+  { key: "employment.inTraining", label: "In training", what: "whether they are in a training program", options: YN },
+  { key: "education.highestGrade", label: "Highest grade", what: "highest grade or degree completed" },
+  { key: "education.currentSchool", label: "School or training now", what: "any school or training they are in now, or none" },
+  { key: "resources.hasAny", label: "Any resources", what: "whether anyone in the home has savings, accounts, vehicles or property", options: YN },
+  { key: "resources[n].kind", label: "Resource", what: "kind of resource", options: ["savings|Savings", "checking|Checking", "cash|Cash", "vehicle|Vehicle", "property|Property other than the home", "life insurance|Life insurance", "other|Other"] },
+  { key: "resources[n].value", label: "Value", what: "value in dollars" },
+  { key: "medical.insurance", label: "Health insurance", what: "current health insurance, or none" },
+  { key: "medical.pregnant", label: "Pregnant", what: "who is pregnant, or no" },
+  { key: "medical.disabled", label: "Disabled", what: "who is disabled, or no" },
+  { key: "medical.bills", label: "Unpaid medical bills", what: "whether there are medical bills they cannot pay", options: YN },
+  { key: "medical.longTermCare", label: "Long-term care", what: "who needs long-term care, or no" },
+  { key: "medical.retroactive", label: "Retroactive Medicaid", what: "whether they want Medicaid for bills from the last three months", options: YN },
+  { key: "shelter.type", label: "Housing", what: "how they are housed", options: ["rent|Rent", "mortgage|Mortgage", "room|Room", "shelter|Shelter", "none|None"] },
+  { key: "shelter.amount", label: "Rent / mortgage", what: "monthly rent or mortgage in dollars" },
+  { key: "shelter.payee", label: "Paid to", what: "who the rent or mortgage is paid to" },
+  { key: "shelter.heatIncluded", label: "Heat included", what: "whether heat is included in the rent", options: YN },
+  { key: "utilities.heatCost", label: "Heating cost", what: "monthly heating cost in dollars" },
+  { key: "utilities.shutoffNotice", label: "Shut-off notice", what: "whether they have had a shut-off notice", options: YN },
+  { key: "expenses.childCare", label: "Child care paid", what: "monthly child or dependent care paid" },
+  { key: "expenses.childSupportPaid", label: "Child support paid", what: "monthly child support they pay out" },
+  { key: "expenses.other", label: "Other bills", what: "other regular bills they pay" },
+  { key: "other.veteran", label: "Veteran", what: "whether they are a veteran", options: YN },
+  { key: "other.appliedElsewhere", label: "Applied elsewhere", what: "whether they applied in another county recently", options: YN },
+  { key: "other.soldRecently", label: "Sold or gave away property", what: "whether anyone sold, traded or gave away property recently", options: YN },
+  { key: "other.strike", label: "On strike", what: "whether anyone in the home is on strike", options: YN },
+  { key: "other.priorBenefits", label: "Got benefits before", what: "whether anyone has received benefits before", options: YN },
+  { key: "other.disqualified", label: "Disqualified before", what: "whether anyone has been disqualified from benefits before", options: YN },
+  { key: "voter.register", label: "Register to vote", what: "whether they want to register to vote", options: ["yes|Yes, register me", "no|No", "already|Already registered"] },
 ];
+
+/** `household[3].dob` → `household[n].dob`, so a roster key matches its FORM_KEYS entry. */
+export const normaliseKey = (key: string) => key.replace(/\[\d+\]/g, "[n]");
+
+const KEY_INDEX = new Map(FORM_KEYS.map((k) => [k.key, k]));
+
+/** The FORM_KEYS entry for a key, roster index normalised. */
+export const formKey = (key: string): FormKey | undefined => KEY_INDEX.get(normaliseKey(key));
+
+/**
+ * A label a person would read. Exact match on the normalised key, else the
+ * last segment humanised: `lastAddress` → `Last Address`, `hasAny` → `Has Any`.
+ */
+export function labelFor(key: string): string {
+  const hit = formKey(key);
+  if (hit) return hit.label;
+  const last = key.split(".").pop()!.replace(/\[\d+\]/g, "");
+  return last
+    .replace(/([a-z\d])([A-Z])/g, "$1 $2")
+    .replace(/[_-]+/g, " ")
+    .replace(/\b\w/g, (c) => c.toUpperCase());
+}
+
+/** The fixed values for a key, if the form has them. */
+export function optionsFor(key: string): { options: string[]; multi: boolean } | undefined {
+  const hit = formKey(key);
+  return hit?.options ? { options: hit.options, multi: hit.multi === true } : undefined;
+}
+
+/* ------------------------------------------------------------------ */
+/*  Which section a key belongs to                                    */
+/* ------------------------------------------------------------------ */
+
+/**
+ * Key prefix → the printed section (LDSS-2921's `FormSection.n`). The
+ * question's prose says where it is; this is the fallback when it does not,
+ * and it is what turns a bare record into "DONE: 1, 2–5, 3". Longest prefix
+ * wins, so `applicant.race` lands in 7 while `applicant.` stays in 3.
+ */
+export const KEY_SECTION: Record<string, string> = {
+  "programs": "1",
+  "language.": "2–5",
+  "interpreter": "2–5",
+  "urgent": "2–5",
+  "applicant.": "3",
+  "address.": "3",
+  "mailing.": "3",
+  "household": "6",
+  "raceEthnicity.": "7",
+  "applicant.race": "7",
+  "household[n].race": "7",
+  "applicant.citizenship": "8",
+  "household[n].citizenship": "8",
+  "childSupport.": "10",
+  "taxes.": "11",
+  "spouse.": "12",
+  "child.": "13",
+  "teenParent": "14",
+  "income": "15",
+  "stepparent.": "16",
+  "sponsor.": "16",
+  "employment.": "17",
+  "education.": "18",
+  "resources": "19",
+  "medical.": "20",
+  "shelter.": "21",
+  "utilities.": "21",
+  "expenses.": "22",
+  "other.": "23",
+  "voter.": "vote",
+};
+
+const KEY_SECTION_ORDERED = Object.entries(KEY_SECTION).sort((a, b) => b[0].length - a[0].length);
+
+export function sectionForKey(key: string): string | undefined {
+  const k = normaliseKey(key);
+  return KEY_SECTION_ORDERED.find(([prefix]) => k.startsWith(prefix))?.[1];
+}
+
+/** `Section 6 — Everyone in your home`; unnumbered parts are just their title. */
+export function sectionLabel(f: ProgramForm | undefined, n: string): string {
+  const sec = f?.sections.find((s) => s.n === n);
+  const num = /^\d/.test(n) ? `Section ${n}` : "";
+  if (!sec) return num || n;
+  return num ? `${num} — ${sec.title}` : sec.title;
+}
+
+/**
+ * The record, as a block for the system prompt. The history sent to the
+ * model is the last 16 turns, so on a long form the early answers scroll
+ * out — and a corrected chip never enters the history at all. This is how
+ * both reach the model. Capped; the earliest sections go first when it is
+ * too long, and the block says so.
+ */
+export function recordedSoFar(f: ProgramForm, answers: { values: Record<string, string>; done: string[] }, cap = 4000): string {
+  const entries = Object.entries(answers.values).filter(([, v]) => v !== "");
+  if (!entries.length && !answers.done.length) return "";
+  const order = new Map(f.sections.map((s, i) => [s.n, i]));
+  const bySection = new Map<string, string[]>();
+  for (const [k, v] of entries) {
+    const s = sectionForKey(k) ?? "";
+    if (!bySection.has(s)) bySection.set(s, []);
+    bySection.get(s)!.push(`${k}: ${v}`);
+  }
+  const groups = [...bySection.entries()].sort(
+    ([a], [b]) => (order.get(a) ?? 999) - (order.get(b) ?? 999),
+  );
+  const head = "RECORDED SO FAR (the user's answers; treat as true; never re-ask):";
+  const tail = `DONE: ${answers.done.join(", ") || "none yet"}`;
+  const room = cap - head.length - tail.length - 48;
+  const size = () => groups.reduce((n, [, lines]) => n + lines.join("\n").length + 1, 0);
+  let truncated = false;
+  while (groups.length > 1 && size() > room) {
+    groups.shift();
+    truncated = true;
+  }
+  // One section can be over the cap on its own (a long roster): keep its
+  // latest lines.
+  let lines = groups.flatMap(([, l]) => l);
+  while (lines.length > 1 && lines.join("\n").length > room) {
+    lines = lines.slice(1);
+    truncated = true;
+  }
+  return [head, truncated ? "… (earlier answers omitted for length)" : "", lines.join("\n"), tail].filter(Boolean).join("\n");
+}
 
 /* ------------------------------------------------------------------ */
 /*  The interview                                                      */
@@ -438,7 +625,7 @@ export function buildFormInterview(f: ProgramForm): string {
   // and does not pretend to be filling anything in.
   if (!f.pdf) {
     return [
-      `You are livingston. The user is asking about ${f.code} — ${f.title}.`,
+      `You are Penny, livingston's benefits assistant. The user is asking about ${f.code} — ${f.title}.`,
       `${f.blurb}`,
       f.covers.length ? `It covers: ${f.covers.join(", ")}.` : "",
       f.apply ? `How to apply: ${f.apply.how}` : "",
@@ -455,7 +642,7 @@ export function buildFormInterview(f: ProgramForm): string {
   }
   const stats = formStats(f);
   return [
-    `You are livingston, filling out ${f.code} with the user, one section at a time.`,
+    `You are Penny, livingston's benefits assistant, filling out ${f.code} with the user, one section at a time.`,
     `You are not advising and not deciding anything — you are the form's interface.`,
     "",
     "THE ONE RULE THAT MATTERS MOST",
@@ -503,6 +690,7 @@ export function buildFormInterview(f: ProgramForm): string {
     "",
     "- kind: text, textarea, number, money, date, tel, email, ssn, select, radio, checkbox",
     "- radio is one choice; checkbox is several. Options are `value|Label`.",
+    "- Keys with fixed values in KEYS are selects; never ask them as free text. The app renders those values whatever you write, so you may leave `options` out for them.",
     "- Use `optional: true` for anything genuinely optional, and `help` for a short clarifier.",
     "- Two to five fields per block. One question per field. Never dump a whole section.",
     "- Use `value` to prefill something you already know and are confirming.",
@@ -527,8 +715,18 @@ export function buildFormInterview(f: ProgramForm): string {
     "- Omit the block entirely if you learned nothing this turn.",
     "- Never mention the block, never explain it, never show it in your prose.",
     "",
+    "CITING",
+    "Any statement about what the form asks, requires, says, or where something is filled in",
+    "must carry a citation at the end of the sentence, written `[[p.8 §15]]` — the page and",
+    "section from SECTIONS. Several are fine: `[[p.2 §3]] [[p.3 §6]]`. Do not state eligibility",
+    "rules that are not printed on the form; if the user asks one, say it is not on the form and",
+    "who decides (their county district). The \"Section N of 21\" you already say is not a",
+    "citation — add the chip too.",
+    "",
     "KEYS",
-    ...FORM_KEYS.map((k) => `    ${k.key} — ${k.what}`),
+    ...FORM_KEYS.map((k) =>
+      `    ${k.key} — ${k.what}${k.options ? `. Values${k.multi ? " (several, comma-separated)" : ""}: ${k.options.map((o) => o.split("|")[0]).join(", ")}` : ""}`,
+    ),
     "",
     "SECTIONS",
     ...f.sections.map(

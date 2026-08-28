@@ -183,7 +183,7 @@ exists yet.
 
 5. **Dev proxy retargeted.** `vite.config.ts` pointed `/api` at
    `nsr.nysgpt.com` (stale from cshl's own cloning). It now points at
-   `cshl.nysgpt.com`, overridable with `SAM_API_ORIGIN`. Note the consequence:
+   `cshl.nysgpt.com`, overridable with `LIVINGSTON_API_ORIGIN`. Note the consequence:
    **until livingston is deployed, local `/api` calls are served by cshl's deployment,
    which still has the old broken feed POST.** The feed fix takes effect once
    livingston runs its own functions.

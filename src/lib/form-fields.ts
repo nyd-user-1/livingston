@@ -13,6 +13,8 @@
  * format in both directions, harvested by one parser.
  */
 
+import { labelFor, optionsFor } from "@/lib/programs";
+
 export type FieldKind = "text" | "textarea" | "number" | "money" | "date" | "tel" | "email" | "ssn" | "select" | "radio" | "checkbox";
 
 export interface ChatField {
@@ -57,9 +59,18 @@ export function parseFieldBlock(text: string): ChatField[] | null {
     const key = typeof f.key === "string" ? f.key.trim() : "";
     const label = typeof f.label === "string" ? f.label.trim() : "";
     if (!key) continue;
-    const shown = label || key.split(".").pop()!.replace(/\[\d+\]/, "").replace(/([a-z])([A-Z])/g, "$1 $2");
-    const kind = KINDS.includes(f.kind as FieldKind) ? (f.kind as FieldKind) : "text";
-    const options = Array.isArray(f.options) ? f.options.filter((o): o is string => typeof o === "string") : undefined;
+    const shown = label || labelFor(key);
+    let kind = KINDS.includes(f.kind as FieldKind) ? (f.kind as FieldKind) : "text";
+    let options = Array.isArray(f.options) ? f.options.filter((o): o is string => typeof o === "string") : undefined;
+    // The form's own fixed values win. Employment status was once answered as
+    // free text because the model asked in prose; a key with options in
+    // FORM_KEYS is a select (or checkboxes) no matter what the model wrote,
+    // and the model's own option list is dropped.
+    const fixed = optionsFor(key);
+    if (fixed) {
+      kind = fixed.multi ? "checkbox" : "select";
+      options = fixed.options;
+    }
     // A select with nothing to select from is a text box, not a dead dropdown.
     const settled: FieldKind = (kind === "select" || kind === "radio" || kind === "checkbox") && !options?.length ? "text" : kind;
     out.push({

@@ -42,20 +42,24 @@ export function AppLayout() {
         className="relative flex flex-1 flex-col min-w-0 md:rounded-xl md:border bg-background overflow-hidden"
         onClick={() => {}}
       >
-        {/* Top bar — inside the wrapper. Positioned + z-10 + opaque so a collapsed
-            ExpandFrame (z-0, glued to its scrolled slot) passes UNDER it, not over. */}
-        <div className="relative z-10 flex items-center justify-between border-b bg-background px-4 py-2 flex-shrink-0">
+        {/* Top bar — floats over the scroll pane. No rule and no background:
+            content passes under it and blurs, and the blur fades out across
+            the bar's lower 28px (the .header-blur mask) so there is no edge.
+            The bar is pointer-transparent except for its controls, so the
+            fade zone never swallows a click. #app-main pads by the same
+            --spacing-header so nothing loads hidden beneath it. */}
+        <div className="header-blur pointer-events-none absolute inset-x-0 top-0 z-10 flex items-start justify-between px-4 pb-9 pt-2">
           <button
             onClick={() => setSidebarOpen((o) => !o)}
-            className="inline-flex items-center justify-center h-10 w-10 rounded-md text-foreground hover:bg-muted transition-colors"
+            className="pointer-events-auto inline-flex items-center justify-center h-10 w-10 rounded-md text-foreground hover:bg-muted transition-colors"
           >
             <List className="h-5 w-5" />
           </button>
 
           {/* Search bar portal target — filled by page components */}
-          <div id="header-search" className="flex-1 mx-2" />
+          <div id="header-search" className="pointer-events-auto flex-1 mx-2" />
 
-          <div className="flex items-center gap-0.5">
+          <div className="pointer-events-auto flex items-center gap-0.5">
             <Hint label="Grants & Benefits" side="bottom">
               <button
                 onClick={() => toggle("forms")}
@@ -90,7 +94,7 @@ export function AppLayout() {
         </div>
 
         {/* Page content */}
-        <main id="app-main" className="flex-1 overflow-y-auto">
+        <main id="app-main" className="flex-1 overflow-y-auto pt-header">
           <Outlet />
         </main>
       </div>
@@ -116,7 +120,7 @@ export function AppLayout() {
             onClick={() => setDisclaimerOpen(false)}
           />
           <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 pointer-events-none">
-            <div className="pointer-events-auto w-full max-w-md rounded-xl border bg-background shadow-2xl animate-in fade-in zoom-in-95 duration-150 p-6">
+            <div className="pointer-events-auto w-full max-w-md rounded-xl border bg-popover shadow-popover animate-in fade-in zoom-in-95 duration-150 p-6">
               <div className="flex items-start justify-between mb-4">
                 <h2 className="text-lg font-semibold">Disclaimer</h2>
                 <button

@@ -1,11 +1,94 @@
 import { TexText } from "./TexText";
 import { useState, useRef, useEffect } from "react";
-import { ThumbsUp, ThumbsDown, Copy, Check, BookOpen, ExternalLink, GraduationCap, FileText, ShieldCheck } from "lucide-react";
+import { ThumbsUp, ThumbsDown, Copy, Check, BookOpen, ExternalLink, GraduationCap, FileText, ShieldCheck, SquareMenu, ChevronUp, ChevronDown } from "lucide-react";
 import { subjectTitle } from "@/lib/subjects";
 import { toast } from "sonner";
 import type { MessageSources } from "@/hooks/useChat";
 import { usePaperLookup } from "@/hooks/usePaperLookup";
 import { TextSearch } from "@/components/icons/TextSearch";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+
+/**
+ * Moving between the questions of a form interview — the footer of every
+ * assistant turn that carries a fields block gets a section menu and
+ * up/down chevrons. Down only goes to a question that is already answered:
+ * the frontier is where the user is, and the one after it does not exist.
+ */
+export interface FormNavSection {
+  n: string;
+  label: string;
+  state: "done" | "progress" | "none";
+  /** The first question asked in this section; absent until one has been. */
+  firstId?: string;
+}
+export interface FormNav {
+  prevId?: string;
+  nextId?: string;
+  nextAnswered: boolean;
+  sections: FormNavSection[];
+  onJump: (id: string) => void;
+}
+
+const ICON =
+  "inline-flex items-center justify-center h-7 w-7 rounded-[3px] text-muted-foreground hover:text-foreground hover:bg-muted transition-colors";
+
+function FormNavButtons({ nav }: { nav: FormNav }) {
+  const nextOk = Boolean(nav.nextId) && nav.nextAnswered;
+  return (
+    <>
+      <Popover>
+        <PopoverTrigger asChild>
+          <button type="button" className={ICON} title="Sections" aria-label="Form sections">
+            <SquareMenu className="h-4 w-4" />
+          </button>
+        </PopoverTrigger>
+        <PopoverContent align="start" sideOffset={6} className="w-64 p-1">
+          <p className="px-2 pb-1 pt-1.5 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">Sections</p>
+          {nav.sections.map((s) => {
+            const clickable = s.state !== "none" && Boolean(s.firstId);
+            return (
+              <button
+                key={s.n}
+                type="button"
+                disabled={!clickable}
+                onClick={() => s.firstId && nav.onJump(s.firstId)}
+                className={`flex w-full items-center gap-2 rounded-sm px-2 py-1.5 text-left text-[12px] transition-colors ${
+                  clickable ? "text-foreground hover:bg-muted" : "cursor-default text-muted-foreground/60"
+                }`}
+              >
+                <span className={`w-3 shrink-0 text-center ${s.state === "done" ? "text-green-600 dark:text-green-500" : ""}`} aria-hidden>
+                  {s.state === "done" ? "✓" : s.state === "progress" ? "●" : "○"}
+                </span>
+                <span className="truncate">{s.label}</span>
+                <span className="sr-only">{s.state === "done" ? "done" : s.state === "progress" ? "in progress" : "not started"}</span>
+              </button>
+            );
+          })}
+        </PopoverContent>
+      </Popover>
+      <button
+        type="button"
+        disabled={!nav.prevId}
+        onClick={() => nav.prevId && nav.onJump(nav.prevId)}
+        className={`${ICON} disabled:cursor-default disabled:text-muted-foreground/40 disabled:hover:bg-transparent`}
+        title="Previous question"
+        aria-label="Previous question"
+      >
+        <ChevronUp className="h-4 w-4" />
+      </button>
+      <button
+        type="button"
+        aria-disabled={!nextOk}
+        onClick={() => nextOk && nav.onJump(nav.nextId!)}
+        className={nextOk ? ICON : `${ICON} cursor-default text-muted-foreground/40 hover:bg-transparent hover:text-muted-foreground/40`}
+        title={nextOk ? "Next question" : nav.nextId ? "Next question — not answered yet" : "No next question yet"}
+        aria-label="Next question"
+      >
+        <ChevronDown className="h-4 w-4" />
+      </button>
+    </>
+  );
+}
 
 interface SimilarRecord {
   key_number: string;
@@ -142,6 +225,8 @@ interface ChatResponseFooterProps {
   sources?: MessageSources;
   pdfUrl?: string;
   query?: string;
+  /** Set on form-interview questions only: the section menu and chevrons. */
+  formNav?: FormNav;
 }
 
 export function ChatResponseFooter({
@@ -149,6 +234,7 @@ export function ChatResponseFooter({
   isStreaming = false,
   sources,
   pdfUrl,
+  formNav,
   // `query` stays on the props (callers pass it) but is unread while the
   // grounding badge is withheld — see GroundingBadge above.
 }: ChatResponseFooterProps) {
@@ -168,19 +254,20 @@ export function ChatResponseFooter({
   // PDFs. We never fetch the PDF ourselves: bioRxiv/medRxiv sit behind bot protection
   // that answers any non-browser client with 429, so a server-side proxy cannot work.
   // Google's fetcher is not blocked, and its viewer is frameable.
-  const [preprintPdf, setPreprintPdf] = useState<{ url: string; viewerUrl: string } | null>(null);
+  const [resolvedPdf, setResolvedPdf] = useState<{ url: string; viewerUrl: string } | null>(null);
   const isPreprintRef = Boolean(pdfUrl && pdfUrl.startsWith("/api/pdf"));
+  const preprintPdf = isPreprintRef ? resolvedPdf : null;
 
   useEffect(() => {
-    if (!isPreprintRef || !pdfUrl) return setPreprintPdf(null);
+    if (!isPreprintRef || !pdfUrl) return;
     let cancelled = false;
     fetch(pdfUrl)
       .then((r) => (r.ok ? r.json() : Promise.reject(new Error(String(r.status)))))
       .then((d) => {
-        if (!cancelled && d?.viewerUrl) setPreprintPdf({ url: d.url, viewerUrl: d.viewerUrl });
+        if (!cancelled) setResolvedPdf(d?.viewerUrl ? { url: d.url, viewerUrl: d.viewerUrl } : null);
       })
       .catch(() => {
-        if (!cancelled) setPreprintPdf(null);
+        if (!cancelled) setResolvedPdf(null);
       });
     return () => {
       cancelled = true;
@@ -212,7 +299,9 @@ export function ChatResponseFooter({
     : 0;
 
   return (
-    <div className="pt-3 border-t animate-in fade-in duration-300">
+    // The rule gets 24px of room on both sides: it used to sit flush against
+    // the fields card. Prose ends flush too (last paragraph drops its margin).
+    <div className="mt-6 pt-6 border-t animate-in fade-in duration-300">
       <div className="flex items-center gap-1">
         {/* Sources (Book icon) */}
         {totalCount > 0 && (
@@ -287,13 +376,16 @@ export function ChatResponseFooter({
           )}
         </button>
 
+        {/* Form interview: sections menu, previous / next question */}
+        {formNav && <FormNavButtons nav={formNav} />}
+
         {/* Thumbs Up / Down */}
         <div className="flex items-center gap-1 ml-auto">
           <button
             onClick={() => setFeedback(feedback === "good" ? null : "good")}
             className={`inline-flex items-center justify-center h-7 w-7 rounded-[3px] transition-colors ${
               feedback === "good"
-                ? "text-green-600 hover:text-green-600 hover:bg-green-50"
+                ? "text-green-600 hover:text-green-600 hover:bg-green-500/10 dark:text-green-500"
                 : "text-muted-foreground hover:text-foreground hover:bg-muted"
             }`}
             title="Good response"
@@ -304,7 +396,7 @@ export function ChatResponseFooter({
             onClick={() => setFeedback(feedback === "bad" ? null : "bad")}
             className={`inline-flex items-center justify-center h-7 w-7 rounded-[3px] transition-colors ${
               feedback === "bad"
-                ? "text-red-500 hover:text-red-500 hover:bg-red-50"
+                ? "text-red-500 hover:text-red-500 hover:bg-red-500/10"
                 : "text-muted-foreground hover:text-foreground hover:bg-muted"
             }`}
             title="Bad response"

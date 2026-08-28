@@ -50,11 +50,14 @@ export function ChatInput({ onSubmit, onStop, isLoading, initialValue, searchTog
   const modelRef = useRef<HTMLDivElement>(null);
   const modelBtnRef = useRef<HTMLButtonElement>(null);
 
-  // ---- textarea auto-resize ----
-  useEffect(() => {
+  // A new initialValue (a prompt handed in) replaces the draft.
+  const [seenInitial, setSeenInitial] = useState(initialValue);
+  if (initialValue !== seenInitial) {
+    setSeenInitial(initialValue);
     if (initialValue) setValue(initialValue);
-  }, [initialValue]);
+  }
 
+  // ---- textarea auto-resize ----
   useEffect(() => {
     if (textareaRef.current) {
       textareaRef.current.style.height = "auto";
@@ -134,15 +137,15 @@ export function ChatInput({ onSubmit, onStop, isLoading, initialValue, searchTog
         </div>
       )}
       <div
-        className={`relative rounded-2xl bg-secondary p-3 shadow-lg transition-colors ${
-          dragOver ? "border-2 border-dashed border-blue-400" : "border border-border"
+        className={`relative rounded-2xl bg-composer p-3 shadow-lg transition-colors dark:shadow-none ${
+          dragOver ? "border-2 border-dashed border-brand" : "border border-composer-border"
         }`}
         onDragOver={droppable ? (e) => { if (e.dataTransfer.types.includes(ENTITY_MIME)) { e.preventDefault(); e.stopPropagation(); setDragOver(true); } } : undefined}
         onDragLeave={droppable ? (e) => { if (!e.currentTarget.contains(e.relatedTarget as Node | null)) setDragOver(false); } : undefined}
         onDrop={droppable ? handleDrop : undefined}
       >
         {dragOver && (
-          <p className="mb-2 rounded-md border border-dashed border-blue-400 bg-blue-400/10 p-2 text-center text-xs text-blue-500">
+          <p className="mb-2 rounded-md border border-dashed border-brand bg-brand/10 p-2 text-center text-xs text-brand">
             Drop to attach as context
           </p>
         )}
@@ -154,7 +157,7 @@ export function ChatInput({ onSubmit, onStop, isLoading, initialValue, searchTog
           onKeyDown={handleKeyDown}
           placeholder={placeholder ?? "Chat with livingston"}
           rows={1}
-          className="flex-1 min-h-[40px] w-full resize-none border-0 bg-transparent focus-visible:ring-0 focus-visible:ring-offset-0 p-0 placeholder:text-muted-foreground/60 text-base text-foreground outline-none"
+          className="flex-1 min-h-[40px] w-full resize-none border-0 bg-transparent focus-visible:ring-0 focus-visible:ring-offset-0 p-0 placeholder:text-muted-foreground/60 dark:placeholder:text-muted-foreground text-base text-foreground outline-none"
         />
 
         {/* Bottom row: + button, model label, send button */}
@@ -196,7 +199,7 @@ export function ChatInput({ onSubmit, onStop, isLoading, initialValue, searchTog
               </button>
 
               {modelMenuOpen && (
-                <div className={`absolute right-0 w-[calc(100vw-2rem)] md:w-[260px] rounded-xl border bg-background shadow-xl animate-in fade-in duration-150 overflow-y-auto max-h-[min(60vh,420px)] py-1 ${
+                <div className={`absolute right-0 w-[calc(100vw-2rem)] md:w-[260px] rounded-xl border bg-popover shadow-popover animate-in fade-in duration-150 overflow-y-auto max-h-[min(60vh,420px)] py-1 ${
                   modelMenuAbove ? "bottom-full mb-2 slide-in-from-bottom-2" : "top-full mt-2 slide-in-from-top-2"
                 }`}>
                   {MODEL_OPTIONS.map((m) => (

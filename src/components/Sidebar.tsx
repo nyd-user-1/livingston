@@ -102,7 +102,7 @@ function ChatSessionItem({
         onClick={onNavigate}
         className={`flex w-full items-center gap-2 rounded-lg px-3 py-2 pr-10 text-sm transition-colors ${
           isActive
-            ? "bg-muted font-medium"
+            ? "bg-active font-medium"
             : "text-muted-foreground hover:bg-muted hover:text-foreground"
         }`}
       >
@@ -127,7 +127,7 @@ function ChatSessionItem({
 
       {/* Context menu */}
       {menuOpen && (
-        <div className="absolute right-0 top-full mt-1 z-50 w-[160px] rounded-lg border bg-background shadow-lg animate-in fade-in slide-in-from-top-1 duration-100 py-1">
+        <div className="absolute right-0 top-full mt-1 z-50 w-[160px] rounded-lg border bg-popover shadow-popover animate-in fade-in slide-in-from-top-1 duration-100 py-1">
           <button
             onClick={() => {
               setMenuOpen(false);
@@ -183,7 +183,7 @@ function Group({ label, icon, active, expanded, onToggle, onOpen, onHover, items
 }) {
   return (
     <div>
-      <div className={`flex items-center rounded-lg text-sm font-medium transition-colors ${active ? "bg-muted" : "hover:bg-muted"}`}>
+      <div className={`flex items-center rounded-lg text-sm font-medium transition-colors ${active ? "bg-active" : "hover:bg-muted"}`}>
         <button onClick={onOpen} onMouseEnter={onHover} className="flex flex-1 items-center gap-3 px-3 py-2.5 text-left">
           {icon}
           {label}
@@ -240,7 +240,7 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
         isOpen ? "w-[281px]" : "w-0"
       } flex-shrink-0 transition-all duration-200 ease-in-out fixed inset-y-0 left-0 z-50 md:relative md:inset-auto ${isOpen ? "overflow-visible" : "overflow-hidden"}`}
     >
-      <div className="w-[281px] h-full flex flex-col bg-background">
+      <div className="w-[281px] h-full flex flex-col bg-card">
         {/* Fixed top: title, New Chat / New Search, data sources (a–z), Workspace (a–z) */}
         <div className="shrink-0 px-3 pt-2 space-y-1">
           <h1 className="px-3 pt-1 pb-3 text-[clamp(0.875rem,4.5vw,1.125rem)] font-bold tracking-tight whitespace-nowrap">
@@ -255,7 +255,7 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
           <button
             onClick={() => { navigate("/new-chat"); window.dispatchEvent(new Event("new-chat")); closeMobile(); }}
             className={`flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors ${
-              location.pathname === "/" || location.pathname === "/new-chat" ? "bg-muted" : "hover:bg-muted"
+              location.pathname === "/" || location.pathname === "/new-chat" ? "bg-active" : "hover:bg-muted"
             }`}
           >
             <SquarePen className="h-4 w-4" />
@@ -264,7 +264,7 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
           <button
             onClick={() => { navigate("/new-search"); closeMobile(); }}
             className={`flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors ${
-              location.pathname === "/new-search" ? "bg-muted" : "hover:bg-muted"
+              location.pathname === "/new-search" ? "bg-active" : "hover:bg-muted"
             }`}
           >
             <Search className="h-4 w-4" />
@@ -275,7 +275,7 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
             onClick={() => { navigate("/programs"); closeMobile(); }}
             onMouseEnter={() => { import("@/pages/Programs"); }}
             className={`flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors ${
-              location.pathname === "/programs" ? "bg-muted" : "hover:bg-muted"
+              location.pathname === "/programs" ? "bg-active" : "hover:bg-muted"
             }`}
           >
             <ClipboardList className="h-4 w-4" />

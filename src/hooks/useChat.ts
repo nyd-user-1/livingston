@@ -38,6 +38,8 @@ export interface Message {
   isStreaming?: boolean;
   sources?: MessageSources;
   pdfUrl?: string;
+  /** When it was said. Set once, at creation; the user bubble shows the date. */
+  timestamp?: string;
 }
 
 function makeId() {
@@ -51,7 +53,9 @@ function toPersistedMessages(msgs: Message[]): PersistedMessage[] {
       id: m.id,
       role: m.role,
       content: m.content,
-      timestamp: new Date().toISOString(),
+      // Keep the original time. This used to stamp "now" on every save, so
+      // every message in a session carried the time of the last one.
+      timestamp: m.timestamp ?? new Date().toISOString(),
       ...(m.pdfUrl ? { pdfUrl: m.pdfUrl } : {}),
       ...(m.sources ? { sources: m.sources } : {}),
     }));
@@ -67,10 +71,12 @@ export function useChat(room?: ChatRoom | null) {
 
   const sendMessage = useCallback(
     async (userText: string, systemContext?: string, pdfUrl?: string, modelId?: string, mode?: "form") => {
+      const now = new Date().toISOString();
       const userMsg: Message = {
         id: makeId(),
         role: "user",
         content: userText,
+        timestamp: now,
       };
 
       const assistantMsg: Message = {
@@ -78,6 +84,7 @@ export function useChat(room?: ChatRoom | null) {
         role: "assistant",
         content: "",
         isStreaming: true,
+        timestamp: now,
         ...(pdfUrl ? { pdfUrl } : {}),
       };
 
@@ -220,14 +227,15 @@ export function useChat(room?: ChatRoom | null) {
 
           return updated;
         });
-      } catch (err: any) {
-        if (err.name === "AbortError") return;
+      } catch (err: unknown) {
+        if (err instanceof Error && err.name === "AbortError") return;
+        const message = err instanceof Error ? err.message : String(err);
         setMessages((prev) =>
           prev.map((m) =>
             m.id === assistantMsg.id
               ? {
                   ...m,
-                  content: `Error: ${err.message}`,
+                  content: `Error: ${message}`,
                   isStreaming: false,
                 }
               : m
@@ -251,6 +259,7 @@ export function useChat(room?: ChatRoom | null) {
             id: m.id,
             role: m.role,
             content: m.content,
+            ...(m.timestamp ? { timestamp: m.timestamp } : {}),
             ...(m.pdfUrl ? { pdfUrl: m.pdfUrl } : {}),
             ...(m.sources ? { sources: m.sources as MessageSources } : {}),
           }))
@@ -284,10 +293,28 @@ export function useChat(room?: ChatRoom | null) {
     persistence.setCurrentSessionId(null);
   }, [persistence]);
 
+  /**
+   * Rewrite one message in place — in state and in the saved session. No
+   * branch, no regeneration: this app has no branching, and in a form
+   * interview "retry" would mean re-asking the question. The transcript
+   * stays put; only the words (or the chips) change.
+   */
+  const editMessage = useCallback(
+    (id: string, content: string) => {
+      const updated = messagesRef.current.map((m) => (m.id === id ? { ...m, content } : m));
+      messagesRef.current = updated;
+      setMessages(updated);
+      const sessionId = persistence.currentSessionId;
+      if (sessionId) void persistence.updateMessages(sessionId, toPersistedMessages(updated));
+    },
+    [persistence],
+  );
+
   return {
     messages,
     isLoading,
     sendMessage,
+    editMessage,
     stopGeneration,
     clearMessages,
     loadSession,

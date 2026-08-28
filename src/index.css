@@ -1,5 +1,8 @@
 @import "tailwindcss";
 
+/* `dark:` follows the .dark class that useTheme sets on <html>, not the OS. */
+@custom-variant dark (&:where(.dark, .dark *));
+
 @theme {
   --color-background: oklch(1 0 0);
   --color-foreground: oklch(0.145 0.015 285);
@@ -19,6 +22,16 @@
   --color-ring: oklch(0.708 0.165 254);
   --color-brand: oklch(0.708 0.165 254);
   --color-brand-foreground: oklch(0.985 0 0);
+  /* Floating surfaces — popovers, menus, tooltips. */
+  --color-popover: oklch(1 0 0);
+  --color-popover-foreground: oklch(0.145 0.015 285);
+  /* The chat composer has its own surface: grey on white in light, and a
+     lifted charcoal on the dark page. */
+  --color-composer: oklch(0.965 0.002 285);
+  --color-composer-border: oklch(0.922 0.004 285);
+  /* The selected row in the sidebar — a step past hover. */
+  --color-active: oklch(0.93 0.004 285);
+  --shadow-popover: 0 8px 24px rgba(0, 0, 0, 0.12);
   /* Chart marks (src/pages/Announcing.tsx). Two categorical fills only:
      "ours" and "not ours". Checked with the dataviz validator against this
      surface — adjacent-pair CVD separation dE 18.9, normal-vision 19.7, both
@@ -29,51 +42,59 @@
   --radius-sm: 0.5rem;
   --radius-md: 0.75rem;
   --radius-lg: 1rem;
+  /* The floating top bar: 56px of controls plus 28px of fade for the blur
+     (AppLayout.tsx). Scroll panes pad by this so nothing loads hidden. */
+  --spacing-header: 5.25rem;
 }
 
 /*
- * Bloomberg Terminal–inspired dark theme
- * Amber-on-black: amber is the baseline, white is promotion,
- * dim amber is demotion, cyan is interactive, green/red are semantic.
+ * Dark theme — Claude's dark palette, sampled from claude.ai in Aug 2026.
+ *
+ * The Bloomberg amber-on-black theme that used to live here is gone on
+ * purpose. Amber body text fought every chip, chart and control that was
+ * designed on neutral surfaces; the app now uses the same neutral greys in
+ * both themes and only the values change.
  */
 .dark {
-  /* Background layers — pure black, panels barely distinguishable */
-  --color-background: #000000;
-  --color-card: #0A0A0A;
-  --color-card-foreground: #FF9933;
+  --color-background: #151515;
+  --color-card: #111111;
+  --color-card-foreground: #f0eeeb;
+  --color-foreground: #f0eeeb;
 
-  /* Body text — warm amber, the Bloomberg signature */
-  --color-foreground: #FF9933;
+  --color-primary: #f0eeeb;
+  --color-primary-foreground: #151515;
 
-  /* White reserved for headers, active states, key identifiers */
-  --color-primary: #FFFFFF;
-  --color-primary-foreground: #000000;
+  --color-secondary: #262626;
+  --color-secondary-foreground: #f0eeeb;
+  --color-muted: #212121;
+  --color-muted-foreground: #888681;
+  --color-accent: #212121;
+  --color-accent-foreground: #f0eeeb;
+  --color-active: #343434;
 
-  /* Dark surfaces for hover, inputs, secondary panels */
-  --color-secondary: #111111;
-  --color-secondary-foreground: #FF9933;
-  --color-muted: #1A1A1A;
-  --color-muted-foreground: #8B7332;
-  --color-accent: #1A1A1A;
-  --color-accent-foreground: #FF9933;
+  /* A muted red that still reads on #151515 (about 4.6:1). */
+  --color-destructive: #e5484d;
 
-  /* Semantic: red for errors/alerts */
-  --color-destructive: #FF3333;
+  --color-border: #2c2c2c;
+  --color-input: #363635;
 
-  /* Borders — thin, subtle dark gray grid lines */
-  --color-border: #222222;
-  --color-input: #1A1A1A;
+  --color-ring: #4177d0;
+  --color-brand: #4177d0;
+  --color-brand-foreground: #f0eeeb;
 
-  /* Interactive elements — Bloomberg cyan for links/clickables */
-  --color-ring: #00BFFF;
-  --color-brand: #00BFFF;
-  --color-brand-foreground: #000000;
+  --color-popover: #20201f;
+  --color-popover-foreground: #f0eeeb;
+  --color-composer: #20201f;
+  --color-composer-border: #363635;
 
-  /* Chart marks — re-stepped for the black surface rather than flipped:
-     cyan inside the dark lightness band (L 0.48-0.67), dim amber as the
-     demotion neutral. CVD separation dE 20.8, normal-vision 21.8. */
-  --color-chart-ours: #0d9ed6;
-  --color-chart-base: #9a8340;
+  /* Claude's dark surfaces carry almost no shadow: popovers and menus get
+     this one, with their 1px border; nothing else. */
+  --shadow-popover: 0 8px 24px rgba(0, 0, 0, 0.45);
+
+  /* Chart marks, re-stepped for #151515: the brand blue (4.2:1) and a
+     neutral (3.5:1); both clear 3:1 on the page. */
+  --color-chart-ours: #4177d0;
+  --color-chart-base: #6b6b78;
 }
 
 @layer base {
@@ -126,4 +147,77 @@
 }
 @media (prefers-reduced-motion: reduce) {
   .link-wipe { transition: none; }
+}
+
+/* The top bar floats over the scroll pane with no rule under it: content
+   passes beneath, blurred, and the blur itself fades out over the lower part
+   of the bar so there is no hard edge (AppLayout.tsx). */
+.header-blur {
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  -webkit-mask-image: linear-gradient(to bottom, black 55%, transparent);
+  mask-image: linear-gradient(to bottom, black 55%, transparent);
+}
+
+/* react-day-picker, inside the date field's popover (ui/date-field.tsx).
+   Its stylesheet is variables first; these map it onto the theme so the
+   calendar looks the same in both modes. Day cells and the popover are
+   both --radius-md. */
+.rdp-root {
+  --rdp-accent-color: var(--color-foreground);
+  --rdp-accent-background-color: var(--color-muted);
+  --rdp-day-height: 2.25rem;
+  --rdp-day-width: 2.25rem;
+  --rdp-day_button-height: 2.1rem;
+  --rdp-day_button-width: 2.1rem;
+  --rdp-day_button-border-radius: var(--radius-md);
+  --rdp-day_button-border: 0;
+  --rdp-selected-border: 0;
+  --rdp-today-color: var(--color-brand);
+  --rdp-outside-opacity: 0.35;
+  --rdp-nav_button-height: 1.75rem;
+  --rdp-nav_button-width: 1.75rem;
+  --rdp-nav-height: 2.25rem;
+  --rdp-weekday-opacity: 1;
+  font-size: 13px;
+  color: var(--color-foreground);
+}
+.rdp-month_caption {
+  font-size: 13px;
+  font-weight: 600;
+}
+.rdp-caption_label {
+  gap: 0.25rem;
+  padding: 0 0.25rem;
+  border-radius: var(--radius-sm);
+}
+.rdp-dropdown:focus-visible ~ .rdp-caption_label {
+  outline: 1px solid var(--color-ring);
+  box-shadow: 0 0 0 3px color-mix(in oklab, var(--color-ring) 30%, transparent);
+}
+.rdp-weekday {
+  color: var(--color-muted-foreground);
+  font-size: 11px;
+  font-weight: 500;
+}
+.rdp-day_button:not(:disabled):hover {
+  background: var(--color-muted);
+}
+.rdp-selected {
+  font-size: inherit;
+  font-weight: 600;
+}
+.rdp-selected .rdp-day_button {
+  background: var(--color-foreground);
+  color: var(--color-background);
+}
+.rdp-button_next,
+.rdp-button_previous {
+  border-radius: var(--radius-sm);
+  color: var(--color-muted-foreground);
+}
+.rdp-button_next:not(:disabled):hover,
+.rdp-button_previous:not(:disabled):hover {
+  background: var(--color-muted);
+  color: var(--color-foreground);
 }

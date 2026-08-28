@@ -29,10 +29,10 @@ export default defineConfig({
     // /api/* → a deployment so every page works locally against real data
     // (Vercel functions don't run under vite). Point this at livingston's own
     // deployment once it exists; until then the upstream one serves the same
-    // database and the same endpoints. Override with SAM_API_ORIGIN.
+    // database and the same endpoints. Override with LIVINGSTON_API_ORIGIN.
     proxy: {
       "/api": {
-        target: process.env.SAM_API_ORIGIN ?? "https://cshl.nysgpt.com",
+        target: process.env.LIVINGSTON_API_ORIGIN ?? "https://cshl.nysgpt.com",
         changeOrigin: true,
       },
     },

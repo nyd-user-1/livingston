@@ -38,7 +38,7 @@ proxied to a deployment that serves the same database (see `vite.config.ts`), so
 every page works against real data locally. Point it elsewhere with:
 
 ```sh
-SAM_API_ORIGIN=https://your-deployment.vercel.app npm run dev
+LIVINGSTON_API_ORIGIN=https://your-deployment.vercel.app npm run dev
 ```
 
 Build:
