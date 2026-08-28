@@ -183,7 +183,8 @@ if (SOURCE === "state_link") {
   if (!ALL_STATES) {
     if (!STATE) { console.error("state_link: pass --state XX or --all-states"); process.exit(2); }
     log(`state_link: ${STATE} since ${SINCE}, batch ${BATCH}, concurrency ${CONCURRENCY}`);
-    const s = await drain(STATE, () => ["source=state_link", `state=${STATE}`, `since=${SINCE}`, `limit=${BATCH}`, `concurrency=${CONCURRENCY}`]);
+    const extra = RETRY_ERRORS ? ["requeueErrors=1"] : [];
+    const s = await drain(STATE, () => ["source=state_link", `state=${STATE}`, `since=${SINCE}`, `limit=${BATCH}`, `concurrency=${CONCURRENCY}`, ...extra]);
     log(`${STATE} done: ${s.considered} considered · ${s.inserted} stored · ${s.skipped} skipped · ${(s.secs / 3600).toFixed(2)} h`);
     process.exit(s.errored ? 1 : 0);
   }
@@ -212,7 +213,7 @@ if (SOURCE === "state_link") {
     for (;;) {
       const st = states[next++];
       if (!st) return;
-      const s = await drain(st, () => ["source=state_link", `state=${st}`, `since=${SINCE}`, `limit=${BATCH}`, `concurrency=${CONCURRENCY}`]);
+      const s = await drain(st, () => ["source=state_link", `state=${st}`, `since=${SINCE}`, `limit=${BATCH}`, `concurrency=${CONCURRENCY}`, ...(RETRY_ERRORS ? ["requeueErrors=1"] : [])]);
       done.push(s);
       log(`── ${st} finished: ${s.inserted} stored, ${s.skipped} skipped, ${(s.secs / 3600).toFixed(2)} h — ${done.length}/${states.length} states done`);
     }

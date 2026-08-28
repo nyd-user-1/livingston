@@ -501,21 +501,43 @@ async function byHostPool<T extends { state_link: string }>(rows: T[], concurren
 }
 
 
-async function runStateLink(sql: Sql, state: string, since: number, limit: number, includeAmendments: boolean, concurrency: number, counts: Counts, fetcher: PoliteFetcher) {
+async function runStateLink(sql: Sql, state: string, since: number, limit: number, includeAmendments: boolean, concurrency: number, requeueErrors: boolean, counts: Counts, fetcher: PoliteFetcher) {
+  // Default: documents with no "BillTexts" row at all — the absence IS the resume
+  // point, so there is no checkpoint to keep.
+  //
+  // --requeue-errors: documents whose stored row carries a TRANSIENT error, so a
+  // sweep at the end of a multi-day walk can pick up the handful that lost a
+  // database connection or timed out. Deliberately narrow: `robots` and
+  // `host-dropped` are verdicts, not accidents, and re-asking a site that told us
+  // no is the one thing this lane must never do.
   const rows = (await sql.query(
-    `SELECT d.document_id, d.bill_id, d.state_link, d.document_mime, d.document_desc, d.document_size, b.state, b.session_id
-       FROM "Documents" d
-       JOIN "Bills" b ON b.bill_id = d.bill_id
-       LEFT JOIN "BillTexts" t ON t.document_id = d.document_id
-      WHERE d.document_type = ANY($4::text[])
-        AND d.state_link <> ''
-        AND ($1 = '' OR b.state = $1)
-        AND b.session_id >= $2
-        AND t.document_id IS NULL
-        AND d.state_link NOT LIKE '%legiscan.com%'
-        AND (d.document_size IS NULL OR d.document_size <= ${MAX_TEXT_BYTES})
-      ORDER BY b.session_id DESC, d.bill_id, d.document_id
-      LIMIT $3`,
+    requeueErrors
+      ? `SELECT d.document_id, d.bill_id, d.state_link, d.document_mime, d.document_desc, d.document_size, b.state, b.session_id
+           FROM "BillTexts" t
+           JOIN "Documents" d ON d.document_id = t.document_id
+           JOIN "Bills" b ON b.bill_id = d.bill_id
+          WHERE t.text IS NULL
+            AND t.error IS NOT NULL
+            AND t.error !~* '^(robots|host-dropped)'
+            AND t.error ~* '(connection|too many|permit|timeout|ETIMEDOUT|ECONNRESET|fetch failed|HTTP 5)'
+            AND ($1 = '' OR b.state = $1)
+            AND b.session_id >= $2
+            AND d.document_type = ANY($4::text[])
+          ORDER BY b.session_id DESC, d.document_id
+          LIMIT $3`
+      : `SELECT d.document_id, d.bill_id, d.state_link, d.document_mime, d.document_desc, d.document_size, b.state, b.session_id
+           FROM "Documents" d
+           JOIN "Bills" b ON b.bill_id = d.bill_id
+           LEFT JOIN "BillTexts" t ON t.document_id = d.document_id
+          WHERE d.document_type = ANY($4::text[])
+            AND d.state_link <> ''
+            AND ($1 = '' OR b.state = $1)
+            AND b.session_id >= $2
+            AND t.document_id IS NULL
+            AND d.state_link NOT LIKE '%legiscan.com%'
+            AND (d.document_size IS NULL OR d.document_size <= ${MAX_TEXT_BYTES})
+          ORDER BY b.session_id DESC, d.bill_id, d.document_id
+          LIMIT $3`,
     [state, since, limit, includeAmendments ? ["text", "amendment"] : ["text"]],
   )) as { document_id: number; bill_id: number; state_link: string; document_mime: string; document_desc: string; state: string; session_id: number }[];
   counts.considered = rows.length;
@@ -726,7 +748,7 @@ export default async function handler(req: { headers?: Record<string, string>; q
       await runGovinfo(sql, congress, String(req.query?.type ?? "").toLowerCase(), counts);
       counts.congress = congress;
     } else if (source === "state_link") {
-      await runStateLink(sql, state, since, limit, Boolean(req.query?.amendments), concurrency, counts, fetcher);
+      await runStateLink(sql, state, since, limit, Boolean(req.query?.amendments), concurrency, Boolean(req.query?.requeueErrors), counts, fetcher);
     } else {
       return res.status(400).json({ error: "pass ?source=nysenate|govinfo|state_link, or ?mode=delta, or ?census=1" });
     }
