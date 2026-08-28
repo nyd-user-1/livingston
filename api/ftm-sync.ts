@@ -106,7 +106,7 @@ async function pull(sql: Sql, key: string, p: Person, counts: Record<string, num
   const candidacies = records(cand).map((r) => ({
     candidate_id: idOf(r, "Candidate"),
     election_year: int(val(r, "Election_Year")),
-    election_state: val(r, "Election_State"),
+    election_state: val(r, "Election_Jurisdiction", "Election_State"),
     election_type: val(r, "Election_Type"),
     office: val(r, "Office_Sought"),
     office_type: val(r, "Type_of_Office"),
@@ -120,7 +120,7 @@ async function pull(sql: Sql, key: string, p: Person, counts: Record<string, num
 
   // Sectors.
   const sect = await ftm(key, { "c-t-eid": eid, gro: "d-ccg" }, counts);
-  const sectors = records(sect).map((r) => ({ sector_id: int(idOf(r, "Sector")), sector: val(r, "Sector"), records: count(r), total: total(r) })).filter((s) => s.sector_id != null);
+  const sectors = records(sect).map((r) => ({ sector_id: int(idOf(r, "Broad_Sector", "Sector")), sector: val(r, "Broad_Sector", "Sector"), records: count(r), total: total(r) })).filter((s) => s.sector_id != null);
 
   // Top contributors — page 0 of the default sort (Total_$ descending).
   const contrib = await ftm(key, { "c-t-eid": eid, gro: "d-eid" }, counts);
