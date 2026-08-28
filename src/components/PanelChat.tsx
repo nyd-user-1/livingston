@@ -90,7 +90,7 @@ export function PanelChat({ record }: { record: CorpusRecord }) {
         )}
         <Suspense fallback={<Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />}>
           {msgs.map((m, i) => (
-            <ChatMessage key={i} role={m.role} content={m.content} isStreaming={busy && i === msgs.length - 1 && m.role === "assistant"} />
+            <ChatMessage key={i} id={`panel-${i}`} role={m.role} content={m.content} isStreaming={busy && i === msgs.length - 1 && m.role === "assistant"} />
           ))}
         </Suspense>
       </div>
