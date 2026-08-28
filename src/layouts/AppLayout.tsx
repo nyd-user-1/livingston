@@ -5,13 +5,13 @@ import { Sidebar } from "@/components/Sidebar";
 import { ResearchFeed, type FeedMode } from "@/components/ResearchFeed";
 import { Tooltip as Hint } from "@/components/ui/tooltip";
 import { AppPanelProvider } from "@/hooks/useAppPanel";
-import { useRecentPapers } from "@/hooks/useRecentPapers";
+import { useRecentBills } from "@/hooks/useBills";
 
 export function AppLayout() {
-  // Warm the Papers panel's query as the app mounts, so the first open renders
-  // from cache rather than a spinner. One request per session; the endpoint is
-  // edge-cached for an hour behind that.
-  useRecentPapers();
+  // Warm the Bills rail's query as the app mounts, so the first open renders
+  // from cache rather than a spinner. One request per session; the function
+  // is edge-cached for ten minutes behind that.
+  useRecentBills();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   // One panel, two contents: the live feed and the newest papers. Holding the
   // mode rather than a boolean means the two buttons share the panel instead of

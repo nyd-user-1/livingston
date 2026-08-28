@@ -120,6 +120,23 @@ function buildSystemContext(context?: string | null, url?: string | null): strin
   return s;
 }
 
+/**
+ * A bill dropped on the input: Penny reads it with the user. The blob is what
+ * the card carried (title, sponsor, status, summary, page) — she says what is
+ * in it, cites the bill's page for anything she states, and does not pretend
+ * to know the full text she was not given.
+ */
+function buildBillContext(context: string): string {
+  return (
+    "You are Penny, livingston's assistant. The user attached a New York State bill; here is what is on record for it:\n" +
+    context +
+    "\n\nTalk it through in plain words: what it would do, who it affects, where it stands and what happens next. " +
+    "Say what the summary says, not more — if the full text is not above, say so rather than guessing. " +
+    "A statement of fact about the bill ends with a citation to its page, written [[<the Page URL above>]]. " +
+    "Never call it law unless the record says it was signed."
+  );
+}
+
 /* ---- the interview's questions -------------------------------------- */
 
 /** An assistant turn that asked with controls. */
@@ -395,7 +412,16 @@ export default function Chat() {
   const submit = (text: string, modelId: string) =>
     filling
       ? sendMessage(text, formContext(), undefined, modelId, "form")
-      : sendMessage(text, attached?.context ? buildSystemContext(attached.context) : undefined, undefined, modelId);
+      : sendMessage(
+          text,
+          attached?.type === "bill" && attached.context
+            ? buildBillContext(attached.context)
+            : attached?.context
+              ? buildSystemContext(attached.context)
+              : undefined,
+          undefined,
+          modelId,
+        );
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const scrollPaneRef = useRef<HTMLDivElement>(null);
   const [autoSubmitted, setAutoSubmitted] = useState(false);

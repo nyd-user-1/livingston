@@ -5,11 +5,12 @@
  */
 
 import { buildFormInterview, formById } from "@/lib/programs";
+import type { Bill } from "@/types/bill";
 
 export const ENTITY_MIME = "application/x-corpus-entity";
 
 export interface DragEntity {
-  type: "paper" | "author" | "form" | "prompt" | "file" | "more";
+  type: "paper" | "author" | "form" | "bill" | "prompt" | "file" | "more";
   id: string;
   label: string;
   sub?: string;
@@ -105,5 +106,39 @@ export function paperEntity(r: PaperLike): DragEntity {
     title: r.title,
     sub: [r.pub_year, r.authors?.split(";")[0]?.trim()].filter(Boolean).join(" · ") || undefined,
     context: paperContext(r),
+  };
+}
+
+/* ------------------------------------------------------------------ */
+/*  Bills                                                              */
+/* ------------------------------------------------------------------ */
+
+
+const shortDate = (iso: string) => (iso ? iso.slice(0, 10) : "");
+
+/** The bill as the chat's context blob — everything the card knows, and its page. */
+export function billContext(b: Bill): string {
+  return [
+    `BILL ${b.printNo} (${b.session}${b.chamber ? `, ${b.chamber}` : ""})`,
+    `Title: ${b.title}`,
+    b.sponsor ? `Sponsor: ${b.sponsor}` : null,
+    b.status ? `Status: ${b.status}${b.committee ? ` — ${b.committee}` : ""}${b.actionDate ? ` (${shortDate(b.actionDate)})` : ""}` : null,
+    b.signed ? "Signed into law." : null,
+    b.summary ? `Summary: ${b.summary.slice(0, 1500)}` : null,
+    `Page: ${b.url}`,
+  ]
+    .filter(Boolean)
+    .join("\n");
+}
+
+/** A bill as a drag payload, record blob included. */
+export function billEntity(b: Bill): DragEntity {
+  return {
+    type: "bill",
+    id: `${b.session}/${b.printNo}`,
+    label: b.printNo,
+    title: b.title,
+    sub: [b.sponsor, b.status].filter(Boolean).join(" · ") || undefined,
+    context: billContext(b),
   };
 }
