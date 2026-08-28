@@ -285,6 +285,16 @@ async function prepareSchema(sql: Sql) {
     ["rollcall_bill_idx", `"Roll Call" (bill_id)`],
     ["votes_people_idx", `"Votes" (people_id)`],
   ]) await sql.query(`CREATE INDEX IF NOT EXISTS ${name} ON ${def}`);
+  // Documents: the key was (document_id) alone, but LegiScan's text, amendment and
+  // supplement ids are three id spaces and collided across states — 18% of rows became
+  // chimeras (lane IN, F1). Move the key to (document_type, document_id), once.
+  await sql.query(`DO $$ BEGIN
+    IF EXISTS (SELECT 1 FROM pg_constraint WHERE conrelid = '"Documents"'::regclass AND contype = 'p'
+               AND pg_get_constraintdef(oid) = 'PRIMARY KEY (document_id)') THEN
+      ALTER TABLE "Documents" DROP CONSTRAINT "Documents_pkey";
+      ALTER TABLE "Documents" ADD PRIMARY KEY (document_type, document_id);
+    END IF;
+  END $$`);
 }
 
 const chunk = <T,>(a: T[], n: number) => Array.from({ length: Math.ceil(a.length / n) }, (_, i) => a.slice(i * n, (i + 1) * n));
@@ -340,6 +350,7 @@ async function flush(sql: Sql, rows: Rows, counts: Record<string, number>) {
         sql.query(`DELETE FROM "SameAs" WHERE bill_id = ANY($1::bigint[])`, [stale]),
         sql.query(`DELETE FROM "Calendar" WHERE bill_id = ANY($1::bigint[])`, [stale]),
         sql.query(`DELETE FROM "Progress" WHERE bill_id = ANY($1::bigint[])`, [stale]),
+        sql.query(`DELETE FROM "Documents" WHERE bill_id = ANY($1::bigint[])`, [stale]),
         sql.query(`DELETE FROM "Referrals" WHERE bill_id = ANY($1::bigint[])`, [stale]),
         sql.query(`DELETE FROM "Bills" WHERE bill_id = ANY($1::bigint[])`, [stale]),
       ]);
@@ -390,6 +401,7 @@ async function flush(sql: Sql, rows: Rows, counts: Record<string, number>) {
       sql.query(`DELETE FROM "SameAs" WHERE bill_id = ANY($1::bigint[])`, [ids]),
       sql.query(`DELETE FROM "Calendar" WHERE bill_id = ANY($1::bigint[])`, [ids]),
       sql.query(`DELETE FROM "Progress" WHERE bill_id = ANY($1::bigint[])`, [ids]),
+      sql.query(`DELETE FROM "Documents" WHERE bill_id = ANY($1::bigint[])`, [ids]),
       sql.query(`DELETE FROM "Referrals" WHERE bill_id = ANY($1::bigint[])`, [ids]),
       ...(sponsors.length
         ? [sql.query(`INSERT INTO "Sponsors" (bill_id, people_id, position, sponsor_type_id, committee_sponsor, sponsor_committee_id) SELECT * FROM unnest($1::bigint[], $2::bigint[], $3::bigint[], $4::int[], $5::boolean[], $6::text[])`,
@@ -426,11 +438,14 @@ async function flush(sql: Sql, rows: Rows, counts: Record<string, number>) {
     add("referrals", referrals.length);
   }
 
-  for (const b of chunk(dedupe(rows.documents, (r) => String(r.document_id)), BATCH)) {
+  // LegiScan's texts, amendments and supplements are three separate id spaces, so the
+  // key is (document_type, document_id) — one column collided across states (lane IN, F1).
+  for (const b of chunk(dedupe(rows.documents, (r) => `${r.document_type}:${r.document_id}`), BATCH)) {
     await sql.query(
       `INSERT INTO "Documents" (bill_id, document_id, document_type, document_size, document_mime, document_desc, url, state_link)
        SELECT * FROM unnest($1::bigint[], $2::bigint[], $3::text[], $4::bigint[], $5::text[], $6::text[], $7::text[], $8::text[])
-       ON CONFLICT (document_id) DO UPDATE SET document_size = EXCLUDED.document_size, document_desc = EXCLUDED.document_desc, url = EXCLUDED.url, state_link = EXCLUDED.state_link`,
+       ON CONFLICT (document_type, document_id) DO UPDATE SET bill_id = EXCLUDED.bill_id, document_size = EXCLUDED.document_size,
+         document_mime = EXCLUDED.document_mime, document_desc = EXCLUDED.document_desc, url = EXCLUDED.url, state_link = EXCLUDED.state_link`,
       ["bill_id", "document_id", "document_type", "document_size", "document_mime", "document_desc", "url", "state_link"].map((k) => col(b, k)),
     );
     add("documents", b.length);
