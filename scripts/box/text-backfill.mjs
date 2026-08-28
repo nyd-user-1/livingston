@@ -5,7 +5,7 @@
 //   node scripts/box/text-backfill.mjs --source govinfo --all-congresses
 //   node scripts/box/text-backfill.mjs --source govinfo --congress 119
 //   node scripts/box/text-backfill.mjs --source state_link --state TX [--since-session 2023]
-//   node scripts/box/text-backfill.mjs --source state_link --all-states [--parallel 8]
+//   node scripts/box/text-backfill.mjs --source state_link --all-states [--parallel 4] [--max-seconds 14400]
 //
 // It holds NO state. Every source's resume point is a column in the database —
 // `Bills.text_fetched_at` for NY, a `"BillTexts"` row for everything walked —
@@ -46,6 +46,16 @@ const CONCURRENCY = Number(val("--concurrency", "12")) || 12;
 const PARALLEL = Number(val("--parallel", "6")) || 6;
 const HEAP = val("--heap", "2048");
 const MAX_ROUNDS = Number(val("--max-rounds", "100000")) || 100000;
+// A wall-clock budget for the night. The walk is ~483,000 documents across 47
+// legislature websites at one request per second per host, and the honest shape
+// for that is a nightly job that does its four hours and stops, not a marathon
+// somebody has to remember is running. Checked BETWEEN rounds and between
+// states, never mid-fetch: the point is to stop cleanly, and every document
+// already stored stays stored.
+const MAX_SECONDS = Number(val("--max-seconds", "0")) || 0;
+const DEADLINE = MAX_SECONDS ? Date.now() + MAX_SECONDS * 1000 : Infinity;
+const budgetSpent = () => Date.now() >= DEADLINE;
+const budgetLeft = () => Math.max(0, Math.round((DEADLINE - Date.now()) / 60000));
 const MAX_ERRORS = Number(val("--max-errors", "10")) || 10;
 const ALL_STATES = has("--all-states");
 const ALL_CONGRESSES = has("--all-congresses");
@@ -93,6 +103,10 @@ async function drain(label, argsFor) {
   let zeroText = 0;
   const t0 = Date.now();
   for (let round = 1; round <= MAX_ROUNDS; round += 1) {
+    if (budgetSpent()) {
+      log(`${label}: the night's budget is spent — stopping cleanly after ${totals.rounds} round(s); the rest resumes tomorrow from the database`);
+      return { ...totals, label, budgeted: true, errored: false, secs: (Date.now() - t0) / 1000 };
+    }
     const r = await call(argsFor(round));
     if (r.code !== 0 || !r.body?.ok) {
       errors += 1;
@@ -205,12 +219,13 @@ if (SOURCE === "state_link") {
   const states = rows.map((r) => r.state).filter((st) => !SKIP_STATES.has(st));
   const held = rows.filter((r) => SKIP_STATES.has(r.state));
   if (held.length) log(`state_link --all-states: holding back ${held.map((r) => `${r.state} (${Number(r.docs).toLocaleString()} docs)`).join(", ")} — another job owns that host`);
-  log(`state_link --all-states: ${states.length} states, ${rows.filter((r) => !SKIP_STATES.has(r.state)).reduce((n, r) => n + Number(r.docs), 0).toLocaleString()} documents outstanding, ${PARALLEL} at a time`);
+  log(`state_link --all-states: ${states.length} states, ${rows.filter((r) => !SKIP_STATES.has(r.state)).reduce((n, r) => n + Number(r.docs), 0).toLocaleString()} documents outstanding, ${PARALLEL} at a time${MAX_SECONDS ? `, budget ${(MAX_SECONDS / 3600).toFixed(1)} h` : ""}`);
 
   let next = 0;
   const done = [];
   const worker = async () => {
     for (;;) {
+      if (budgetSpent()) return;
       const st = states[next++];
       if (!st) return;
       const s = await drain(st, () => ["source=state_link", `state=${st}`, `since=${SINCE}`, `limit=${BATCH}`, `concurrency=${CONCURRENCY}`, ...(RETRY_ERRORS ? ["requeueErrors=1"] : [])]);
@@ -221,7 +236,8 @@ if (SOURCE === "state_link") {
   await Promise.all(Array.from({ length: Math.max(1, Math.min(PARALLEL, states.length)) }, worker));
 
   const tot = done.reduce((a, s) => ({ inserted: a.inserted + s.inserted, skipped: a.skipped + s.skipped, chars: a.chars + s.chars }), { inserted: 0, skipped: 0, chars: 0 });
-  log(`all-states done: ${tot.inserted} stored · ${tot.skipped} skipped · ${(tot.chars / 1e9).toFixed(2)}G chars · ${done.filter((s) => s.errored).length} state(s) ended on errors`);
+  const stoppedOnBudget = done.some((s) => s.budgeted) || (MAX_SECONDS && budgetSpent());
+  log(`all-states ${stoppedOnBudget ? "paused on the night's budget" : "done"}: ${done.length}/${states.length} state(s) worked · ${tot.inserted} stored · ${tot.skipped} skipped · ${(tot.chars / 1e9).toFixed(2)}G chars · ${done.filter((s) => s.errored).length} ended on errors${MAX_SECONDS ? ` · ${budgetLeft()} min left` : ""}`);
   process.exit(done.some((s) => s.errored) ? 1 : 0);
 }
 
