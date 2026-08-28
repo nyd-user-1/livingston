@@ -91,3 +91,11 @@ alec:340b-transparency-and-accountability-act  "340B Transparency and Accountabi
 - **`ND 2003 SB2188` cannot resolve and should not**: we hold **0** North Dakota bills for 2003. That one is genuine absence, and its link is to Westlaw, not LegiScan.
 
 **ALEC is still crawling** — 729 of 1,128 pages cached at 16:20, ~1 req/s, on track for ~22 min total.
+
+**16:24 — CPI final: 549 rows, 546 resolved (99.45%), and the three misses are the right three.**
+`resolvedPass1 522 · pass2 12 · pass3 11 · pass4 1 = 546`, `ambiguousYearFree 3`.
+- **`ND 2003 SB2188`** — genuine absence. We hold **0** North Dakota bills for 2003, and its link is to Westlaw, not LegiScan.
+- **`TX 2018 HB517`** and **`SC 2016 HB4508`** — the year-free pass found **more than one** candidate session each and **refused**. That is the guard working, not failing. A resolver that picked one would be silently wrong in a table whose entire value is that a human said these two bills are the same.
+(Also removed 8 rows my own first run wrote before `normaliseState` existed, keyed `U.S. HOUSE`/`U.S. SENATE` and superseded by corrected `US` rows. 557 → 549.)
+
+**🚩 A cross-lane finding the search/model lane needs, and it is structural, not incidental: every one of the 549 CPI matches is `session_id < 2023`** — 2003 to 2019, with the bulk in 2015–2019. **BT's walker is scoped to `session_id >= 2023`.** So of 546 resolved matches we currently hold the *text* of **8**, all in one cluster and one state, and under the present scope that number will not grow. The labels and the text are in different halves of the corpus. If these curated pairs are to be the training signal the brief calls them, **something has to fetch text for 2015–2019 for ~546 specific bills** — which is a tiny, targeted job (546 documents, not 483,000), not a change to the nightly walk. Recommend a one-shot `--sessions`-style pass driven from `"ModelBillMatches"`; I have not built it, because widening BT's scope is the lead's call and this lane's brief does not cover it.
