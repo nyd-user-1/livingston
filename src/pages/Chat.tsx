@@ -497,6 +497,7 @@ export default function Chat() {
               onSubmit={submit}
               onStop={stopGeneration}
               isLoading={isLoading}
+              searchToggle
               attached={filling ? null : attached}
               onAttach={setAttached}
               placeholder={filling ? `Answering ${filling.label}…` : room ? `Chat with the ${ARCHIVE_LABEL[room.server]} ${subjectTitle(room.category)} preprints…` : undefined}
@@ -524,6 +525,7 @@ export default function Chat() {
           <ChatInput
             onSubmit={submit}
             isLoading={isLoading}
+            searchToggle
             attached={filling ? null : attached}
             onAttach={setAttached}
             placeholder={filling ? `Answering ${filling.label}…` : room ? `Chat with the ${ARCHIVE_LABEL[room.server]} ${subjectTitle(room.category)} preprints…` : undefined}

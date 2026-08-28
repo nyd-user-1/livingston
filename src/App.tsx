@@ -10,6 +10,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 // loads on demand. The Sidebar prefetches chunks on hover, so by the time a
 // click lands the code is usually already here.
 const Chat = lazy(() => import("@/pages/Chat"));
+const Search = lazy(() => import("@/pages/Search"));
 const Features = lazy(() => import("@/pages/Features"));
 const Programs = lazy(() => import("@/pages/Programs"));
 
@@ -36,15 +37,18 @@ function App() {
                 <Route path="/" element={<Chat />} />
                 <Route path="/new-chat" element={<Chat />} />
                 <Route path="/c/:sessionId" element={<Chat />} />
+                <Route path="/new-search" element={<Search />} />
+                {/* /search was the pre-livingston name for the same page */}
+                <Route path="/search" element={<Navigate to="/new-search" replace />} />
                 {/* Grants & benefits — the shelf of things you can apply for. */}
                 <Route path="/programs" element={<Programs />} />
                 <Route path="/medrxiv" element={<Navigate to="/programs" replace />} />
                 <Route path="/medrxiv/papers" element={<Navigate to="/programs" replace />} />
                 {/* Reached from the account menu. */}
                 <Route path="/features" element={<Features />} />
-                {/* Everything else — the preprint search and browser that were
-                    dropped with the corpus (2026-08-28), the bioRxiv section,
-                    and any stale bookmark — goes home. */}
+                {/* Everything else — the Papers browser dropped with the corpus
+                    (2026-08-28), the bioRxiv section, and any stale bookmark —
+                    goes home. */}
                 <Route path="*" element={<Navigate to="/" replace />} />
               </Route>
             </Routes>
