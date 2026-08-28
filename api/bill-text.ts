@@ -45,6 +45,21 @@ const LEGISCAN = "https://api.legiscan.com/";
 const MAX_TEXT_BYTES = 20 * 1024 * 1024;
 const LEGISCAN_MONTHLY_STOP = 25_000;
 
+/**
+ * ep-xxx.region.aws.neon.tech -> ep-xxx-pooler.region.aws.neon.tech
+ * Left alone if it is already pooled, or if the URL will not parse.
+ */
+export function poolerUrl(url: string): string {
+  try {
+    const u = new URL(url);
+    if (u.hostname.includes("-pooler")) return url;
+    const parts = u.hostname.split(".");
+    parts[0] = `${parts[0]}-pooler`;
+    u.hostname = parts.join(".");
+    return u.toString();
+  } catch { return url; }
+}
+
 /* ---- schema -------------------------------------------------------------- */
 
 async function prepareSchema(sql: Sql) {
@@ -605,14 +620,33 @@ export default async function handler(req: { headers?: Record<string, string>; q
   const dbUrl = process.env.POLICY_DATABASE_URL;
   if (!dbUrl) return res.status(503).json({ error: "POLICY_DATABASE_URL is required" });
 
-  const sql = neon(dbUrl);
+  // Every query in this route goes through the retry, not just the writes. The
+  // first version wrapped putText and stampBill and left the SELECTs bare, and
+  // then a batch died on "sorry, too many clients already" while READING its
+  // work list — six jobs on one Neon compute is enough to lose a connection
+  // race anywhere, so the wrapper belongs on the handle rather than at each
+  // call site anyone remembers to change.
+  const t0 = Date.now();
+  const counts: Counts = {};
+  // Through PgBouncer, not straight at the compute. POLICY_DATABASE_URL names
+  // the DIRECT endpoint, whose ceiling is max_connections = 450 — and the neon
+  // HTTP driver opens a connection per query which the proxy holds idle for
+  // about two minutes, so a sustained few queries a second is enough to fill it.
+  // Measured while this lane was running: 441 of 450 connections in use, 422 of
+  // them idle, the oldest 62 seconds old, and batches failing with "sorry, too
+  // many clients already" while merely READING their work list. The `-pooler`
+  // endpoint is transaction-mode PgBouncer and multiplexes all of it onto a few
+  // backends. Probed once, and if this project has no pooler we fall back to the
+  // direct endpoint rather than refusing to run.
+  const sql = { query: (text: string, params?: unknown[]) => withRetry(() => handle.query(text, params ?? []), counts) } as unknown as Sql;
+  let handle = neon(poolerUrl(dbUrl));
+  try { await handle.query("select 1"); counts.pooled = 1; }
+  catch { handle = neon(dbUrl); counts.pooled = 0; }
   const source = String(req.query?.source ?? "");
   const mode = String(req.query?.mode ?? "");
   const state = String(req.query?.state ?? "").toUpperCase();
   const since = Number(req.query?.since ?? 2023) || 2023;
   const limit = Math.min(20_000, Number(req.query?.limit ?? 200) || 200);
-  const t0 = Date.now();
-  const counts: Counts = {};
   const concurrency = Math.min(24, Math.max(1, Number(req.query?.concurrency ?? 12) || 12));
   const fetcher = new PoliteFetcher({
     minDelayMs: Math.max(1000, Number(req.query?.delay ?? 1000) || 1000),

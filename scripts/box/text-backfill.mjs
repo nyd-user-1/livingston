@@ -50,6 +50,10 @@ const MAX_ERRORS = Number(val("--max-errors", "10")) || 10;
 const ALL_STATES = has("--all-states");
 const ALL_CONGRESSES = has("--all-congresses");
 const RETRY_ERRORS = has("--retry-errors");
+// States the --all-states walk must leave alone, because something else owns
+// their host. One connection per host is the rule; two processes on
+// pub.njleg.gov would break it just as surely as two threads would.
+const SKIP_STATES = new Set(val("--skip-states").split(",").map((x) => x.trim().toUpperCase()).filter(Boolean));
 
 if (!SOURCE) { console.error("usage: text-backfill.mjs --source nysenate|govinfo|state_link [...]"); process.exit(2); }
 
@@ -197,8 +201,10 @@ if (SOURCE === "state_link") {
       GROUP BY 1 ORDER BY 2 DESC`,
     [SINCE],
   );
-  const states = rows.map((r) => r.state);
-  log(`state_link --all-states: ${states.length} states, ${rows.reduce((n, r) => n + Number(r.docs), 0).toLocaleString()} documents outstanding, ${PARALLEL} at a time`);
+  const states = rows.map((r) => r.state).filter((st) => !SKIP_STATES.has(st));
+  const held = rows.filter((r) => SKIP_STATES.has(r.state));
+  if (held.length) log(`state_link --all-states: holding back ${held.map((r) => `${r.state} (${Number(r.docs).toLocaleString()} docs)`).join(", ")} — another job owns that host`);
+  log(`state_link --all-states: ${states.length} states, ${rows.filter((r) => !SKIP_STATES.has(r.state)).reduce((n, r) => n + Number(r.docs), 0).toLocaleString()} documents outstanding, ${PARALLEL} at a time`);
 
   let next = 0;
   const done = [];
