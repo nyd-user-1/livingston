@@ -10,13 +10,14 @@
 //   node scripts/box/national-sweep.mjs --failed-first     # never-imported sessions first
 //   node scripts/box/national-sweep.mjs --skip-imported --only WV,WY        # treat what "Bills" holds as done
 //   node scripts/box/national-sweep.mjs --sessions CO:925,GA:1614           # exactly these, no matter what
+//   node scripts/box/national-sweep.mjs --max-refetch 200                   # raise the runaway gate
 //   node scripts/box/national-sweep.mjs --dry-run [--limit 20]
 //
 // WHY IT IS CHEAP. LegiScan rebuilds each session's bulk archive weekly, but only
 // a handful actually change in any given week. Two list calls name every session's
 // `dataset_hash`; the "LegiscanDatasets" ledger records the hash of what we last
 // imported; anything whose hash still matches is a 20-70 MB zip nobody downloads.
-// A full pass is 998 datasets and ~30 GB. A steady-state week is a few dozen MB.
+// A full pass is 998 datasets and 5.21 GB. A steady-state week is a few dozen MB.
 //
 // WHERE THE POSTAL CODE COMES FROM, and why it is not a table in this file:
 // `getSessionList` with NO state parameter returns every session LegiScan has,
@@ -52,6 +53,9 @@ const FAILED_FIRST = has("--failed-first");
 const DRY = has("--dry-run");
 const LIMIT = Number(val("--limit", "0")) || 0;
 const RETRIES = Number(val("--retries", "1"));
+// How many datasets the run may fetch that "Bills" already has rows for, before it
+// decides the ledger is wrong rather than the world. See the runaway gate below.
+const MAX_REFETCH = Number(val("--max-refetch", "25"));
 const ONLY = new Set(val("--only").split(",").map((s) => s.trim().toUpperCase()).filter(Boolean));
 // An explicit `STATE:session` list. These are queued whatever the ledger, `--only`
 // or `--skip-imported` say — it is how an operator names the ten that failed and
@@ -110,11 +114,17 @@ if (ledger.size === 0 && !SEED && !ALL && !SKIP_IMPORTED && !SESSIONS.size) {
   process.exit(2);
 }
 
+// What the database already has, independent of the ledger. Loaded on every run:
+// --skip-imported folds it into the ledger, and the runaway gate below needs it
+// even when it does not. One query, ~850 rows.
+const billsHave = new Set((await sql.query(
+  `SELECT DISTINCT state, legiscan_session_id::int AS session_id FROM "Bills" WHERE legiscan_session_id IS NOT NULL AND state IS NOT NULL`,
+)).map((r) => `${r.state}:${Number(r.session_id)}`));
+
 if (SKIP_IMPORTED) {
-  const rows = await sql.query(`SELECT DISTINCT state, legiscan_session_id::int AS session_id FROM "Bills" WHERE legiscan_session_id IS NOT NULL AND state IS NOT NULL`);
   let added = 0;
-  for (const r of rows) { const k = `${r.state}:${Number(r.session_id)}`; if (!ledger.has(k)) { ledger.set(k, null); added += 1; } }
-  log(`--skip-imported: "Bills" holds ${rows.length} (state, session) pairs; ${added} of them were not in the ledger and count as imported for this run only`);
+  for (const k of billsHave) if (!ledger.has(k)) { ledger.set(k, null); added += 1; }
+  log(`--skip-imported: "Bills" holds ${billsHave.size} (state, session) pairs; ${added} of them were not in the ledger and count as imported for this run only`);
 }
 
 if (SEED) {
@@ -225,6 +235,26 @@ else queue.sort((a, b) => a.state.localeCompare(b.state) || a.session - b.sessio
 const work = LIMIT ? queue.slice(0, LIMIT) : queue;
 const mb = (n) => (n / 1e6).toFixed(1);
 log(`plan: ${datasets.length} datasets · skipped ${skippedSeed} seeded + ${skippedHash} unchanged + ${skippedOnly} filtered + ${unresolved.length} unresolved · ${queue.length} to import${LIMIT ? ` (limited to ${work.length})` : ""} · ${mb(work.reduce((n, d) => n + d.size, 0))} MB`);
+
+// ── the runaway gate ────────────────────────────────────────────────────────
+// A PARTIALLY populated ledger is more dangerous than an empty one: the empty
+// check above does not fire, and every session the ledger has never heard of
+// looks "never imported" — so a steady-state Sunday quietly turns into a 30 GB
+// re-download of archives we demonstrably already hold. Assert the SHAPE of the
+// work instead of trusting the ledger's size: if the queue is mostly sessions
+// "Bills" already has rows for, the ledger is wrong, not the world.
+const refetch = work.filter((d) => d.neverImported && billsHave.has(`${d.state}:${d.session}`) && !SESSIONS.has(`${d.state}:${d.session}`));
+if (refetch.length > MAX_REFETCH && !ALL && !SKIP_IMPORTED) {
+  console.error(
+    `national-sweep: REFUSING to run.\n` +
+    `  ${refetch.length} of the ${work.length} datasets queued are sessions "Bills" already holds rows for,\n` +
+    `  which is over the --max-refetch ceiling of ${MAX_REFETCH}. That means the ledger is incomplete,\n` +
+    `  not that ${refetch.length} archives changed this week — running would re-download them all.\n` +
+    `  Fix it: node scripts/box/national-sweep.mjs --seed-only     (record what we already have)\n` +
+    `  Or say you meant it: --all | --skip-imported | --max-refetch <n>`,
+  );
+  process.exit(2);
+}
 
 if (DRY) {
   for (const d of work) log(`   WOULD IMPORT ${d.state} ${d.session} ${d.year}${d.special ? " special" : ""} ${mb(d.size)} MB ${d.neverImported ? "(never imported)" : "(hash changed)"}`);
