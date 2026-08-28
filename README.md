@@ -34,8 +34,8 @@ npm run dev        # vite on :3000
 ```
 
 `api/*` are Vercel functions and do not run under vite. In dev, `/api/*` is
-proxied to a deployment that serves the same database (see `vite.config.ts`), so
-every page works against real data locally. Point it elsewhere with:
+proxied to livingston's production deployment (see `vite.config.ts`), so every
+page works against real data locally. Point it at a preview instead with:
 
 ```sh
 LIVINGSTON_API_ORIGIN=https://your-deployment.vercel.app npm run dev

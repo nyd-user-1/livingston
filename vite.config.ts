@@ -26,13 +26,14 @@ export default defineConfig({
   },
   server: {
     port: 3000,
-    // /api/* → a deployment so every page works locally against real data
-    // (Vercel functions don't run under vite). Point this at livingston's own
-    // deployment once it exists; until then the upstream one serves the same
-    // database and the same endpoints. Override with LIVINGSTON_API_ORIGIN.
+    // /api/* → livingston's own deployment, so every page works locally
+    // against real data (Vercel functions don't run under vite). It used to
+    // fall back to cshl's deployment from before livingston had one — that
+    // would now write chat sessions into another app's database. Override
+    // with LIVINGSTON_API_ORIGIN (a preview URL, say).
     proxy: {
       "/api": {
-        target: process.env.LIVINGSTON_API_ORIGIN ?? "https://cshl.nysgpt.com",
+        target: process.env.LIVINGSTON_API_ORIGIN ?? "https://livingston-nysgpt.vercel.app",
         changeOrigin: true,
       },
     },
