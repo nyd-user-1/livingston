@@ -60,7 +60,7 @@ const day = (v: unknown): string | null => (typeof v === "string" && v.length >=
 /* ---- schema -------------------------------------------------------------- */
 
 async function prepareSchema(sql: Sql) {
-  for (const [c, t] of [["fec_candidate_ids", "text[]"], ["fec_fetched_at", "timestamptz"], ["fec_error", "text"]])
+  for (const [c, t] of [["fec_candidate_ids", "text[]"], ["fec_fetched_at", "timestamptz"], ["fec_extras_at", "timestamptz"], ["fec_error", "text"]])
     await sql.query(`ALTER TABLE "People" ADD COLUMN IF NOT EXISTS ${c} ${t}`);
   await sql.query(`CREATE TABLE IF NOT EXISTS "FecTotals" (
     people_id integer NOT NULL, candidate_id text NOT NULL, cycle integer NOT NULL,
@@ -132,12 +132,17 @@ async function runCrosswalk(sql: Sql, counts: Record<string, number>) {
 
 type Person = { people_id: number; name: string; fec_candidate_ids: string[] };
 
-async function pull(sql: Sql, key: string, p: Person, cycles: number[], counts: Record<string, number>) {
+// detail: "basic" = totals, committees, independent expenditures, receipts by employer, top receipts (2 + 3 × cycles calls a member);
+//         "extras" = only receipts by size and by state, for members basic has already covered (2 calls a committee-cycle);
+//         "full"   = both.
+type Detail = "basic" | "extras" | "full";
+
+async function pull(sql: Sql, key: string, p: Person, cycles: number[], detail: Detail, counts: Record<string, number>) {
   for (const cid of p.fec_candidate_ids) {
     // Totals, every cycle on file.
     // election_full=false → one row per two-year cycle with `cycle` set; the default mixes in
     // full-election aggregates whose cycle is null.
-    const totals = await fec(key, `/candidate/${cid}/totals/`, { election_full: "false", sort: "-cycle" }, counts);
+    const totals = detail === "extras" ? [] : await fec(key, `/candidate/${cid}/totals/`, { election_full: "false", sort: "-cycle" }, counts);
     for (const t of totals) {
       if (num(t.cycle) == null) continue;
       await sql.query(
@@ -168,8 +173,10 @@ async function pull(sql: Sql, key: string, p: Person, cycles: number[], counts: 
     }
 
     // Committees the candidate has authorized (principal campaign committee and other authorized ones).
-    const committees = await fec(key, `/candidate/${cid}/committees/`, { designation: ["P", "A"] }, counts);
-    for (const c of committees) {
+    const committees: any[] = detail === "extras"
+      ? ((await sql.query(`SELECT committee_id, cycles FROM "FecCommittees" WHERE people_id = $1 AND candidate_id = $2`, [p.people_id, cid])) as any[])
+      : await fec(key, `/candidate/${cid}/committees/`, { designation: ["P", "A"] }, counts);
+    if (detail !== "extras") for (const c of committees) {
       await sql.query(
         `INSERT INTO "FecCommittees" (people_id, candidate_id, committee_id, name, designation, designation_full, committee_type_full, cycles, raw, fetched_at)
          VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9, now())
@@ -183,8 +190,8 @@ async function pull(sql: Sql, key: string, p: Person, cycles: number[], counts: 
 
     for (const cycle of cycles) {
       // Independent expenditures for or against the candidate.
-      const ie = await fec(key, `/schedules/schedule_e/by_candidate/`, { candidate_id: cid, cycle, election_full: "true" }, counts);
-      await sql.query(`DELETE FROM "FecIndependentExpenditures" WHERE people_id = $1 AND candidate_id = $2 AND cycle = $3`, [p.people_id, cid, cycle]);
+      const ie = detail === "extras" ? [] : await fec(key, `/schedules/schedule_e/by_candidate/`, { candidate_id: cid, cycle, election_full: "true" }, counts);
+      if (detail !== "extras") await sql.query(`DELETE FROM "FecIndependentExpenditures" WHERE people_id = $1 AND candidate_id = $2 AND cycle = $3`, [p.people_id, cid, cycle]);
       for (const e of ie) {
         await sql.query(
           `INSERT INTO "FecIndependentExpenditures" (people_id, candidate_id, cycle, committee_id, committee_name, support_oppose, count, total)
@@ -198,12 +205,14 @@ async function pull(sql: Sql, key: string, p: Person, cycles: number[], counts: 
       for (const c of active) {
         const committee_id = String(c.committee_id);
         const base = { committee_id, cycle };
-        const byEmployer = await fec(key, `/schedules/schedule_a/by_employer/`, { ...base, sort: "-total" }, counts);
-        const bySize = await fec(key, `/schedules/schedule_a/by_size/`, base, counts);
-        const byState = await fec(key, `/schedules/schedule_a/by_state/`, { ...base, sort: "-total" }, counts);
-        await sql.query(`DELETE FROM "FecReceiptsByEmployer" WHERE people_id = $1 AND committee_id = $2 AND cycle = $3`, [p.people_id, committee_id, cycle]);
-        await sql.query(`DELETE FROM "FecReceiptsBySize" WHERE people_id = $1 AND committee_id = $2 AND cycle = $3`, [p.people_id, committee_id, cycle]);
-        await sql.query(`DELETE FROM "FecReceiptsByState" WHERE people_id = $1 AND committee_id = $2 AND cycle = $3`, [p.people_id, committee_id, cycle]);
+        const byEmployer = detail === "extras" ? [] : await fec(key, `/schedules/schedule_a/by_employer/`, { ...base, sort: "-total" }, counts);
+        const bySize = detail === "basic" ? [] : await fec(key, `/schedules/schedule_a/by_size/`, base, counts);
+        const byState = detail === "basic" ? [] : await fec(key, `/schedules/schedule_a/by_state/`, { ...base, sort: "-total" }, counts);
+        if (detail !== "extras") await sql.query(`DELETE FROM "FecReceiptsByEmployer" WHERE people_id = $1 AND committee_id = $2 AND cycle = $3`, [p.people_id, committee_id, cycle]);
+        if (detail !== "basic") {
+          await sql.query(`DELETE FROM "FecReceiptsBySize" WHERE people_id = $1 AND committee_id = $2 AND cycle = $3`, [p.people_id, committee_id, cycle]);
+          await sql.query(`DELETE FROM "FecReceiptsByState" WHERE people_id = $1 AND committee_id = $2 AND cycle = $3`, [p.people_id, committee_id, cycle]);
+        }
         if (byEmployer.length)
           await sql.query(
             `INSERT INTO "FecReceiptsByEmployer" (people_id, committee_id, cycle, employer, count, total)
@@ -225,6 +234,7 @@ async function pull(sql: Sql, key: string, p: Person, cycles: number[], counts: 
         counts.aggregates += byEmployer.length + bySize.length + byState.length;
 
         // The 100 largest itemized receipts this cycle.
+        if (detail === "extras") continue;
         const top = await fec(key, `/schedules/schedule_a/`, { committee_id, two_year_transaction_period: cycle, sort: "-contribution_receipt_amount", is_individual: "true" }, counts);
         await sql.query(`DELETE FROM "FecContributions" WHERE people_id = $1 AND committee_id = $2 AND cycle = $3`, [p.people_id, committee_id, cycle]);
         if (top.length)
@@ -245,7 +255,8 @@ async function pull(sql: Sql, key: string, p: Person, cycles: number[], counts: 
       }
     }
   }
-  await sql.query(`UPDATE "People" SET fec_fetched_at = now(), fec_error = NULL WHERE people_id = $1`, [p.people_id]);
+  const stamp = detail === "basic" ? "fec_fetched_at = now()" : detail === "extras" ? "fec_extras_at = now()" : "fec_fetched_at = now(), fec_extras_at = now()";
+  await sql.query(`UPDATE "People" SET ${stamp}, fec_error = NULL WHERE people_id = $1`, [p.people_id]);
   counts.people += 1;
 }
 
@@ -267,6 +278,10 @@ export default async function handler(req: any, res: any) {
   const limit = Math.min(100, Number(req.query?.limit ?? 20) || 20);
   const refreshDays = Math.max(1, Number(req.query?.refresh ?? 7) || 7);
   const person = Number(req.query?.person) || 0;
+  const detail: Detail = req.query?.detail === "full" ? "full" : req.query?.detail === "extras" ? "extras" : "basic";
+  // Extras run only for members basic has covered; basic/full run for members never pulled or stale.
+  const stampCol = detail === "extras" ? "fec_extras_at" : "fec_fetched_at";
+  const gate = detail === "extras" ? "fec_fetched_at IS NOT NULL" : "TRUE";
   const t0 = Date.now();
   const counts: Record<string, number> = { queries: 0, people: 0, totals: 0, committees: 0, independentExpenditures: 0, aggregates: 0, contributions: 0 };
   let current: Person | null = null;
@@ -278,23 +293,23 @@ export default async function handler(req: any, res: any) {
     }
     const due = (await sql.query(
       `SELECT people_id, name, fec_candidate_ids FROM "People"
-       WHERE fec_candidate_ids IS NOT NULL AND cardinality(fec_candidate_ids) > 0
+       WHERE fec_candidate_ids IS NOT NULL AND cardinality(fec_candidate_ids) > 0 AND ${gate}
          AND ($1 = 0 OR people_id = $1)
-         AND ($1 <> 0 OR fec_fetched_at IS NULL OR fec_fetched_at < now() - ($2 || ' days')::interval)
-       ORDER BY (archived IS TRUE), fec_fetched_at NULLS FIRST, people_id
+         AND ($1 <> 0 OR ${stampCol} IS NULL OR ${stampCol} < now() - ($2 || ' days')::interval)
+       ORDER BY (archived IS TRUE), ${stampCol} NULLS FIRST, people_id
        LIMIT $3`,
       [person, String(refreshDays), limit],
     )) as Person[];
     for (const p of due) {
       current = p;
-      await pull(sql, key, p, cycles, counts);
+      await pull(sql, key, p, cycles, detail, counts);
     }
     const [left] = (await sql.query(
-      `SELECT count(*)::int AS n FROM "People" WHERE fec_candidate_ids IS NOT NULL AND cardinality(fec_candidate_ids) > 0
-         AND (fec_fetched_at IS NULL OR fec_fetched_at < now() - ($1 || ' days')::interval)`,
+      `SELECT count(*)::int AS n FROM "People" WHERE fec_candidate_ids IS NOT NULL AND cardinality(fec_candidate_ids) > 0 AND ${gate}
+         AND (${stampCol} IS NULL OR ${stampCol} < now() - ($1 || ' days')::interval)`,
       [String(refreshDays)],
     )) as { n: number }[];
-    return res.status(200).json({ ok: true, mode, cycles, ...counts, remaining: left?.n ?? null, ms: Date.now() - t0 });
+    return res.status(200).json({ ok: true, mode, detail, cycles, ...counts, remaining: left?.n ?? null, ms: Date.now() - t0 });
   } catch (err) {
     const message = (err as Error).message;
     if (current) await sql.query(`UPDATE "People" SET fec_error = $2 WHERE people_id = $1`, [current.people_id, message]).catch(() => undefined);
