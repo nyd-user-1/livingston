@@ -69,7 +69,9 @@ async function prepareSchema(sql: Sql) {
     bill_id bigint,
     match_score numeric,
     source text NOT NULL,
-    raw jsonb)`);
+    raw jsonb,
+    fetched_at timestamptz NOT NULL DEFAULT now())`);
+  await sql.query(`ALTER TABLE "ModelBillMatches" ADD COLUMN IF NOT EXISTS fetched_at timestamptz NOT NULL DEFAULT now()`);
   await sql.query(`CREATE INDEX IF NOT EXISTS modelmatches_bill_idx ON "ModelBillMatches" (bill_id)`);
   await sql.query(`CREATE INDEX IF NOT EXISTS modelmatches_model_idx ON "ModelBillMatches" (model_id)`);
   // One row per (model, state, bill number, source): re-running a harvest must
@@ -415,25 +417,52 @@ async function runCpi(sql: Sql, counts: Counts, fetcher: PoliteFetcher) {
   }
   counts.models = types.length;
 
+  // Mark and sweep. Twice in this lane a correction changed a row's KEY — first
+  // the state column ("U.S. HOUSE" -> "US"), then the bill number (the source's
+  // own URL beating its own column) — and each time the upsert wrote a new row
+  // and orphaned the old one, so the table grew instead of converging. An upsert
+  // keyed on a value that a bug fix can change is not idempotent; a sweep is.
+  const runAt = new Date().toISOString();
   let resolved = 0;
   for (const r of rows) {
     const state = normaliseState(r[iState] ?? "");
     const year = Number(r[iYear]) || null;
-    const num = (r[iNum] ?? "").trim().toUpperCase();
+    // The spreadsheet's own LegiScan URL beats its bill_number column when they
+    // disagree, because the URL is what CPI's tool actually linked to.
+    //
+    // This is not hypothetical tidying. The federal row `HR897` resolved to
+    // H.RES. 897 — "Expressing the sense of the House… emergency economic
+    // stimulus" — while its own link says `/bill/HB897/`, i.e. H.R. 897. In our
+    // schema `HR` IS H.Res. and `HB` is H.R., so a column that means "H.R." lands
+    // on the wrong chamber's instrument. It resolved cleanly and confidently to
+    // the wrong bill, which is the worst way for a curated label to be wrong.
+    const fromUrl = (/\/(?:bill|text|drafts)\/([A-Za-z0-9]+)\//.exec(String(r[iUrl] ?? "")) ?? [, ""])[1].toUpperCase();
+    const csvNum = (r[iNum] ?? "").trim().toUpperCase();
+    const num = fromUrl || csvNum;
+    if (fromUrl && csvNum && fromUrl !== csvNum) counts.numberFromUrl = (counts.numberFromUrl ?? 0) + 1;
     if (!state || !num) { counts.badRows = (counts.badRows ?? 0) + 1; continue; }
     const hit = await resolveBill(sql, state, year, num, counts);
     if (hit) resolved += 1;
     await sql.query(
-      `INSERT INTO "ModelBillMatches" (model_id, state, session_id, bill_number, bill_id, match_score, source, raw)
-       VALUES ($1,$2,$3,$4,$5,NULL,'cpi',$6)
+      `INSERT INTO "ModelBillMatches" (model_id, state, session_id, bill_number, bill_id, match_score, source, raw, fetched_at)
+       VALUES ($1,$2,$3,$4,$5,NULL,'cpi',$6, $7::timestamptz)
        ON CONFLICT (model_id, source, COALESCE(state, ''), COALESCE(bill_number, ''), COALESCE(session_id, 0))
-       DO UPDATE SET bill_id = EXCLUDED.bill_id, raw = EXCLUDED.raw`,
+       DO UPDATE SET bill_id = EXCLUDED.bill_id, raw = EXCLUDED.raw, fetched_at = EXCLUDED.fetched_at`,
       [`cpi:blitz-${slug(r[iType] ?? "uncategorised")}`, state, year, num, hit,
-       JSON.stringify({ description: r[iDesc], status: r[iStatus], url: r[iUrl], type: r[iType] })],
+       JSON.stringify({ description: r[iDesc], status: r[iStatus], url: r[iUrl], type: r[iType] }), runAt],
     );
     counts.matches = (counts.matches ?? 0) + 1;
   }
   counts.resolved = resolved;
+
+  // Anything still carrying an older stamp was written by a previous run under a
+  // key this run no longer produces. The CSV is the whole truth for source='cpi',
+  // so a row it did not just write does not belong.
+  const swept = (await sql.query(
+    `DELETE FROM "ModelBillMatches" WHERE source = 'cpi' AND fetched_at < $1::timestamptz RETURNING 1`,
+    [runAt],
+  )) as unknown[];
+  counts.swept = swept.length;
 }
 
 /* ---- census -------------------------------------------------------------- */
