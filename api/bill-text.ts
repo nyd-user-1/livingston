@@ -189,61 +189,109 @@ type TextRow = {
  * things it could mean.
  */
 /**
- * One row, one statement, one commit — which is exactly the checkpoint this lane
- * wants: a job killed mid-state loses at most one document, and there is no
- * checkpoint file anywhere to go stale. Idempotent by hash: a document whose
- * text has not changed is NOT rewritten, so a re-run costs a comparison, and
- * `fetched_at` keeps meaning "when this text last changed" rather than "when we
- * last looked", which is the more useful of the two things it could mean.
- */
-/**
  * Neon's compute has a finite connection pool and this lane runs several jobs at
  * once, so "remaining connection slots are reserved for roles with the SUPERUSER
- * attribute" and "Error connecting to database: fetch failed" are both things
- * that happen under load and both things that succeed on the next try. Retrying
- * them here means one busy moment costs a second, not a document — and not, as
- * it did at 18:06Z, a whole congress.
+ * attribute", "sorry, too many clients already" and "Failed to acquire permit to
+ * connect to the database" are all things that happen under load and all things
+ * that succeed on the next try. Retrying them costs a second, not a document.
  */
-async function withRetry<T>(what: () => Promise<T>, counts: Counts, tries = 4): Promise<T> {
+async function withRetry<T>(what: () => Promise<T>, counts: Counts, tries = 5): Promise<T> {
   let last: unknown;
   for (let i = 0; i < tries; i += 1) {
     try { return await what(); } catch (e) {
       last = e;
       const m = String((e as Error).message ?? e);
-      const transient = /connection slots|too many clients|fetch failed|ECONNRESET|ETIMEDOUT|too many connections|Connection terminated|Client has encountered a connection error/i.test(m);
+      const transient = /connection slots|too many clients|acquire permit|too many database connection|fetch failed|ECONNRESET|ETIMEDOUT|too many connections|Connection terminated|Client has encountered a connection error/i.test(m);
       if (!transient || i === tries - 1) throw e;
       counts.dbRetries = (counts.dbRetries ?? 0) + 1;
-      await new Promise((ok) => setTimeout(ok, 250 * 2 ** i + Math.random() * 250));
+      await new Promise((ok) => setTimeout(ok, 400 * 2 ** i + Math.random() * 400));
     }
   }
   throw last;
 }
 
-async function putText(sql: Sql, r: TextRow, counts: Counts): Promise<"inserted" | "updated" | "unchanged"> {
-  const hash = r.text ? sha(r.text) : null;
-  const chars = r.text ? r.text.length : 0;
-  const out = (await withRetry(() => sql.query(
-    `INSERT INTO "BillTexts" (document_id, bill_id, state, session_id, version, source, mime, chars, text, text_hash, fetched_at, error)
-     VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10, now(), $11)
-     ON CONFLICT (document_id) DO UPDATE
-        SET bill_id = EXCLUDED.bill_id, state = EXCLUDED.state, session_id = EXCLUDED.session_id,
-            version = EXCLUDED.version, source = EXCLUDED.source, mime = EXCLUDED.mime,
-            chars = EXCLUDED.chars, text = EXCLUDED.text, text_hash = EXCLUDED.text_hash,
-            fetched_at = now(), error = EXCLUDED.error
-      WHERE "BillTexts".text_hash IS DISTINCT FROM EXCLUDED.text_hash
-         OR "BillTexts".error IS DISTINCT FROM EXCLUDED.error
-     RETURNING (xmax = 0) AS inserted`,
-    [r.document_id, r.bill_id, r.state, r.session_id, r.version, r.source, r.mime, chars, r.text, hash, r.error],
-  ), counts)) as { inserted: boolean }[];
-  if (!out.length) { counts.unchanged = (counts.unchanged ?? 0) + 1; return "unchanged"; }
-  if (out[0].inserted) { counts.inserted = (counts.inserted ?? 0) + 1; counts.chars = (counts.chars ?? 0) + chars; return "inserted"; }
-  counts.updated = (counts.updated ?? 0) + 1; counts.chars = (counts.chars ?? 0) + chars;
-  return "updated";
+/**
+ * Writes go out in batches, not one statement per document.
+ *
+ * One row per commit was the plan and it was wrong for a measurable reason: the
+ * neon HTTP driver opens a CONNECTION per query, the direct endpoint allows 450
+ * and holds them idle for two minutes, and the `-pooler` endpoint answers a fast
+ * enough stream of new connections with "Failed to acquire permit to connect to
+ * the database. Too many database connection attempts are currently ongoing."
+ * Six jobs writing a row per document is thousands of connection attempts a
+ * minute, and no amount of retrying makes that sustainable — the query COUNT is
+ * the thing that has to come down.
+ *
+ * So: flush at 50 rows OR 30 seconds, whichever comes first. The 30 seconds is
+ * what keeps the checkpoint honest — a job killed mid-state loses at most half a
+ * minute of fetching, and every one of those documents is simply absent from
+ * "BillTexts" and gets walked again, because that absence IS the resume point.
+ */
+class TextBuffer {
+  private rows: TextRow[] = [];
+  private stamps = new Map<number, number>();
+  private lastFlush = Date.now();
+  constructor(private sql: Sql, private counts: Counts, private size = 50, private maxAgeMs = 30_000) {}
+
+  async add(r: TextRow, chars?: number) {
+    this.rows.push(r);
+    if (chars && chars > 0) this.stamp(r.bill_id, chars);
+    if (this.rows.length >= this.size || Date.now() - this.lastFlush >= this.maxAgeMs) await this.flush();
+  }
+
+  stamp(billId: number, chars: number) {
+    this.stamps.set(billId, Math.max(this.stamps.get(billId) ?? 0, chars));
+  }
+
+  async flush() {
+    this.lastFlush = Date.now();
+    const rows = this.rows;
+    this.rows = [];
+    if (rows.length) {
+      // Two rows for one document_id in the same statement would trip
+      // "ON CONFLICT DO UPDATE command cannot affect row a second time".
+      const byId = new Map<number, TextRow>();
+      for (const r of rows) byId.set(r.document_id, r);
+      const batch = [...byId.values()];
+      const text = batch.map((r) => r.text);
+      const hash = batch.map((r) => (r.text ? sha(r.text) : null));
+      const chars = batch.map((r) => (r.text ? r.text.length : 0));
+      const out = (await this.sql.query(
+        `INSERT INTO "BillTexts" (document_id, bill_id, state, session_id, version, source, mime, chars, text, text_hash, error, fetched_at)
+         SELECT *, now() FROM unnest($1::bigint[], $2::bigint[], $3::text[], $4::int[], $5::text[], $6::text[], $7::text[], $8::int[], $9::text[], $10::text[], $11::text[])
+         ON CONFLICT (document_id) DO UPDATE
+            SET bill_id = EXCLUDED.bill_id, state = EXCLUDED.state, session_id = EXCLUDED.session_id,
+                version = EXCLUDED.version, source = EXCLUDED.source, mime = EXCLUDED.mime,
+                chars = EXCLUDED.chars, text = EXCLUDED.text, text_hash = EXCLUDED.text_hash,
+                fetched_at = now(), error = EXCLUDED.error
+          WHERE "BillTexts".text_hash IS DISTINCT FROM EXCLUDED.text_hash
+             OR "BillTexts".error IS DISTINCT FROM EXCLUDED.error
+         RETURNING (xmax = 0) AS inserted`,
+        [batch.map((r) => r.document_id), batch.map((r) => r.bill_id), batch.map((r) => r.state), batch.map((r) => r.session_id),
+         batch.map((r) => r.version), batch.map((r) => r.source), batch.map((r) => r.mime), chars, text, hash, batch.map((r) => r.error)],
+      )) as { inserted: boolean }[];
+      const inserted = out.filter((o) => o.inserted).length;
+      this.counts.inserted = (this.counts.inserted ?? 0) + inserted;
+      this.counts.updated = (this.counts.updated ?? 0) + (out.length - inserted);
+      this.counts.unchanged = (this.counts.unchanged ?? 0) + (batch.length - out.length);
+      this.counts.chars = (this.counts.chars ?? 0) + chars.reduce((n, c) => n + c, 0);
+      this.counts.writes = (this.counts.writes ?? 0) + 1;
+    }
+    if (this.stamps.size) {
+      const ids = [...this.stamps.keys()];
+      const cs = ids.map((id) => this.stamps.get(id) ?? 0);
+      this.stamps.clear();
+      await this.sql.query(
+        `UPDATE "Bills" b SET text_fetched_at = now(), text_chars = v.chars
+           FROM unnest($1::bigint[], $2::int[]) AS v(bill_id, chars)
+          WHERE b.bill_id = v.bill_id`,
+        [ids, cs],
+      );
+      this.counts.writes = (this.counts.writes ?? 0) + 1;
+    }
+  }
 }
 
-async function stampBill(sql: Sql, billId: number, chars: number, counts: Counts) {
-  await withRetry(() => sql.query(`UPDATE "Bills" SET text_fetched_at = now(), text_chars = $2 WHERE bill_id = $1`, [billId, chars]), counts);
-}
 
 /* ---- source 1: the New York Senate --------------------------------------- */
 
@@ -266,6 +314,7 @@ async function runNySenate(sql: Sql, key: string, session: number, limit: number
     [session, limit],
   )) as { bill_id: number; bill_number: string; session_id: number }[];
   counts.considered = bills.length;
+  const buf = new TextBuffer(sql, counts);
 
   for (const b of bills) {
     const printNo = nyPrintNo(b.bill_number);
@@ -284,30 +333,31 @@ async function runNySenate(sql: Sql, key: string, session: number, limit: number
         const text = String(items[k]?.fullText ?? "");
         if (!text.trim()) { counts.emptyVersions = (counts.emptyVersions ?? 0) + 1; continue; }
         best = Math.max(best, text.length);
-        await putText(sql, {
+        await buf.add({
           document_id: -(b.bill_id * 100 + nyVersionIndex(k)),
           bill_id: b.bill_id, state: "NY", session_id: b.session_id,
           version: k ? `Amendment ${k.toUpperCase()}` : "Original",
           source: "nysenate", mime: "text/plain", text, error: null,
-        }, counts);
+        });
       }
-      await stampBill(sql, b.bill_id, best, counts);
+      buf.stamp(b.bill_id, best);
       counts.bills = (counts.bills ?? 0) + 1;
     } catch (e) {
       const msg = String((e as Error).message).slice(0, 300);
-      await putText(sql, {
+      await buf.add({
         document_id: -(b.bill_id * 100 + 99), bill_id: b.bill_id, state: "NY", session_id: b.session_id,
         version: "(fetch failed)", source: "nysenate", mime: null, text: null, error: msg,
-      }, counts);
+      });
       // Stamped even on failure, with 0 chars: "we tried and resolved it". The
       // driver moves on; --retry-errors is the way back to it. Without this a
       // permanently 404ing bill would be the head of the queue forever.
-      await stampBill(sql, b.bill_id, 0, counts);
+      buf.stamp(b.bill_id, 0);
       counts.failed = (counts.failed ?? 0) + 1;
     }
     // ~5 requests/s is the stated ceiling; 210 ms keeps us under it with one in flight.
     await new Promise((ok) => setTimeout(ok, 210));
   }
+  await buf.flush();
 }
 
 /* ---- source 2: govinfo bulk data ----------------------------------------- */
@@ -346,6 +396,7 @@ async function runGovinfo(sql: Sql, congress: number, onlyType: string, counts: 
 
   const types = onlyType ? [onlyType] : [...GOVINFO_TYPES];
   const best = new Map<number, number>();
+  const buf = new TextBuffer(sql, counts);
 
   for (const session of [1, 2]) {
     for (const type of types) {
@@ -389,11 +440,11 @@ async function runGovinfo(sql: Sql, congress: number, onlyType: string, counts: 
             if (slot < 0) { counts.unknownVersion = (counts.unknownVersion ?? 0) + 1; return; }
             const text = xmlToText(body);
             if (!text) { counts.emptyVersions = (counts.emptyVersions ?? 0) + 1; return; }
-            await putText(sql, {
+            await buf.add({
               document_id: -(billId * 100 + slot + 1), bill_id: billId, state: "US", session_id: year,
               version: VERSION_LABEL[meta.version] ?? meta.version.toUpperCase(),
               source: "govinfo", mime: "application/xml", text, error: null,
-            }, counts);
+            }, text.length);
             best.set(billId, Math.max(best.get(billId) ?? 0, text.length));
           })());
         };
@@ -401,17 +452,17 @@ async function runGovinfo(sql: Sql, congress: number, onlyType: string, counts: 
       };
       const STEP = 1 << 16;
       for (let i = 0; i < zip.length; i += STEP) unzip.push(zip.subarray(i, Math.min(i + STEP, zip.length)), i + STEP >= zip.length);
-      // Four at a time, not twenty-five. Twenty-five was the connection hog that
-      // exhausted Neon's pool at 18:06Z and cost this job the 119th Congress:
-      // one row per commit is the right checkpoint, but twenty-five commits in
-      // flight is twenty-five connections, times however many jobs are running.
-      const WRITE_CONCURRENCY = 4;
-      for (let i = 0; i < pending.length; i += WRITE_CONCURRENCY) await Promise.all(pending.slice(i, i + WRITE_CONCURRENCY));
+      // Sequentially now, because the writes themselves are batched: the buffer
+      // is what bounds connection use, and running these in parallel would only
+      // race each other into the same buffer.
+      for (const p of pending) await p;
+      await buf.flush();
       counts.zips = (counts.zips ?? 0) + 1;
     }
   }
 
-  for (const [billId, chars] of best) await stampBill(sql, billId, chars, counts);
+  for (const [billId, chars] of best) buf.stamp(billId, chars);
+  await buf.flush();
   counts.bills = best.size;
 }
 
@@ -470,38 +521,39 @@ async function runStateLink(sql: Sql, state: string, since: number, limit: numbe
   counts.considered = rows.length;
 
   const best = new Map<number, number>();
+  const buf = new TextBuffer(sql, counts);
   const one = async (d: typeof rows[number]) => {
     const got = await fetcher.get(d.state_link);
     if (!got.ok) {
       counts[`skip_${got.skipped ?? "error"}`] = (counts[`skip_${got.skipped ?? "error"}`] ?? 0) + 1;
-      await putText(sql, {
+      await buf.add({
         document_id: d.document_id, bill_id: d.bill_id, state: d.state, session_id: d.session_id,
         version: d.document_desc || null, source: "state_link", mime: d.document_mime || null,
         text: null, error: `${got.skipped ?? "fetch"}: ${String(got.error ?? got.status).slice(0, 200)}`,
-      }, counts);
+      });
       return;
     }
     try {
       const { text, how } = await bodyToText(got.mime || d.document_mime, got.body as Uint8Array);
       counts[`via_${how.split(":")[0]}`] = (counts[`via_${how.split(":")[0]}`] ?? 0) + 1;
-      await putText(sql, {
+      await buf.add({
         document_id: d.document_id, bill_id: d.bill_id, state: d.state, session_id: d.session_id,
         version: d.document_desc || null, source: "state_link", mime: got.mime || d.document_mime || null,
         text: text || null, error: text ? null : `no text extracted (${how})`,
-      }, counts);
+      }, text ? text.length : 0);
       if (text) best.set(d.bill_id, Math.max(best.get(d.bill_id) ?? 0, text.length));
     } catch (e) {
       counts.convertErrors = (counts.convertErrors ?? 0) + 1;
-      await putText(sql, {
+      await buf.add({
         document_id: d.document_id, bill_id: d.bill_id, state: d.state, session_id: d.session_id,
         version: d.document_desc || null, source: "state_link", mime: got.mime || null,
         text: null, error: String((e as Error).message).slice(0, 300),
-      }, counts);
+      });
     }
   };
 
   await byHostPool(rows, concurrency, counts, one);
-  for (const [billId, chars] of best) await stampBill(sql, billId, chars, counts);
+  await buf.flush();
   counts.bills = best.size;
 }
 
@@ -534,6 +586,7 @@ async function runDelta(sql: Sql, legiscanKey: string | undefined, days: number,
   let spent = await legiscanMonthToDate(sql);
   counts.legiscanMonthToDateAtStart = spent;
   const best = new Map<number, number>();
+  const buf = new TextBuffer(sql, counts);
 
   const one = async (d: typeof rows[number]) => {
     let text = "";
@@ -571,15 +624,15 @@ async function runDelta(sql: Sql, legiscanKey: string | undefined, days: number,
       }
     }
 
-    await putText(sql, {
+    await buf.add({
       document_id: d.document_id, bill_id: d.bill_id, state: d.state, session_id: d.session_id,
       version: d.document_desc || null, source, mime, text: text || null, error: text ? null : (error ?? "no text"),
-    }, counts);
+    }, text ? text.length : 0);
     if (text) best.set(d.bill_id, Math.max(best.get(d.bill_id) ?? 0, text.length));
   };
 
   await byHostPool(rows, concurrency, counts, one);
-  for (const [billId, chars] of best) await stampBill(sql, billId, chars, counts);
+  await buf.flush();
   counts.bills = best.size;
   counts.legiscanMonthToDateAtEnd = spent;
 }
