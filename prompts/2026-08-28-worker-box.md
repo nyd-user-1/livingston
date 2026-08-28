@@ -90,7 +90,9 @@ All three are Node, take no scratchpad files, resume from the database, and are 
 
 The laptop drivers are python loops that `subprocess.run` one handler call at a time. **Killing the python parent stops the loop after the current call finishes**; the child node process keeps running to its natural end. So, for each:
 
-1. `pkill -f run-lda-all.py` (both walkers), `pkill -f run-fec-all.py`, `pkill -f run-plan.py` — from the laptop.
+**Amendment 11:50 (Brendan):** the national LegiScan backfill **stays on the laptop** — it is moving fast enough and the lead will re-run its 10 failures there when it ends. Do not touch `run-plan.py` / `run-legiscan.py`. The box takes it over only as the *weekly* `lv-national-sweep` (step 6); the ledger seed in step 4.1 happens after the laptop run finishes — build and test the script, run the seed only if `pgrep -f run-plan.py` is empty, otherwise leave the seed to the lead and say so.
+
+1. `pkill -f run-lda-all.py` (both walkers), `pkill -f run-fec-all.py` — from the laptop.
 2. Wait until `pgrep -f 'run-lda.py|run-fec.py|run-legiscan.py'` is empty (the in-flight call finished and banked its work). **Not before** — two writers on the same rows is the deadlock 44b hit on 2026-07-28 (WORKER-BOX §11).
 3. Read the resume points from the database (`"LobbyingSync"`, `count(*) where fec_fetched_at is null`, the seeded `LegiscanDatasets` vs the plan) and paste them in the report as the hand-over baseline.
 4. Start each on the box through `run-job`, one at a time, e.g.
