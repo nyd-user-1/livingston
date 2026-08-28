@@ -35,15 +35,22 @@ let lastCall = 0;
 async function fec(key: string, path: string, params: Params, counts: Record<string, number>): Promise<any> {
   const qs = new URLSearchParams({ api_key: key, per_page: "100" });
   for (const [k, v] of Object.entries(params)) for (const x of Array.isArray(v) ? v : [v]) qs.append(k, String(x));
-  const wait = lastCall + PACE_MS - Date.now();
-  if (wait > 0) await new Promise((ok) => setTimeout(ok, wait));
-  lastCall = Date.now();
-  const r = await fetch(`${API}${path}?${qs}`, { signal: AbortSignal.timeout(60_000) });
-  counts.queries += 1;
-  if (r.status === 429) throw new Error("OpenFEC rate limit reached — run again later");
-  if (!r.ok) throw new Error(`OpenFEC ${path} answered ${r.status}`);
-  const data: any = await r.json();
-  return data?.results ?? [];
+  for (let attempt = 0; ; attempt += 1) {
+    const wait = lastCall + PACE_MS - Date.now();
+    if (wait > 0) await new Promise((ok) => setTimeout(ok, wait));
+    lastCall = Date.now();
+    const r = await fetch(`${API}${path}?${qs}`, { signal: AbortSignal.timeout(60_000) });
+    counts.queries += 1;
+    if (r.status === 429) throw new Error("OpenFEC rate limit reached — run again later");
+    // The gateway times out now and then (502/504); one retry after a pause is enough.
+    if (r.status >= 500 && attempt < 2) {
+      await new Promise((ok) => setTimeout(ok, 5_000));
+      continue;
+    }
+    if (!r.ok) throw new Error(`OpenFEC ${path} answered ${r.status}`);
+    const data: any = await r.json();
+    return data?.results ?? [];
+  }
 }
 
 const num = (v: unknown): number | null => (v == null || v === "" ? null : Number.isFinite(Number(v)) ? Number(v) : null);
