@@ -12,6 +12,10 @@
 //   ?source=govinfo&congress=119[&type=hr]    govinfo bulk data, no key.
 //        One zip per congress/session/type; filenames carry congress, type,
 //        number and version. ~1.8 GB for the 111th-119th, downloaded once.
+//   ?source=govinfo-billsum&congress=119      the CRS summary of every federal
+//        bill, from govinfo BILLSUM. Same join, no session segment in the path,
+//        one row per bill holding the LATEST summary. Not the bill's text and
+//        deliberately not stamped as such — see runBillsum.
 //   ?source=state_link&state=TX[&since=2023]  the legislature's own site, for
 //        everyone else. Politeness lives in api/_lib/polite-fetch.ts.
 //   ?mode=delta[&days=7]                      nightly. state_link first (free);
@@ -40,7 +44,8 @@ type Sql = NeonQueryFunction<false, false>;
 type Counts = Record<string, number>;
 
 const NY_API = "https://legislation.nysenate.gov/api/3";
-const GOVINFO = "https://www.govinfo.gov/bulkdata/BILLS";
+const GOVINFO_BULK = "https://www.govinfo.gov/bulkdata";
+const GOVINFO = `${GOVINFO_BULK}/BILLS`;
 const LEGISCAN = "https://api.legiscan.com/";
 const MAX_TEXT_BYTES = 20 * 1024 * 1024;
 const LEGISCAN_MONTHLY_STOP = 25_000;
@@ -466,6 +471,124 @@ async function runGovinfo(sql: Sql, congress: number, onlyType: string, counts: 
   counts.bills = best.size;
 }
 
+/* ---- source 2b: govinfo BILLSUM, the CRS summaries ----------------------- */
+
+/**
+ * The Congressional Research Service writes a plain-English summary of every
+ * federal bill, and govinfo publishes them in the same bulk shape as the bills
+ * themselves — minus the session segment: BILLSUM/{congress}/{type}/, with
+ * BILLSUM-119hr23.xml and a BILLSUM-119-hr.zip beside it.
+ *
+ * Two decisions worth stating, because both could reasonably have gone the other
+ * way and the difference is not visible from the row:
+ *
+ * 1. ONE ROW PER BILL, holding the LATEST summary. A bill accumulates a summary
+ *    per stage ("Introduced in House", "Passed House", "Public Law"), all in the
+ *    same file. Keeping every one would trip the same trap `ebb1337` just fixed
+ *    one table over, and the lead asked for the latest; `update-date` decides,
+ *    with document order as the tie-break.
+ *
+ * 2. IT DOES NOT STAMP `Bills.text_fetched_at` / `text_chars`. Those two columns
+ *    mean "we hold the text of this bill", and a 2,000-character CRS summary is
+ *    emphatically not the text of a 400,000-character bill. Stamping here would
+ *    make every summarised bill look like a bill we hold in full, and would
+ *    overwrite a real BILLS length with a smaller wrong one. The summary is
+ *    discoverable exactly where it belongs — a "BillTexts" row whose `source`
+ *    says what it is.
+ */
+async function runBillsum(sql: Sql, congress: number, onlyType: string, counts: Counts) {
+  const year = yearOfCongress(congress);
+  const bills = (await sql.query(
+    `SELECT bill_id, bill_number FROM "Bills" WHERE state = 'US' AND session_id = $1`,
+    [year],
+  )) as { bill_id: number; bill_number: string }[];
+  const byNumber = new Map<string, number>();
+  for (const b of bills) byNumber.set(String(b.bill_number).toUpperCase(), Number(b.bill_id));
+  counts.billsKnown = bills.length;
+
+  const types = onlyType ? [onlyType] : [...GOVINFO_TYPES];
+  const buf = new TextBuffer(sql, counts);
+
+  for (const type of types) {
+    const url = `${GOVINFO_BULK}/BILLSUM/${congress}/${type}/BILLSUM-${congress}-${type}.zip`;
+    let zip: Uint8Array;
+    try {
+      const r = await fetch(url, { headers: { "User-Agent": "livingston-bill-text/1.0 (contact: brendan@nysgpt.com)" }, signal: AbortSignal.timeout(300_000) });
+      counts.queries = (counts.queries ?? 0) + 1;
+      if (r.status === 404) { counts.absentZips = (counts.absentZips ?? 0) + 1; continue; }
+      if (!r.ok) throw new Error(`govinfo BILLSUM ${r.status} for ${congress}/${type}`);
+      zip = new Uint8Array(await r.arrayBuffer());
+    } catch (e) {
+      counts.zipErrors = (counts.zipErrors ?? 0) + 1;
+      void e;
+      continue;
+    }
+    counts.zipBytes = (counts.zipBytes ?? 0) + zip.byteLength;
+
+    const pending: Promise<void>[] = [];
+    const unzip = new Unzip();
+    unzip.register(UnzipInflate);
+    unzip.onfile = (file) => {
+      if (!/\.xml$/i.test(file.name)) { file.ondata = () => undefined; return; }
+      const decoder = new TextDecoder();
+      let xml = "";
+      file.ondata = (err, data, final) => {
+        if (err) { counts.badFiles = (counts.badFiles ?? 0) + 1; return; }
+        xml += decoder.decode(data, { stream: !final });
+        if (!final) return;
+        const body = xml; xml = "";
+        counts.files = (counts.files ?? 0) + 1;
+        pending.push((async () => {
+          const parsed = parseBillsum(body);
+          if (!parsed) { counts.unparsed = (counts.unparsed ?? 0) + 1; return; }
+          const prefix = PREFIX_BY_TYPE[parsed.type];
+          const billId = prefix ? byNumber.get(`${prefix}${parsed.number}`) : undefined;
+          if (!billId) { counts.unmatched = (counts.unmatched ?? 0) + 1; return; }
+          if (!parsed.text) { counts.emptyVersions = (counts.emptyVersions ?? 0) + 1; return; }
+          await buf.add({
+            // Slot 90: BILLS versions occupy 1-52 for the same bill_id, so a
+            // summary can never collide with a version of its own bill.
+            document_id: -(billId * 100 + 90), bill_id: billId, state: "US", session_id: year,
+            version: "CRS summary", source: "govinfo-billsum", mime: "application/xml",
+            text: parsed.text, error: null,
+          });
+          counts.summaries = (counts.summaries ?? 0) + 1;
+        })());
+      };
+      file.start();
+    };
+    const STEP = 1 << 16;
+    for (let i = 0; i < zip.length; i += STEP) unzip.push(zip.subarray(i, Math.min(i + STEP, zip.length)), i + STEP >= zip.length);
+    for (const p of pending) await p;
+    await buf.flush();
+    counts.zips = (counts.zips ?? 0) + 1;
+  }
+  await buf.flush();
+}
+
+/** One BILLSUM file: its measure identity, and the latest of the summaries inside it. */
+export function parseBillsum(xml: string): { type: string; number: number; text: string; actionDesc: string; updated: string } | null {
+  const item = /<item\b([^>]*)>/i.exec(xml);
+  if (!item) return null;
+  const attr = (n: string) => (new RegExp(`${n}="([^"]*)"`, "i").exec(item[1]) ?? [, ""])[1];
+  const type = attr("measure-type").toLowerCase();
+  const number = Number(attr("measure-number"));
+  if (!type || !Number.isFinite(number) || !number) return null;
+
+  const summaries = [...xml.matchAll(/<summary\b([^>]*)>([\s\S]*?)<\/summary>/gi)].map((m, i) => ({
+    updated: (/update-date="([^"]*)"/i.exec(m[1]) ?? [, ""])[1],
+    actionDesc: (/<action-desc>([\s\S]*?)<\/action-desc>/i.exec(m[2]) ?? [, ""])[1].trim(),
+    cdata: (/<summary-text>\s*(?:<!\[CDATA\[)?([\s\S]*?)(?:\]\]>)?\s*<\/summary-text>/i.exec(m[2]) ?? [, ""])[1],
+    order: i,
+  }));
+  if (!summaries.length) return null;
+  // Latest by update-date; document order breaks a tie, which is also the order
+  // govinfo writes them in.
+  summaries.sort((a, b) => (a.updated === b.updated ? a.order - b.order : a.updated < b.updated ? -1 : 1));
+  const latest = summaries[summaries.length - 1];
+  return { type, number, text: htmlToText(latest.cdata), actionDesc: latest.actionDesc, updated: latest.updated };
+}
+
 /* ---- source 3/4: the legislature's own site ------------------------------ */
 
 /**
@@ -747,10 +870,15 @@ export default async function handler(req: { headers?: Record<string, string>; q
       if (!congress) return res.status(400).json({ error: "source=govinfo needs ?congress= or ?session=" });
       await runGovinfo(sql, congress, String(req.query?.type ?? "").toLowerCase(), counts);
       counts.congress = congress;
+    } else if (source === "govinfo-billsum") {
+      const congress = Number(req.query?.congress ?? 0) || (Number(req.query?.session ?? 0) ? congressOf(Number(req.query?.session)) : 0);
+      if (!congress) return res.status(400).json({ error: "source=govinfo-billsum needs ?congress= or ?session=" });
+      await runBillsum(sql, congress, String(req.query?.type ?? "").toLowerCase(), counts);
+      counts.congress = congress;
     } else if (source === "state_link") {
       await runStateLink(sql, state, since, limit, Boolean(req.query?.amendments), concurrency, Boolean(req.query?.requeueErrors), counts, fetcher);
     } else {
-      return res.status(400).json({ error: "pass ?source=nysenate|govinfo|state_link, or ?mode=delta, or ?census=1" });
+      return res.status(400).json({ error: "pass ?source=nysenate|govinfo|govinfo-billsum|state_link, or ?mode=delta, or ?census=1" });
     }
 
     const hosts: PoliteStats[] = fetcher.stats();

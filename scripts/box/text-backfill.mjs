@@ -3,6 +3,7 @@
 //
 //   node scripts/box/text-backfill.mjs --source nysenate [--session 2025] [--batch 200]
 //   node scripts/box/text-backfill.mjs --source govinfo --all-congresses
+//   node scripts/box/text-backfill.mjs --source govinfo-billsum --all-congresses
 //   node scripts/box/text-backfill.mjs --source govinfo --congress 119
 //   node scripts/box/text-backfill.mjs --source state_link --state TX [--since-session 2023]
 //   node scripts/box/text-backfill.mjs --source state_link --all-states [--parallel 4] [--max-seconds 14400]
@@ -171,23 +172,28 @@ if (SOURCE === "nysenate") {
 
 /* ---- govinfo ------------------------------------------------------------- */
 
-if (SOURCE === "govinfo") {
+if (SOURCE === "govinfo" || SOURCE === "govinfo-billsum") {
   let congresses = [];
   if (ALL_CONGRESSES) {
     const rows = await sql.query(`SELECT DISTINCT session_id FROM "Bills" WHERE state = 'US' ORDER BY session_id DESC`);
     congresses = rows.map((r) => Math.floor((Number(r.session_id) - 1789) / 2) + 1);
   } else if (val("--congress")) congresses = [Number(val("--congress"))];
-  else { console.error("govinfo: pass --congress N or --all-congresses"); process.exit(2); }
+  else { console.error(`${SOURCE}: pass --congress N or --all-congresses`); process.exit(2); }
 
-  log(`govinfo: ${congresses.length} congress(es) — ${congresses.join(" ")}`);
+  log(`${SOURCE}: ${congresses.length} congress(es) — ${congresses.join(" ")}`);
   let bad = 0;
+  const tot = { rows: 0, chars: 0, unmatched: 0 };
   for (const c of congresses) {
     const t0 = Date.now();
-    const r = await call(["source=govinfo", `congress=${c}`]);
+    const r = await call([`source=${SOURCE}`, `congress=${c}`]);
     if (r.code !== 0 || !r.body?.ok) { bad += 1; log(`congress ${c} FAILED — ${String(r.body?.error ?? r.out).slice(0, 260)}`); continue; }
     const b = r.body;
-    log(`congress ${c}: ${b.zips ?? 0} zips · ${((b.zipBytes ?? 0) / 1e6).toFixed(0)} MB · inserted ${b.inserted ?? 0} · unchanged ${b.unchanged ?? 0} · unmatched ${b.unmatched ?? 0} · ${b.chars ? (b.chars / 1e6).toFixed(1) : 0}M chars · ${((Date.now() - t0) / 1000).toFixed(0)}s`);
+    tot.rows += Number(b.inserted ?? 0) + Number(b.updated ?? 0) + Number(b.unchanged ?? 0);
+    tot.chars += Number(b.chars ?? 0);
+    tot.unmatched += Number(b.unmatched ?? 0);
+    log(`congress ${c}: ${b.zips ?? 0} zips · ${((b.zipBytes ?? 0) / 1e6).toFixed(0)} MB · inserted ${b.inserted ?? 0} · unchanged ${b.unchanged ?? 0} · unmatched ${b.unmatched ?? 0}${b.summaries != null ? ` · summaries ${b.summaries}` : ""} · ${b.chars ? (b.chars / 1e6).toFixed(1) : 0}M chars · ${((Date.now() - t0) / 1000).toFixed(0)}s`);
   }
+  log(`${SOURCE} done: ${tot.rows.toLocaleString()} rows seen · ${(tot.chars / 1e6).toFixed(1)}M chars written · ${tot.unmatched} unmatched · ${bad} congress(es) failed`);
   process.exit(bad ? 1 : 0);
 }
 
