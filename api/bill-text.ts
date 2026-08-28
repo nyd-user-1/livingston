@@ -7,8 +7,11 @@
 //
 // Four sources, in the order they are worth having:
 //
-//   ?source=nysenate&session=2025[&limit=]    NY Senate Open Legislation API.
-//        One request per bill returns EVERY amendment version's fullText.
+//   ?source=nysenate-bulk[&session=]          NY Senate, 1,000 bills a request:
+//        /bills/{session}?limit=1000&offset=N&full=true returns every amendment
+//        version's fullText AND its sponsor memo. This is the backfill.
+//   ?source=nysenate&session=2025[&limit=]    the same API one bill at a time —
+//        now the mop-up for whatever the listing does not carry.
 //   ?source=govinfo&congress=119[&type=hr]    govinfo bulk data, no key.
 //        One zip per congress/session/type; filenames carry congress, type,
 //        number and version. ~1.8 GB for the 111th-119th, downloaded once.
@@ -35,6 +38,7 @@
 import { neon, type NeonQueryFunction } from "@neondatabase/serverless";
 import { Unzip, UnzipInflate } from "fflate";
 import { createHash } from "node:crypto";
+import fs from "node:fs";
 import { spawn } from "node:child_process";
 import { PoliteFetcher, type PoliteStats } from "./_lib/polite-fetch.js";
 
@@ -365,6 +369,112 @@ async function runNySenate(sql: Sql, key: string, session: number, limit: number
   await buf.flush();
 }
 
+/**
+ * The same corpus, 1,000 bills a request instead of one.
+ *
+ * `GET /api/3/bills/{session}?limit=1000&offset=N&full=true` returns every
+ * amendment version's `fullText` AND its sponsor `memo` for a thousand bills at
+ * a time (lane DP found this; measured here at 33.6 MB and 11 s a page, 1,220
+ * versions and 9.4 M characters per 1,000 bills). The per-bill route did 300
+ * bills a minute; this does 1,000 in twelve seconds, which turns fifteen hours
+ * into well under one.
+ *
+ * COVERAGE, because it is not a clean superset. For session 2025 the listing
+ * reports `total: 25,402` while we hold 28,790 NY rows — the same +13% gap the
+ * report already documents, our table holding print types the listing's total
+ * does not count. The listing DOES carry J and K resolutions (checked at offsets
+ * 20,001 and 24,001), just not all of what we have. So this is the bulk pass and
+ * `source=nysenate` remains the mop-up: it selects on `text_fetched_at IS NULL`,
+ * so whatever the listing missed is exactly what it picks up afterwards, one bill
+ * at a time. Nothing is silently dropped by going fast.
+ */
+async function runNySenateBulk(sql: Sql, key: string, session: number, maxPages: number, counts: Counts) {
+  const sessions = session
+    ? [session]
+    : ((await sql.query(`SELECT DISTINCT session_id FROM "Bills" WHERE state = 'NY' AND session_id IS NOT NULL ORDER BY session_id DESC`)) as { session_id: number }[]).map((r) => Number(r.session_id));
+  counts.sessions = sessions.length;
+  const buf = new TextBuffer(sql, counts);
+  let lastCall = 0;
+  // One connection, and never closer together than 1.2 s.
+  const pace = async () => {
+    const wait = lastCall + 1200 - Date.now();
+    if (wait > 0) await new Promise((ok) => setTimeout(ok, wait));
+    lastCall = Date.now();
+  };
+
+  let pages = 0;
+  for (const yr of sessions) {
+    const bills = (await sql.query(`SELECT bill_id, bill_number FROM "Bills" WHERE state = 'NY' AND session_id = $1`, [yr])) as { bill_id: number; bill_number: string }[];
+    const byPrint = new Map<string, number>();
+    for (const b of bills) byPrint.set(nyPrintNo(b.bill_number), Number(b.bill_id));
+
+    let offset = 1;
+    let total = Infinity;
+    let strikes = 0;
+    while (offset <= total) {
+      if (maxPages && pages >= maxPages) { counts.pageLimitHit = 1; break; }
+      await pace();
+      let j: { success?: boolean; message?: string; total?: number; offsetEnd?: number; result?: { items?: NyBill[] } };
+      try {
+        const r = await fetch(`${NY_API}/bills/${yr}?key=${key}&limit=1000&offset=${offset}&full=true`, { signal: AbortSignal.timeout(300_000) });
+        counts.queries = (counts.queries ?? 0) + 1;
+        if (r.status === 429) { strikes += 1; if (strikes > 5) throw new Error("throttled six times in a row"); await new Promise((ok) => setTimeout(ok, 30_000)); continue; }
+        j = await r.json();
+        if (!r.ok || j.success === false) throw new Error(`NY ${r.status} ${String(j.message ?? "").slice(0, 140)}`);
+      } catch (e) {
+        strikes += 1;
+        counts.pageErrors = (counts.pageErrors ?? 0) + 1;
+        if (strikes > 5) throw e;
+        await new Promise((ok) => setTimeout(ok, 15_000));
+        continue;
+      }
+      strikes = 0;
+      total = Number(j.total ?? 0);
+      const items = j.result?.items ?? [];
+      if (!items.length) break;
+
+      for (const b of items) {
+        const billId = byPrint.get(String(b.printNo ?? "")) ?? byPrint.get(String(b.basePrintNo ?? ""));
+        if (!billId) { counts.unmatched = (counts.unmatched ?? 0) + 1; continue; }
+        let best = 0;
+        for (const [k, v] of Object.entries(b.amendments?.items ?? {})) {
+          const idx = nyVersionIndex(k);
+          const label = k ? `Amendment ${k.toUpperCase()}` : "Original";
+          const full = String(v?.fullText ?? "");
+          if (full.trim()) {
+            best = Math.max(best, full.length);
+            await buf.add({ document_id: -(billId * 100 + idx), bill_id: billId, state: "NY", session_id: yr, version: label, source: "nysenate", mime: "text/plain", text: full, error: null });
+          }
+          // The sponsor's memo is a different document about the same bill —
+          // NY's plain-English statement of what the bill does and why. Stored as
+          // its own version at slot 50+idx, which cannot collide with the text
+          // versions at 0-26 or the failure marker at 99. It does NOT count
+          // toward Bills.text_chars: that column means the length of the BILL.
+          const memo = String(v?.memo ?? "");
+          if (memo.trim()) {
+            await buf.add({ document_id: -(billId * 100 + 50 + idx), bill_id: billId, state: "NY", session_id: yr, version: k ? `Sponsor memo (${k.toUpperCase()})` : "Sponsor memo", source: "nysenate", mime: "text/plain", text: memo, error: null });
+            counts.memos = (counts.memos ?? 0) + 1;
+          }
+        }
+        if (best) buf.stamp(billId, best);
+        counts.bills = (counts.bills ?? 0) + 1;
+      }
+      offset = Number(j.offsetEnd ?? offset + items.length) + 1;
+      pages += 1;
+      counts.pages = pages;
+      // One line a page, to stdout, which is the job log. A ninety-minute job
+      // that prints nothing until it finishes is indistinguishable from a hung
+      // one, and "watch state, not activity" cuts both ways: the lead is polling
+      // this log.
+      console.log(`${new Date().toISOString().slice(11, 19)} NY ${yr}: page ${pages}, offset ${offset - 1}/${total}, ${counts.bills ?? 0} bills, ${counts.inserted ?? 0} stored, ${counts.unchanged ?? 0} unchanged, ${counts.memos ?? 0} memos`);
+    }
+    await buf.flush();
+  }
+  await buf.flush();
+}
+
+type NyBill = { printNo?: string; basePrintNo?: string; amendments?: { items?: Record<string, { fullText?: string; memo?: string }> } };
+
 /* ---- source 2: govinfo bulk data ----------------------------------------- */
 
 const GOVINFO_TYPES = ["hr", "s", "hjres", "sjres", "hconres", "sconres", "hres", "sres"] as const;
@@ -624,7 +734,7 @@ async function byHostPool<T extends { state_link: string }>(rows: T[], concurren
 }
 
 
-async function runStateLink(sql: Sql, state: string, since: number, limit: number, includeAmendments: boolean, concurrency: number, requeueErrors: boolean, counts: Counts, fetcher: PoliteFetcher) {
+async function runStateLink(sql: Sql, state: string, since: number, limit: number, includeAmendments: boolean, concurrency: number, requeueErrors: boolean, billIds: number[], counts: Counts, fetcher: PoliteFetcher) {
   // Default: documents with no "BillTexts" row at all — the absence IS the resume
   // point, so there is no checkpoint to keep.
   //
@@ -633,8 +743,28 @@ async function runStateLink(sql: Sql, state: string, since: number, limit: numbe
   // database connection or timed out. Deliberately narrow: `robots` and
   // `host-dropped` are verdicts, not accidents, and re-asking a site that told us
   // no is the one thing this lane must never do.
+  // Each branch gets its OWN parameter list. A shared one left $1 and $2 unused in
+  // the bill-ids branch, and Postgres cannot infer the type of a parameter that
+  // never appears in the statement — "could not determine data type of parameter $1".
   const rows = (await sql.query(
-    requeueErrors
+    billIds.length
+      // An explicit list of bills, NO session filter. Lane MB's curated CPI
+      // matches are 2003-2019 bills and this walker is scoped to session_id >=
+      // 2023, so the labels and the text sat in different halves of the corpus.
+      // 545 named documents is a minute of fetching, not a change of scope.
+      ? `SELECT d.document_id, d.bill_id, d.state_link, d.document_mime, d.document_desc, d.document_size, b.state, b.session_id
+           FROM "Documents" d
+           JOIN "Bills" b ON b.bill_id = d.bill_id
+           LEFT JOIN "BillTexts" t ON t.document_id = d.document_id
+          WHERE d.document_type = ANY($1::text[])
+            AND d.state_link <> ''
+            AND d.bill_id = ANY($2::bigint[])
+            AND t.document_id IS NULL
+            AND d.state_link NOT LIKE '%legiscan.com%'
+            AND (d.document_size IS NULL OR d.document_size <= ${MAX_TEXT_BYTES})
+          ORDER BY d.bill_id, d.document_id
+          LIMIT $3`
+    : requeueErrors
       ? `SELECT d.document_id, d.bill_id, d.state_link, d.document_mime, d.document_desc, d.document_size, b.state, b.session_id
            FROM "BillTexts" t
            JOIN "Documents" d ON d.document_id = t.document_id
@@ -661,7 +791,9 @@ async function runStateLink(sql: Sql, state: string, since: number, limit: numbe
             AND (d.document_size IS NULL OR d.document_size <= ${MAX_TEXT_BYTES})
           ORDER BY b.session_id DESC, d.bill_id, d.document_id
           LIMIT $3`,
-    [state, since, limit, includeAmendments ? ["text", "amendment"] : ["text"]],
+    billIds.length
+      ? [includeAmendments ? ["text", "amendment"] : ["text"], billIds, limit]
+      : [state, since, limit, includeAmendments ? ["text", "amendment"] : ["text"]],
   )) as { document_id: number; bill_id: number; state_link: string; document_mime: string; document_desc: string; state: string; session_id: number }[];
   counts.considered = rows.length;
 
@@ -846,6 +978,14 @@ export default async function handler(req: { headers?: Record<string, string>; q
   const since = Number(req.query?.since ?? 2023) || 2023;
   const limit = Math.min(20_000, Number(req.query?.limit ?? 200) || 200);
   const concurrency = Math.min(24, Math.max(1, Number(req.query?.concurrency ?? 12) || 12));
+  // From a file, not the query string: 545 ids inline is 5 KB of URL nobody can
+  // read in a log. One id per line, blanks and #comments ignored.
+  const billIds: number[] = (() => {
+    const f = String(req.query?.billIdsFile ?? "");
+    if (!f) return String(req.query?.billIds ?? "").split(",").map((x) => Number(x.trim())).filter((n) => Number.isFinite(n) && n > 0);
+    if (!fs.existsSync(f)) throw new Error(`billIdsFile not found: ${f}`);
+    return fs.readFileSync(f, "utf8").split("\n").map((l) => Number(l.split("#")[0].trim())).filter((n) => Number.isFinite(n) && n > 0);
+  })();
   const fetcher = new PoliteFetcher({
     minDelayMs: Math.max(1000, Number(req.query?.delay ?? 1000) || 1000),
     maxBytes: MAX_TEXT_BYTES,
@@ -861,10 +1001,11 @@ export default async function handler(req: { headers?: Record<string, string>; q
 
     if (mode === "delta") {
       await runDelta(sql, process.env.LEGISCAN_API_KEY, Math.max(1, Number(req.query?.days ?? 7) || 7), limit, concurrency, counts, fetcher);
-    } else if (source === "nysenate") {
+    } else if (source === "nysenate" || source === "nysenate-bulk") {
       const key = process.env.NYS_LEGISLATION_API_KEY;
       if (!key) return res.status(503).json({ error: "NYS_LEGISLATION_API_KEY is required for source=nysenate" });
-      await runNySenate(sql, key, Number(req.query?.session ?? 0) || 0, limit, Boolean(req.query?.retryErrors), counts);
+      if (source === "nysenate-bulk") await runNySenateBulk(sql, key, Number(req.query?.session ?? 0) || 0, Number(req.query?.pages ?? 0) || 0, counts);
+      else await runNySenate(sql, key, Number(req.query?.session ?? 0) || 0, limit, Boolean(req.query?.retryErrors), counts);
     } else if (source === "govinfo") {
       const congress = Number(req.query?.congress ?? 0) || (Number(req.query?.session ?? 0) ? congressOf(Number(req.query?.session)) : 0);
       if (!congress) return res.status(400).json({ error: "source=govinfo needs ?congress= or ?session=" });
@@ -876,7 +1017,7 @@ export default async function handler(req: { headers?: Record<string, string>; q
       await runBillsum(sql, congress, String(req.query?.type ?? "").toLowerCase(), counts);
       counts.congress = congress;
     } else if (source === "state_link") {
-      await runStateLink(sql, state, since, limit, Boolean(req.query?.amendments), concurrency, Boolean(req.query?.requeueErrors), counts, fetcher);
+      await runStateLink(sql, state, since, limit, Boolean(req.query?.amendments), concurrency, Boolean(req.query?.requeueErrors), billIds, counts, fetcher);
     } else {
       return res.status(400).json({ error: "pass ?source=nysenate|govinfo|govinfo-billsum|state_link, or ?mode=delta, or ?census=1" });
     }
@@ -884,6 +1025,7 @@ export default async function handler(req: { headers?: Record<string, string>; q
     const hosts: PoliteStats[] = fetcher.stats();
     return res.status(200).json({
       ok: true, source: source || mode, state: state || undefined, ...counts,
+      billIdsGiven: billIds.length || undefined,
       hosts: hosts.length ? hosts : undefined,
       dropped: hosts.filter((h) => h.dropped).map((h) => h.host),
       ms: Date.now() - t0,

@@ -7,6 +7,8 @@
 //   node scripts/box/text-backfill.mjs --source govinfo --congress 119
 //   node scripts/box/text-backfill.mjs --source state_link --state TX [--since-session 2023]
 //   node scripts/box/text-backfill.mjs --source state_link --all-states [--parallel 4] [--max-seconds 14400]
+//   node scripts/box/text-backfill.mjs --source state_link --bill-ids ids.txt   # exactly these, any session
+//   node scripts/box/text-backfill.mjs --source nysenate-bulk                   # 1,000 bills a request
 //
 // It holds NO state. Every source's resume point is a column in the database —
 // `Bills.text_fetched_at` for NY, a `"BillTexts"` row for everything walked —
@@ -65,6 +67,10 @@ const RETRY_ERRORS = has("--retry-errors");
 // their host. One connection per host is the rule; two processes on
 // pub.njleg.gov would break it just as surely as two threads would.
 const SKIP_STATES = new Set(val("--skip-states").split(",").map((x) => x.trim().toUpperCase()).filter(Boolean));
+// A file of bill_ids, one per line: fetch text for exactly these, any session.
+// Built for lane MB's curated CPI matches, which are 2003-2019 and therefore
+// invisible to a walk scoped at session_id >= 2023.
+const BILL_IDS = val("--bill-ids");
 
 if (!SOURCE) { console.error("usage: text-backfill.mjs --source nysenate|govinfo|state_link [...]"); process.exit(2); }
 
@@ -160,6 +166,16 @@ const sql = neon(process.env.POLICY_DATABASE_URL);
 
 /* ---- nysenate ------------------------------------------------------------ */
 
+if (SOURCE === "nysenate-bulk") {
+  log(`nysenate-bulk: every NY session, 1,000 bills a request`);
+  const t0 = Date.now();
+  const r = await call(["source=nysenate-bulk", ...(SESSION ? [`session=${SESSION}`] : [])]);
+  if (r.code !== 0 || !r.body?.ok) { log(`FAILED — ${String(r.body?.error ?? r.out).slice(0, 300)}`); process.exit(1); }
+  const b = r.body;
+  log(`nysenate-bulk done: ${b.sessions} session(s) · ${b.pages} pages · ${b.queries} requests · ${b.bills} bills · ${b.inserted} versions stored · ${b.memos} memos · ${b.unchanged} unchanged · ${b.unmatched} unmatched · ${((b.chars ?? 0) / 1e6).toFixed(1)}M chars · ${((Date.now() - t0) / 60000).toFixed(1)} min`);
+  process.exit(0);
+}
+
 if (SOURCE === "nysenate") {
   const args = (['source=nysenate', `limit=${BATCH}`]);
   if (SESSION) args.push(`session=${SESSION}`);
@@ -200,8 +216,17 @@ if (SOURCE === "govinfo" || SOURCE === "govinfo-billsum") {
 /* ---- state_link ---------------------------------------------------------- */
 
 if (SOURCE === "state_link") {
+  if (BILL_IDS) {
+    if (!fs.existsSync(BILL_IDS)) { console.error(`state_link: no such --bill-ids file: ${BILL_IDS}`); process.exit(2); }
+    const n = fs.readFileSync(BILL_IDS, "utf8").split("\n").filter((l) => Number(l.trim()) > 0).length;
+    log(`state_link: ${n} named bill_ids from ${BILL_IDS}, any session, batch ${BATCH}, concurrency ${CONCURRENCY}`);
+    const s = await drain("bill-ids", () => ["source=state_link", `billIdsFile=${path.resolve(BILL_IDS)}`, `limit=${BATCH}`, `concurrency=${CONCURRENCY}`]);
+    log(`bill-ids done: ${s.considered} considered · ${s.inserted} stored · ${s.skipped} skipped · ${(s.secs / 60).toFixed(1)} min`);
+    process.exit(s.errored ? 1 : 0);
+  }
+
   if (!ALL_STATES) {
-    if (!STATE) { console.error("state_link: pass --state XX or --all-states"); process.exit(2); }
+    if (!STATE) { console.error("state_link: pass --state XX, --all-states or --bill-ids <file>"); process.exit(2); }
     log(`state_link: ${STATE} since ${SINCE}, batch ${BATCH}, concurrency ${CONCURRENCY}`);
     const extra = RETRY_ERRORS ? ["requeueErrors=1"] : [];
     const s = await drain(STATE, () => ["source=state_link", `state=${STATE}`, `since=${SINCE}`, `limit=${BATCH}`, `concurrency=${CONCURRENCY}`, ...extra]);
