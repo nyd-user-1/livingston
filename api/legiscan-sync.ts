@@ -237,8 +237,9 @@ const mapPerson = (p: any, state: string) => {
 async function prepareSchema(sql: Sql) {
   await sql.query(`ALTER TABLE "Bills" ADD COLUMN IF NOT EXISTS change_hash text`);
   for (const t of ["Bills", "People", "Roll Call"]) await sql.query(`ALTER TABLE "${t}" ADD COLUMN IF NOT EXISTS state text NOT NULL DEFAULT 'NY'`);
+  // The two earlier unique indexes ((bill_number, session_id) and (state, bill_number, session_id))
+  // are superseded by the one with `special` below — never re-create them here.
   await sql.query(`DROP INDEX IF EXISTS idx_bills_number_session`);
-  await sql.query(`CREATE UNIQUE INDEX IF NOT EXISTS idx_bills_state_number_session ON "Bills" (state, bill_number, session_id) WHERE bill_number IS NOT NULL`);
   await sql.query(`CREATE INDEX IF NOT EXISTS idx_bills_number_session_lookup ON "Bills" (bill_number, session_id)`);
   for (const [c, t] of [["bill_type", "text"], ["bill_type_id", "int"], ["body", "text"], ["current_body", "text"], ["completed", "boolean"], ["pending_committee_id", "text"], ["special", "smallint NOT NULL DEFAULT 0"], ["legiscan_session_id", "bigint"], ["session_title", "text"]])
     await sql.query(`ALTER TABLE "Bills" ADD COLUMN IF NOT EXISTS ${c} ${t}`);
