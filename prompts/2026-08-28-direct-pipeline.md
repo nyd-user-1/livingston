@@ -10,6 +10,9 @@
 
 So this lane is not a research lane and not a replacement-by-Friday. It is the standing pipeline: **for every jurisdiction, a scheduled job on our box that pulls bills, sponsors, actions, votes, versions/texts, committees and legislators from the legislature's own site or feed, and loads them into our schema** — with LegiScan still writing the canonical tables until, per state, the direct feed is shown to match. The engine for most states is the Open States scrapers we mirrored (GPL-3.0, we run them ourselves); where a legislature publishes a real feed (NY's Senate API, govinfo for Congress, and whatever lane IN's provenance map verified), we use the feed and take *everything* it offers — memos, agendas, calendars, hearing notices, fiscal notes — not the LegiScan subset.
 
+
+**Amendment 15:20 ET (lead):** lane IN is closed; its usable outputs are committed (`docs/PROVENANCE.md`, `scripts/independence/*`, the 28 mirrors, `~/Code/scripts/SCRAPER-DOCTRINE.md`); there is no memo and no scraper A/B — do not wait for either. Worker-box-2 (`i-0843042df1a5fb003`, `livingston-worker-2`) is **stopped**; start it, touch the maintenance flags within two minutes of boot, and note its SSH key is the one lane IN made (find it in that lane's report §2). **The NY Senate API is shared with `lv-text-ny`** on box 1 (5 req/s, ~15 h left): build and test `native/ny.mjs` on samples of ≤ 200 bills until that job's log ends in `EXIT=0`, then run it in full. Brendan's framing, verbatim: *"what I thought we were doing was creating 51 loaders, that's all"* — that is this lane; keep the deliverable that plain.
+
 ## Deliverables
 
 1. **`ops/box2/`** — worker-box-2's manifests and install, mirroring `ops/box/` (one job per jurisdiction or per group of small ones; `run-job`/`run-due` are already there). Nightly for the states in session, weekly otherwise; `run-due` decides from the manifest.
