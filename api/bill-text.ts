@@ -181,10 +181,33 @@ type TextRow = {
  * `fetched_at` keeps meaning "when this text last changed" rather than "when we
  * last looked", which is the more useful of the two things it could mean.
  */
+/**
+ * Neon's compute has a finite connection pool and this lane runs several jobs at
+ * once, so "remaining connection slots are reserved for roles with the SUPERUSER
+ * attribute" and "Error connecting to database: fetch failed" are both things
+ * that happen under load and both things that succeed on the next try. Retrying
+ * them here means one busy moment costs a second, not a document — and not, as
+ * it did at 18:06Z, a whole congress.
+ */
+async function withRetry<T>(what: () => Promise<T>, counts: Counts, tries = 4): Promise<T> {
+  let last: unknown;
+  for (let i = 0; i < tries; i += 1) {
+    try { return await what(); } catch (e) {
+      last = e;
+      const m = String((e as Error).message ?? e);
+      const transient = /connection slots|fetch failed|ECONNRESET|ETIMEDOUT|too many connections|Connection terminated/i.test(m);
+      if (!transient || i === tries - 1) throw e;
+      counts.dbRetries = (counts.dbRetries ?? 0) + 1;
+      await new Promise((ok) => setTimeout(ok, 250 * 2 ** i + Math.random() * 250));
+    }
+  }
+  throw last;
+}
+
 async function putText(sql: Sql, r: TextRow, counts: Counts): Promise<"inserted" | "updated" | "unchanged"> {
   const hash = r.text ? sha(r.text) : null;
   const chars = r.text ? r.text.length : 0;
-  const out = (await sql.query(
+  const out = (await withRetry(() => sql.query(
     `INSERT INTO "BillTexts" (document_id, bill_id, state, session_id, version, source, mime, chars, text, text_hash, fetched_at, error)
      VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10, now(), $11)
      ON CONFLICT (document_id) DO UPDATE
@@ -196,15 +219,15 @@ async function putText(sql: Sql, r: TextRow, counts: Counts): Promise<"inserted"
          OR "BillTexts".error IS DISTINCT FROM EXCLUDED.error
      RETURNING (xmax = 0) AS inserted`,
     [r.document_id, r.bill_id, r.state, r.session_id, r.version, r.source, r.mime, chars, r.text, hash, r.error],
-  )) as { inserted: boolean }[];
+  ), counts)) as { inserted: boolean }[];
   if (!out.length) { counts.unchanged = (counts.unchanged ?? 0) + 1; return "unchanged"; }
   if (out[0].inserted) { counts.inserted = (counts.inserted ?? 0) + 1; counts.chars = (counts.chars ?? 0) + chars; return "inserted"; }
   counts.updated = (counts.updated ?? 0) + 1; counts.chars = (counts.chars ?? 0) + chars;
   return "updated";
 }
 
-async function stampBill(sql: Sql, billId: number, chars: number) {
-  await sql.query(`UPDATE "Bills" SET text_fetched_at = now(), text_chars = $2 WHERE bill_id = $1`, [billId, chars]);
+async function stampBill(sql: Sql, billId: number, chars: number, counts: Counts) {
+  await withRetry(() => sql.query(`UPDATE "Bills" SET text_fetched_at = now(), text_chars = $2 WHERE bill_id = $1`, [billId, chars]), counts);
 }
 
 /* ---- source 1: the New York Senate --------------------------------------- */
@@ -253,7 +276,7 @@ async function runNySenate(sql: Sql, key: string, session: number, limit: number
           source: "nysenate", mime: "text/plain", text, error: null,
         }, counts);
       }
-      await stampBill(sql, b.bill_id, best);
+      await stampBill(sql, b.bill_id, best, counts);
       counts.bills = (counts.bills ?? 0) + 1;
     } catch (e) {
       const msg = String((e as Error).message).slice(0, 300);
@@ -264,7 +287,7 @@ async function runNySenate(sql: Sql, key: string, session: number, limit: number
       // Stamped even on failure, with 0 chars: "we tried and resolved it". The
       // driver moves on; --retry-errors is the way back to it. Without this a
       // permanently 404ing bill would be the head of the queue forever.
-      await stampBill(sql, b.bill_id, 0);
+      await stampBill(sql, b.bill_id, 0, counts);
       counts.failed = (counts.failed ?? 0) + 1;
     }
     // ~5 requests/s is the stated ceiling; 210 ms keeps us under it with one in flight.
@@ -363,14 +386,17 @@ async function runGovinfo(sql: Sql, congress: number, onlyType: string, counts: 
       };
       const STEP = 1 << 16;
       for (let i = 0; i < zip.length; i += STEP) unzip.push(zip.subarray(i, Math.min(i + STEP, zip.length)), i + STEP >= zip.length);
-      // Bounded concurrency would be faster, but the whole point of one row per
-      // commit is that a kill costs one document; settle them as they come.
-      for (let i = 0; i < pending.length; i += 25) await Promise.all(pending.slice(i, i + 25));
+      // Four at a time, not twenty-five. Twenty-five was the connection hog that
+      // exhausted Neon's pool at 18:06Z and cost this job the 119th Congress:
+      // one row per commit is the right checkpoint, but twenty-five commits in
+      // flight is twenty-five connections, times however many jobs are running.
+      const WRITE_CONCURRENCY = 4;
+      for (let i = 0; i < pending.length; i += WRITE_CONCURRENCY) await Promise.all(pending.slice(i, i + WRITE_CONCURRENCY));
       counts.zips = (counts.zips ?? 0) + 1;
     }
   }
 
-  for (const [billId, chars] of best) await stampBill(sql, billId, chars);
+  for (const [billId, chars] of best) await stampBill(sql, billId, chars, counts);
   counts.bills = best.size;
 }
 
@@ -460,7 +486,7 @@ async function runStateLink(sql: Sql, state: string, since: number, limit: numbe
   };
 
   await byHostPool(rows, concurrency, counts, one);
-  for (const [billId, chars] of best) await stampBill(sql, billId, chars);
+  for (const [billId, chars] of best) await stampBill(sql, billId, chars, counts);
   counts.bills = best.size;
 }
 
@@ -538,7 +564,7 @@ async function runDelta(sql: Sql, legiscanKey: string | undefined, days: number,
   };
 
   await byHostPool(rows, concurrency, counts, one);
-  for (const [billId, chars] of best) await stampBill(sql, billId, chars);
+  for (const [billId, chars] of best) await stampBill(sql, billId, chars, counts);
   counts.bills = best.size;
   counts.legiscanMonthToDateAtEnd = spent;
 }

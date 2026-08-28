@@ -100,6 +100,16 @@ async function drain(label, argsFor) {
     for (const k of ["considered", "inserted", "updated", "unchanged", "chars", "failed"]) totals[k] += Number(b[k] ?? 0);
     const skips = Object.entries(b).filter(([k]) => k.startsWith("skip_")).reduce((n, [, v]) => n + Number(v), 0);
     totals.skipped += skips;
+    // A whole batch refused is a verdict about the HOST, not about these 400
+    // documents. Recording it once and moving on is the point; grinding through
+    // California's 37,772 rows to write 37,772 identical "robots.txt disallows"
+    // errors spends an hour and a database connection to learn nothing the first
+    // batch did not already prove.
+    const refused = Number(b["skip_robots"] ?? 0) + Number(b["skip_host-dropped"] ?? 0);
+    if (Number(b.considered ?? 0) > 0 && refused === Number(b.considered)) {
+      log(`${label}: every document in this batch was refused by the host (${Number(b["skip_robots"] ?? 0)} robots, ${Number(b["skip_host-dropped"] ?? 0)} dropped) — recording the verdict and leaving the rest of this scope alone`);
+      return { ...totals, label, refused: true, errored: false, secs: (Date.now() - t0) / 1000 };
+    }
     const dropped = Array.isArray(b.dropped) ? b.dropped : [];
     log(`${label} round ${round}: considered ${b.considered ?? 0} · inserted ${b.inserted ?? 0} · unchanged ${b.unchanged ?? 0} · skipped ${skips} · ${((b.ms ?? 0) / 1000).toFixed(0)}s${dropped.length ? ` · DROPPED HOSTS ${dropped.join(",")}` : ""}`);
 
