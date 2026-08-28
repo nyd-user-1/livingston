@@ -8,6 +8,8 @@
 //   node scripts/box/national-sweep.mjs --all              # ignore the ledger: full backfill
 //   node scripts/box/national-sweep.mjs --only NY,NJ       # restrict to states
 //   node scripts/box/national-sweep.mjs --failed-first     # never-imported sessions first
+//   node scripts/box/national-sweep.mjs --skip-imported --only WV,WY        # treat what "Bills" holds as done
+//   node scripts/box/national-sweep.mjs --sessions CO:925,GA:1614           # exactly these, no matter what
 //   node scripts/box/national-sweep.mjs --dry-run [--limit 20]
 //
 // WHY IT IS CHEAP. LegiScan rebuilds each session's bulk archive weekly, but only
@@ -51,6 +53,16 @@ const DRY = has("--dry-run");
 const LIMIT = Number(val("--limit", "0")) || 0;
 const RETRIES = Number(val("--retries", "1"));
 const ONLY = new Set(val("--only").split(",").map((s) => s.trim().toUpperCase()).filter(Boolean));
+// An explicit `STATE:session` list. These are queued whatever the ledger, `--only`
+// or `--skip-imported` say — it is how an operator names the ten that failed and
+// gets exactly those ten, including one that half-imported before it died.
+const SESSIONS = new Set(val("--sessions").split(",").map((s) => s.trim().toUpperCase()).filter(Boolean));
+// Read "Bills" and treat every (state, legiscan_session_id) it holds as imported,
+// hash unknown — the same verdict a seed row gives, WITHOUT writing seed rows.
+// That distinction is the point: the global seed must not run while the laptop's
+// backfill is still importing, because it would record half-finished sessions as
+// done. This is read-only and decides one run.
+const SKIP_IMPORTED = has("--skip-imported");
 
 const log = (...a) => console.log(new Date().toISOString().slice(11, 19), ...a);
 
@@ -87,7 +99,7 @@ await sql.query(`CREATE TABLE IF NOT EXISTS "LegiscanDatasets" (state text NOT N
 const ledgerRows = await sql.query(`SELECT state, session_id, dataset_hash FROM "LegiscanDatasets"`);
 const ledger = new Map(ledgerRows.map((r) => [`${r.state}:${Number(r.session_id)}`, r.dataset_hash]));
 
-if (ledger.size === 0 && !SEED && !ALL) {
+if (ledger.size === 0 && !SEED && !ALL && !SKIP_IMPORTED && !SESSIONS.size) {
   console.error(
     "national-sweep: the ledger is empty.\n" +
     "  --seed  seeds it from what \"Bills\" already holds (hash NULL = imported, hash unknown)\n" +
@@ -96,6 +108,13 @@ if (ledger.size === 0 && !SEED && !ALL) {
     "  --all   ignores the ledger entirely and re-downloads all 998 datasets (~30 GB).",
   );
   process.exit(2);
+}
+
+if (SKIP_IMPORTED) {
+  const rows = await sql.query(`SELECT DISTINCT state, legiscan_session_id::int AS session_id FROM "Bills" WHERE legiscan_session_id IS NOT NULL AND state IS NOT NULL`);
+  let added = 0;
+  for (const r of rows) { const k = `${r.state}:${Number(r.session_id)}`; if (!ledger.has(k)) { ledger.set(k, null); added += 1; } }
+  log(`--skip-imported: "Bills" holds ${rows.length} (state, session) pairs; ${added} of them were not in the ledger and count as imported for this run only`);
 }
 
 if (SEED) {
@@ -169,11 +188,12 @@ for (const d of datasets) {
   const sid = Number(d.session_id);
   const state = abbrBySession.get(sid) ?? abbrByStateId.get(Number(d.state_id));
   if (!state) { unresolved.push(d); continue; }
-  if (ONLY.size && !ONLY.has(state)) { skippedOnly += 1; continue; }
+  if (ONLY.size && !ONLY.has(state) && !SESSIONS.has(`${state}:${sid}`)) { skippedOnly += 1; continue; }
 
   const k = `${state}:${sid}`;
   const known = ledger.has(k) ? ledger.get(k) : undefined;
-  if (!ALL) {
+  const named = SESSIONS.has(k);
+  if (!ALL && !named) {
     if (known === null) { skippedSeed += 1; continue; }                       // seeded: imported, hash unknown
     if (known && known === String(d.dataset_hash)) { skippedHash += 1; continue; }  // unchanged since our import
   }
@@ -183,6 +203,12 @@ for (const d of datasets) {
     access_key: String(d.access_key ?? ""), neverImported: known === undefined,
   });
 }
+
+// A named session that matched nothing is a typo or a session LegiScan has retired.
+// Saying so is the difference between "ran the ten" and "ran the eight it could find".
+const matched = new Set(queue.map((d) => `${d.state}:${d.session}`));
+const unmatched = [...SESSIONS].filter((k) => !matched.has(k));
+if (unmatched.length) log(`WARNING --sessions named ${unmatched.length} pair(s) that no dataset matches: ${unmatched.join(" ")}`);
 
 if (unresolved.length) {
   // Loud, never silent: a dataset whose postal code we cannot establish is NOT
@@ -224,6 +250,8 @@ function runOne(d) {
 
 let imported = 0, failed = 0;
 const failures = [];
+const timings = [];
+const runStarted = Date.now();
 for (const [i, d] of work.entries()) {
   const t0 = Date.now();
   let r = await runOne(d);
@@ -232,9 +260,33 @@ for (const [i, d] of work.entries()) {
     await new Promise((ok) => setTimeout(ok, 30_000));
     r = await runOne(d);
   }
-  const secs = ((Date.now() - t0) / 1000).toFixed(0);
-  if (r.code === 0) { imported += 1; log(`[${i + 1}/${work.length}] ${d.state} ${d.session} ${d.year} ${mb(d.size)} MB ${secs}s — ${r.out.slice(0, 220)}`); }
-  else { failed += 1; failures.push(d); log(`[${i + 1}/${work.length}] ${d.state} ${d.session} ${d.year} ${secs}s FAILED — ${r.out.slice(0, 400)}`); }
+  const wallMs = Date.now() - t0;
+  const secs = (wallMs / 1000).toFixed(0);
+  if (r.code === 0) {
+    imported += 1;
+    let body = {};
+    try { body = JSON.parse(r.out.replace(/^HTTP \d+ /, "")); } catch { body = {}; }
+    // The handler's own numbers, not the list's claims: zipBytes is what was
+    // decoded and ms is what the import itself took. wallMs is what an operator
+    // actually waits — node start plus the esbuild bundle on top.
+    timings.push({ state: d.state, session: d.session, wallMs, handlerMs: Number(body.ms ?? 0), bytes: Number(body.zipBytes ?? d.size), bills: Number(body.bills ?? 0) });
+    log(`[${i + 1}/${work.length}] ${d.state} ${d.session} ${d.year} ${mb(d.size)} MB ${secs}s — ${r.out.slice(0, 220)}`);
+  } else { failed += 1; failures.push(d); log(`[${i + 1}/${work.length}] ${d.state} ${d.session} ${d.year} ${secs}s FAILED — ${r.out.slice(0, 400)}`); }
+}
+
+// The A/B numbers, computed here rather than grepped out of the log afterwards.
+if (timings.length) {
+  const pct = (xs, p) => { const a = [...xs].sort((x, y) => x - y); return a[Math.min(a.length - 1, Math.floor(p * (a.length - 1)))]; };
+  const wall = timings.map((t) => t.wallMs / 1000);
+  const bytes = timings.reduce((n, t) => n + t.bytes, 0);
+  const elapsed = (Date.now() - runStarted) / 1000;
+  log(`STATS count=${timings.length} totalMB=${(bytes / 1e6).toFixed(1)} wallClock=${elapsed.toFixed(0)}s medianSecs=${pct(wall, 0.5).toFixed(1)} p90Secs=${pct(wall, 0.9).toFixed(1)} handlerMedianSecs=${(pct(timings.map((t) => t.handlerMs), 0.5) / 1000).toFixed(1)}`);
+  for (const [label, lo, hi] of [["<5MB", 0, 5e6], ["5-20MB", 5e6, 20e6], [">20MB", 20e6, Infinity]]) {
+    const band = timings.filter((t) => t.bytes >= lo && t.bytes < hi);
+    if (!band.length) { log(`STATS band ${label}: none`); continue; }
+    const secsPerMb = band.map((t) => (t.wallMs / 1000) / Math.max(0.001, t.bytes / 1e6));
+    log(`STATS band ${label}: n=${band.length} MB=${(band.reduce((n, t) => n + t.bytes, 0) / 1e6).toFixed(1)} medianSecsPerMB=${pct(secsPerMb, 0.5).toFixed(2)} p90SecsPerMB=${pct(secsPerMb, 0.9).toFixed(2)} bills=${band.reduce((n, t) => n + t.bills, 0)}`);
+  }
 }
 
 // The gate reports what was emitted against what was requested MINUS the skips it
