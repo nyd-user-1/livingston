@@ -1,0 +1,16 @@
+{
+  "job": "dp-ny-native",
+  "repo": "livingston",
+  "cadence": "nightly",
+  "enabled": true,
+  "heap_mb": 4096,
+  "steps": [
+    "scripts/pipeline/native/ny.mjs --session 2025",
+    "scripts/pipeline/reconcile.mjs NY 2025 --source nysenate --ours 2025"
+  ],
+  "_why": "New York is the product's home and the Senate's Open Legislation API is the richest feed we have. A whole session — 25,402 bills with every amendment's text and memo, every sponsor, action, committee vote, agenda, calendar entry and law reference — costs 75 requests and 261 seconds, because /bills/{session}?limit=1000&full=true returns COMPLETE bill objects and the ceiling is 1,000 a page. There is no reason for this to be anything other than nightly.",
+  "_pace": "--pace-ms defaults to 1200, deliberately: legislation.nysenate.gov is SHARED with lane BT's lv-text-ny on box 1, which runs at a measured 4.1 req/s, and the stated ceiling is 5 req/s for all of us together. 1,200 ms holds this side at <=0.83 req/s. The politeness itself is not in this manifest — it is inside api/_lib/polite-fetch.ts, which lane DP bundles rather than reimplements, so no manifest edit can turn it off.",
+  "_idempotence": "Every table is keyed and every write is an upsert, so a re-run is a no-op on unchanged rows — proved by running the same 200-bill sample twice and getting byte-identical counts. That is what makes 'nightly' the delta: there is no separate delta mode to keep correct.",
+  "_reconcile": "The second step is the check, and it runs whether or not anyone reads it, because the verdict is a row in openstates.pipeline_reconcile with a timestamp. Drift shows up as a trend rather than as somebody's recollection.",
+  "_known_gap": "The Senate API carries 819 Assembly roll calls against LegiScan's 7,129. Assembly floor votes live on nyassembly.gov, not in the Senate's system, so NY CANNOT reach parity on this source alone and this manifest does not pretend otherwise. Closing it needs a second native step against nyassembly.gov — one page per bill, which is the 25,000-request cost the bulk endpoint avoids, so it wants its own budgeted job."
+}

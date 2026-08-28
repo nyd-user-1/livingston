@@ -1,0 +1,11 @@
+{
+  "job": "dp-reconcile",
+  "repo": "livingston",
+  "cadence": "nightly",
+  "enabled": true,
+  "heap_mb": 3072,
+  "steps": ["scripts/pipeline/reconcile.mjs --all"],
+  "_why": "The verdict for every (state, session, source) the pipeline has loaded, written to openstates.pipeline_reconcile with a timestamp. The point is not the verdict on any one night — it is that a jurisdiction which was at parity in March and is at gap in June shows that as a line rather than as a surprise. A number nobody plots is a number nobody checks.",
+  "_reads_only": "This job reads public.* and writes only openstates.pipeline_reconcile. It is safe to run beside lv-legiscan-delta on the other box; it takes no locks that matter and it never writes a canonical table.",
+  "_cost": "About 50-70 s per (state, session) against Neon, most of it the member-vote join. At 52 jurisdictions that is under an hour, and it runs after the loaders so it grades the night that just happened."
+}

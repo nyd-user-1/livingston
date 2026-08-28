@@ -1,0 +1,15 @@
+{
+  "job": "dp-us-native",
+  "repo": "livingston",
+  "cadence": "nightly",
+  "enabled": true,
+  "heap_mb": 4096,
+  "steps": [
+    "scripts/pipeline/native/us.mjs --congress 119",
+    "scripts/pipeline/reconcile.mjs US 119 --source govinfo --ours 2025"
+  ],
+  "_why": "govinfo publishes BILLSTATUS as one zip per (congress, bill type). The whole 119th Congress — 18,469 bills with every cosponsor's bioguide id, every action's source system, committee referrals and reports, CRS summaries, related bills, laws and recorded-vote references — is EIGHT requests and 71 seconds. The obvious route is one XML file per bill and it is 20,000 requests for the same bytes.",
+  "_pace": "1,500 ms between the eight requests. govinfo's robots.txt disallows nothing under /bulkdata and in fact publishes sitemaps for it, so this is manners rather than permission. Public domain, no key.",
+  "_scope": "The 119th only. Back congresses are a one-off backfill (--congresses 113,114,...) and not something a nightly should re-download; each is another eight zips whenever someone wants them.",
+  "_deliberately_not_fetched": "Per-member roll-call detail. BILLSTATUS gives the roll number and the clerk's URL; the votes themselves are one request per roll call on clerk.house.gov and senate.gov — roughly 2,000 a congress across two more hosts. Those rows are recorded with NULL tallies and a description saying where the detail is, rather than stored as zero-vote roll calls that would quietly lie."
+}

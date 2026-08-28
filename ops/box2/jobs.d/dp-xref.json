@@ -1,0 +1,12 @@
+{
+  "job": "dp-xref",
+  "repo": "livingston",
+  "cadence": "weekly",
+  "weekday": 0,
+  "enabled": true,
+  "heap_mb": 3072,
+  "steps": ["scripts/pipeline/build-xref.mjs"],
+  "_why": "openstates.bill_xref and openstates.people_xref map LegiScan's proprietary ids to (state, session, bill_number) and to the open route's ids. They can only be built while BOTH sides exist, which is now — the whole point is that they are already complete on the day LegiScan stops. 2,125,370 bill rows covering every distinct LegiScan key, verified against the source count rather than against what the INSERT believed.",
+  "_also_derives": "openstates.session_map — Open States says '222' where we say 2026, govinfo says 119 where we say 2025. Each mapping is chosen as the session_id of ours sharing the most bill_keys with theirs, and the overlap percentage is stored beside it, so a mapping is a measurement someone can check rather than a constant someone once typed.",
+  "_the_thing_it_cannot_fix": "followthemoney_eid, on 20,922 of our People rows, and knowwho_pid on 18,502. Open States carries neither, and our ftm_total / ftm_in_state / ftm_out_of_state columns hang off the first. Ballotpedia (99.6%) and VoteSmart (75.6%) ARE independently reproducible from openstates/people, which is CC0. The money data is the sharpest single dependency on LegiScan we have, and this table is where that stays visible."
+}

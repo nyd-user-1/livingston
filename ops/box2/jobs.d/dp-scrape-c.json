@@ -1,0 +1,16 @@
+{
+  "job": "dp-scrape-c",
+  "repo": "livingston",
+  "cadence": "weekly",
+  "weekday": 3,
+  "enabled": true,
+  "heap_mb": 2048,
+  "steps": [
+    "scripts/pipeline/scrape.mjs --batch ca,hi,ok,pa --minutes 90",
+    "scripts/pipeline/load.mjs $(echo ca,hi,ok,pa | cut -d, -f1)"
+  ],
+  "_why": "The engine for the states with no usable feed is the Open States scrapers we mirrored (GPL-3.0), run on our own box. Weekly rather than nightly because a crawl is not free to the legislature that serves it, and because most of these states are only in session part of the year.",
+  "_pace": "The scrapers' OWN rate limits. --rpm, --fastmode and --retries are never passed, and scrape.mjs has no way to pass them. A state that is slow is slow; that is the honest price of scraping it rather than being sold it.",
+  "_budget": "--minutes 90 per jurisdiction, then SIGTERM. The spread between states is about 2,000x — New Jersey publishes its whole session as one ZIP and loads in 35 seconds, New York would take ~21 hours at ~15 bills/min. A budget turns the slow ones into a growing partial rather than a job nobody dares start, and every bill already written stays written.",
+  "_failure_is_data": "A scrape is judged on OUTPUT, not on the exit code: zero bill_*.json is a FAILURE even when the container exits 0, because that is what a redesigned legislature website looks like. Open States' issue tracker gives the base rate — ~27% of jurisdictions filed a scraper defect in the last 90 days and ~9% produced nothing at all — so this is the common case and docs/PIPELINE.md carries a row for each with its error."
+}
