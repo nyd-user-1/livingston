@@ -59,6 +59,9 @@ const STATE_BY_ID: Record<number, string> = { 32: "NY", 31: "NJ", 52: "US" };
 /** What each legislature calls its lower house. House unless listed. */
 const LOWER_HOUSE: Record<string, string> = { NY: "Assembly", NJ: "Assembly", CA: "Assembly", NV: "Assembly", WI: "Assembly", NE: "Legislature", DC: "Council", US: "House" };
 const lowerHouse = (state: string) => LOWER_HOUSE[state] ?? "House";
+/** LegiScan progress event ids (static lookup). */
+const PROGRESS_EVENT: Record<number, string> = { 1: "Introduced", 2: "Engrossed", 3: "Enrolled", 4: "Passed", 5: "Vetoed", 6: "Failed", 7: "Override", 8: "Chaptered", 9: "Referred to committee", 10: "Reported: do pass", 11: "Reported: do not pass", 12: "Draft" };
+// sponsor_type_id (static lookup): 0 sponsor, 1 primary, 2 co-sponsor, 3 joint sponsor — stored as the id.
 
 /**
  * Status, in the codes policy's UI already filters on (1 introduced, 2 in
@@ -96,8 +99,11 @@ interface Rows {
   sameAs: any[];
   rollCalls: any[];
   votes: any[];
+  calendar: any[];
+  progress: any[];
+  referrals: any[];
 }
-const emptyRows = (): Rows => ({ bills: [], sponsors: [], people: new Map(), history: [], documents: [], subjects: [], sameAs: [], rollCalls: [], votes: [] });
+const emptyRows = (): Rows => ({ bills: [], sponsors: [], people: new Map(), history: [], documents: [], subjects: [], sameAs: [], rollCalls: [], votes: [], calendar: [], progress: [], referrals: [] });
 
 /** One LegiScan bill (getBill payload or a dataset file) → rows for every table. */
 function mapBill(bill: any, rows: Rows) {
@@ -114,6 +120,15 @@ function mapBill(bill: any, rows: Rows) {
     bill_id: id,
     state,
     session_id: session,
+    special: Number(bill.session?.special ?? 0) || 0,
+    legiscan_session_id: Number(bill.session?.session_id ?? 0) || null,
+    session_title: bill.session?.session_title ? String(bill.session.session_title) : null,
+    bill_type: bill.bill_type ? String(bill.bill_type) : null,
+    bill_type_id: Number(bill.bill_type_id ?? 0) || null,
+    body: chamberName(bill.body),
+    current_body: chamberName(bill.current_body),
+    completed: Boolean(Number(bill.completed ?? 0)),
+    pending_committee_id: bill.pending_committee_id ? String(bill.pending_committee_id) : null,
     bill_number: String(bill.bill_number ?? ""),
     status: st.code,
     status_desc: st.desc,
@@ -131,7 +146,11 @@ function mapBill(bill: any, rows: Rows) {
   (Array.isArray(bill.sponsors) ? bill.sponsors : []).forEach((s: any, i: number) => {
     const pid = Number(s.people_id);
     if (!pid) return;
-    rows.sponsors.push({ bill_id: id, people_id: pid, position: Number(s.sponsor_order) || i + 1 });
+    rows.sponsors.push({
+      bill_id: id, people_id: pid, position: Number(s.sponsor_order) || i + 1,
+      sponsor_type_id: Number(s.sponsor_type_id ?? 0) || 0, committee_sponsor: Boolean(Number(s.committee_sponsor ?? 0)),
+      sponsor_committee_id: s.committee_id ? String(s.committee_id) : null,
+    });
     if (!rows.people.has(pid)) rows.people.set(pid, mapPerson(s, state));
   });
   history.forEach((h: any, i: number) => {
@@ -150,6 +169,23 @@ function mapBill(bill: any, rows: Rows) {
       bill_id: id, document_id: Number(t.amendment_id), document_type: "amendment", document_size: Number(t.amendment_size ?? 0) || null,
       document_mime: String(t.mime ?? ""), document_desc: String(t.title ?? t.description ?? "Amendment"), url: String(t.url ?? ""), state_link: String(t.state_link ?? ""),
     });
+  });
+  (Array.isArray(bill.supplements) ? bill.supplements : []).forEach((t: any) => {
+    if (!t.supplement_id) return;
+    rows.documents.push({
+      bill_id: id, document_id: Number(t.supplement_id), document_type: "supplement", document_size: Number(t.supplement_size ?? 0) || null,
+      document_mime: String(t.mime ?? ""), document_desc: [t.type, t.title].filter(Boolean).join(": ") || "Supplement", url: String(t.url ?? ""), state_link: String(t.state_link ?? ""),
+    });
+  });
+  (Array.isArray(bill.calendar) ? bill.calendar : []).forEach((c: any, i: number) => {
+    rows.calendar.push({ bill_id: id, seq: i + 1, type_id: Number(c.type_id ?? 0) || null, type: String(c.type ?? ""), date: String(c.date ?? ""), time: String(c.time ?? ""), location: String(c.location ?? ""), description: String(c.description ?? "") });
+  });
+  (Array.isArray(bill.progress) ? bill.progress : []).forEach((p: any, i: number) => {
+    const ev = Number(p.event ?? 0);
+    rows.progress.push({ bill_id: id, seq: i + 1, date: String(p.date ?? ""), event_id: ev, event: PROGRESS_EVENT[ev] ?? String(ev) });
+  });
+  (Array.isArray(bill.referrals) ? bill.referrals : []).forEach((r: any, i: number) => {
+    rows.referrals.push({ bill_id: id, seq: i + 1, date: String(r.date ?? ""), committee_id: r.committee_id ? String(r.committee_id) : null, chamber: chamberName(r.chamber), name: String(r.name ?? "") });
   });
   (Array.isArray(bill.subjects) ? bill.subjects : []).forEach((s: any) => {
     if (s.subject_id) rows.subjects.push({ bill_id: id, subject_id: Number(s.subject_id), subject: String(s.subject_name ?? "") });
@@ -177,12 +213,24 @@ function mapRollCall(rc: any, rows: Rows, state: string) {
   });
 }
 
-const mapPerson = (p: any, state: string) => ({
-  people_id: Number(p.people_id), state: String(STATE_BY_ID[Number(p.state_id)] ?? state).toUpperCase(), name: String(p.name ?? ""), first_name: String(p.first_name ?? ""), middle_name: String(p.middle_name ?? "") || null,
-  last_name: String(p.last_name ?? ""), party_id: Number(p.party_id ?? 0) || null, party: String(p.party ?? "") || null, role_id: Number(p.role_id ?? 0) || null,
-  role: String(p.role ?? "") || null, district: String(p.district ?? "") || null,
-  chamber: String(p.role ?? "") === "Sen" ? "Senate" : String(p.role ?? "") === "Rep" ? lowerHouse(String(STATE_BY_ID[Number(p.state_id)] ?? state).toUpperCase()) : null,
-});
+const mapPerson = (p: any, state: string) => {
+  const st = String(STATE_BY_ID[Number(p.state_id)] ?? state).toUpperCase();
+  const social = p.bio?.social ?? {};
+  const idOrNull = (v: unknown) => (Number(v) > 0 ? Number(v) : null);
+  const strOrNull = (v: unknown) => (v ? String(v) : null);
+  return {
+    people_id: Number(p.people_id), state: st, name: String(p.name ?? ""), first_name: String(p.first_name ?? ""), middle_name: String(p.middle_name ?? "") || null,
+    last_name: String(p.last_name ?? ""), party_id: Number(p.party_id ?? 0) || null, party: String(p.party ?? "") || null, role_id: Number(p.role_id ?? 0) || null,
+    role: String(p.role ?? "") || null, district: String(p.district ?? "") || null,
+    chamber: String(p.role ?? "") === "Sen" ? "Senate" : String(p.role ?? "") === "Rep" ? lowerHouse(st) : null,
+    // The bridges to everything outside LegiScan.
+    votesmart_id: idOrNull(p.votesmart_id), opensecrets_id: strOrNull(p.opensecrets_id), ballotpedia: strOrNull(p.ballotpedia),
+    followthemoney_eid: idOrNull(p.ftm_eid), knowwho_pid: idOrNull(p.knowwho_pid), bioguide_id: strOrNull(p.bioguide_id),
+    nickname: strOrNull(p.nickname), suffix: strOrNull(p.suffix), person_hash: strOrNull(p.person_hash),
+    email: strOrNull(social.email), phone_capitol: strOrNull(social.capitol_phone), phone_district: strOrNull(social.district_phone),
+    bio_url: strOrNull(social.biography), photo_url: strOrNull(social.image),
+  };
+};
 
 /* ---- writing ------------------------------------------------------------ */
 
@@ -192,6 +240,19 @@ async function prepareSchema(sql: Sql) {
   await sql.query(`DROP INDEX IF EXISTS idx_bills_number_session`);
   await sql.query(`CREATE UNIQUE INDEX IF NOT EXISTS idx_bills_state_number_session ON "Bills" (state, bill_number, session_id) WHERE bill_number IS NOT NULL`);
   await sql.query(`CREATE INDEX IF NOT EXISTS idx_bills_number_session_lookup ON "Bills" (bill_number, session_id)`);
+  for (const [c, t] of [["bill_type", "text"], ["bill_type_id", "int"], ["body", "text"], ["current_body", "text"], ["completed", "boolean"], ["pending_committee_id", "text"], ["special", "smallint NOT NULL DEFAULT 0"], ["legiscan_session_id", "bigint"], ["session_title", "text"]])
+    await sql.query(`ALTER TABLE "Bills" ADD COLUMN IF NOT EXISTS ${c} ${t}`);
+  for (const [c, t] of [["sponsor_type_id", "int"], ["committee_sponsor", "boolean"], ["sponsor_committee_id", "text"]])
+    await sql.query(`ALTER TABLE "Sponsors" ADD COLUMN IF NOT EXISTS ${c} ${t}`);
+  for (const [c, t] of [["votesmart_id", "bigint"], ["opensecrets_id", "text"], ["ballotpedia", "text"], ["followthemoney_eid", "bigint"], ["knowwho_pid", "bigint"], ["bioguide_id", "text"], ["nickname", "text"], ["suffix", "text"], ["person_hash", "text"], ["bio_url", "text"]])
+    await sql.query(`ALTER TABLE "People" ADD COLUMN IF NOT EXISTS ${c} ${t}`);
+  // Special sessions share a year with the regular one; a bill number can repeat across them.
+  await sql.query(`DROP INDEX IF EXISTS idx_bills_state_number_session`);
+  await sql.query(`CREATE UNIQUE INDEX IF NOT EXISTS idx_bills_state_number_session_special ON "Bills" (state, bill_number, session_id, special) WHERE bill_number IS NOT NULL`);
+  await sql.query(`CREATE TABLE IF NOT EXISTS "Calendar" (bill_id bigint NOT NULL, seq int NOT NULL, type_id int, type text, date text, time text, location text, description text, PRIMARY KEY (bill_id, seq))`);
+  await sql.query(`CREATE INDEX IF NOT EXISTS calendar_date_idx ON "Calendar" (date)`);
+  await sql.query(`CREATE TABLE IF NOT EXISTS "Progress" (bill_id bigint NOT NULL, seq int NOT NULL, date text, event_id int, event text, PRIMARY KEY (bill_id, seq))`);
+  await sql.query(`CREATE TABLE IF NOT EXISTS "Referrals" (bill_id bigint NOT NULL, seq int NOT NULL, date text, committee_id text, chamber text, name text, PRIMARY KEY (bill_id, seq))`);
   await sql.query(`CREATE TABLE IF NOT EXISTS "Subjects" (bill_id bigint NOT NULL, subject_id bigint NOT NULL, subject text, PRIMARY KEY (bill_id, subject_id))`);
   await sql.query(`CREATE TABLE IF NOT EXISTS "SameAs" (bill_id bigint NOT NULL, sast_type_id int NOT NULL, sast_type text, sast_bill_id bigint NOT NULL, sast_bill_number text, PRIMARY KEY (bill_id, sast_type_id, sast_bill_id))`);
   for (const [name, def] of [
@@ -216,13 +277,22 @@ async function flush(sql: Sql, rows: Rows, counts: Record<string, number>) {
 
   for (const b of chunk(dedupe(rows.people.size ? [...rows.people.values()] : [], (p) => String(p.people_id)), BATCH)) {
     await sql.query(
-      `INSERT INTO "People" (people_id, name, first_name, middle_name, last_name, party_id, party, role_id, role, district, chamber, state)
-       SELECT * FROM unnest($1::bigint[], $2::text[], $3::text[], $4::text[], $5::text[], $6::bigint[], $7::text[], $8::bigint[], $9::text[], $10::text[], $11::text[], $12::text[])
+      `INSERT INTO "People" (people_id, name, first_name, middle_name, last_name, party_id, party, role_id, role, district, chamber, state,
+                             votesmart_id, opensecrets_id, ballotpedia, followthemoney_eid, knowwho_pid, bioguide_id, nickname, suffix, person_hash, email, phone_capitol, phone_district, bio_url, photo_url)
+       SELECT * FROM unnest($1::bigint[], $2::text[], $3::text[], $4::text[], $5::text[], $6::bigint[], $7::text[], $8::bigint[], $9::text[], $10::text[], $11::text[], $12::text[],
+                            $13::bigint[], $14::text[], $15::text[], $16::bigint[], $17::bigint[], $18::text[], $19::text[], $20::text[], $21::text[], $22::text[], $23::text[], $24::text[], $25::text[], $26::text[])
        ON CONFLICT (people_id) DO UPDATE SET state = EXCLUDED.state, name = EXCLUDED.name, first_name = EXCLUDED.first_name, middle_name = COALESCE(EXCLUDED.middle_name, "People".middle_name),
          last_name = EXCLUDED.last_name, party_id = COALESCE(EXCLUDED.party_id, "People".party_id), party = COALESCE(EXCLUDED.party, "People".party),
          role_id = COALESCE(EXCLUDED.role_id, "People".role_id), role = COALESCE(EXCLUDED.role, "People".role), district = COALESCE(EXCLUDED.district, "People".district),
-         chamber = COALESCE(EXCLUDED.chamber, "People".chamber)`,
-      ["people_id", "name", "first_name", "middle_name", "last_name", "party_id", "party", "role_id", "role", "district", "chamber", "state"].map((k) => col(b, k)),
+         chamber = COALESCE(EXCLUDED.chamber, "People".chamber),
+         votesmart_id = COALESCE(EXCLUDED.votesmart_id, "People".votesmart_id), opensecrets_id = COALESCE(EXCLUDED.opensecrets_id, "People".opensecrets_id),
+         ballotpedia = COALESCE(EXCLUDED.ballotpedia, "People".ballotpedia), followthemoney_eid = COALESCE(EXCLUDED.followthemoney_eid, "People".followthemoney_eid),
+         knowwho_pid = COALESCE(EXCLUDED.knowwho_pid, "People".knowwho_pid), bioguide_id = COALESCE(EXCLUDED.bioguide_id, "People".bioguide_id),
+         nickname = COALESCE(EXCLUDED.nickname, "People".nickname), suffix = COALESCE(EXCLUDED.suffix, "People".suffix), person_hash = COALESCE(EXCLUDED.person_hash, "People".person_hash),
+         email = COALESCE("People".email, EXCLUDED.email), phone_capitol = COALESCE("People".phone_capitol, EXCLUDED.phone_capitol), phone_district = COALESCE("People".phone_district, EXCLUDED.phone_district),
+         bio_url = COALESCE(EXCLUDED.bio_url, "People".bio_url), photo_url = COALESCE("People".photo_url, EXCLUDED.photo_url)`,
+      ["people_id", "name", "first_name", "middle_name", "last_name", "party_id", "party", "role_id", "role", "district", "chamber", "state",
+       "votesmart_id", "opensecrets_id", "ballotpedia", "followthemoney_eid", "knowwho_pid", "bioguide_id", "nickname", "suffix", "person_hash", "email", "phone_capitol", "phone_district", "bio_url", "photo_url"].map((k) => col(b, k)),
     );
     add("people", b.length);
   }
@@ -235,17 +305,22 @@ async function flush(sql: Sql, rows: Rows, counts: Record<string, number>) {
     const sessions = [...new Set(b.map((r) => Number(r.session_id)))];
     const states = [...new Set(b.map((r) => String(r.state)))];
     const existing = (await sql.query(
-      `SELECT bill_id, bill_number, session_id, state FROM "Bills" WHERE state = ANY($3::text[]) AND session_id = ANY($1::bigint[]) AND bill_number = ANY($2::text[])`,
+      `SELECT bill_id, bill_number, session_id, state, special FROM "Bills" WHERE state = ANY($3::text[]) AND session_id = ANY($1::bigint[]) AND bill_number = ANY($2::text[])`,
       [sessions, b.map((r) => r.bill_number), states],
     )) as any[];
-    const incoming = new Map(b.map((r) => [`${r.state}:${r.session_id}:${r.bill_number}`, Number(r.bill_id)]));
-    const stale = existing.filter((e) => incoming.get(`${e.state}:${e.session_id}:${e.bill_number}`) !== Number(e.bill_id)).map((e) => Number(e.bill_id));
+    const incoming = new Map(b.map((r) => [`${r.state}:${r.session_id}:${r.special}:${r.bill_number}`, Number(r.bill_id)]));
+    const stale = existing
+      .filter((e) => incoming.has(`${e.state}:${e.session_id}:${Number(e.special ?? 0)}:${e.bill_number}`) && incoming.get(`${e.state}:${e.session_id}:${Number(e.special ?? 0)}:${e.bill_number}`) !== Number(e.bill_id))
+      .map((e) => Number(e.bill_id));
     if (stale.length) {
       await sql.transaction([
         sql.query(`DELETE FROM "Sponsors" WHERE bill_id = ANY($1::bigint[])`, [stale]),
         sql.query(`DELETE FROM "History Table" WHERE bill_id = ANY($1::bigint[])`, [stale]),
         sql.query(`DELETE FROM "Subjects" WHERE bill_id = ANY($1::bigint[])`, [stale]),
         sql.query(`DELETE FROM "SameAs" WHERE bill_id = ANY($1::bigint[])`, [stale]),
+        sql.query(`DELETE FROM "Calendar" WHERE bill_id = ANY($1::bigint[])`, [stale]),
+        sql.query(`DELETE FROM "Progress" WHERE bill_id = ANY($1::bigint[])`, [stale]),
+        sql.query(`DELETE FROM "Referrals" WHERE bill_id = ANY($1::bigint[])`, [stale]),
         sql.query(`DELETE FROM "Bills" WHERE bill_id = ANY($1::bigint[])`, [stale]),
       ]);
       add("replacedIds", stale.length);
@@ -254,11 +329,15 @@ async function flush(sql: Sql, rows: Rows, counts: Record<string, number>) {
     // current session, and a newer action on record beats an older one here.
     await sql.query(
       `INSERT INTO "Bills" (bill_id, session_id, bill_number, status, status_desc, status_date, title, description, committee_id, committee,
-                            last_action_date, last_action, url, state_link, change_hash, state)
+                            last_action_date, last_action, url, state_link, change_hash, state,
+                            special, legiscan_session_id, session_title, bill_type, bill_type_id, body, current_body, completed, pending_committee_id)
        SELECT * FROM unnest($1::bigint[], $2::bigint[], $3::text[], $4::bigint[], $5::text[], $6::text[], $7::text[], $8::text[], $9::text[], $10::text[],
-                            $11::text[], $12::text[], $13::text[], $14::text[], $15::text[], $16::text[])
+                            $11::text[], $12::text[], $13::text[], $14::text[], $15::text[], $16::text[],
+                            $17::smallint[], $18::bigint[], $19::text[], $20::text[], $21::int[], $22::text[], $23::text[], $24::boolean[], $25::text[])
        ON CONFLICT (bill_id) DO UPDATE SET
-         state = EXCLUDED.state, session_id = EXCLUDED.session_id, bill_number = EXCLUDED.bill_number, title = EXCLUDED.title, description = EXCLUDED.description,
+         state = EXCLUDED.state, session_id = EXCLUDED.session_id, special = EXCLUDED.special, legiscan_session_id = EXCLUDED.legiscan_session_id,
+         session_title = EXCLUDED.session_title, bill_type = EXCLUDED.bill_type, bill_type_id = EXCLUDED.bill_type_id, body = EXCLUDED.body,
+         current_body = EXCLUDED.current_body, completed = EXCLUDED.completed, pending_committee_id = EXCLUDED.pending_committee_id, bill_number = EXCLUDED.bill_number, title = EXCLUDED.title, description = EXCLUDED.description,
          committee_id = COALESCE(EXCLUDED.committee_id, "Bills".committee_id), committee = COALESCE(EXCLUDED.committee, "Bills".committee),
          url = EXCLUDED.url, state_link = EXCLUDED.state_link, change_hash = EXCLUDED.change_hash,
          status = CASE WHEN COALESCE(EXCLUDED.last_action_date, '') >= COALESCE("Bills".last_action_date, '') THEN EXCLUDED.status ELSE "Bills".status END,
@@ -266,7 +345,8 @@ async function flush(sql: Sql, rows: Rows, counts: Record<string, number>) {
          status_date = CASE WHEN COALESCE(EXCLUDED.last_action_date, '') >= COALESCE("Bills".last_action_date, '') THEN EXCLUDED.status_date ELSE "Bills".status_date END,
          last_action = CASE WHEN COALESCE(EXCLUDED.last_action_date, '') >= COALESCE("Bills".last_action_date, '') THEN EXCLUDED.last_action ELSE "Bills".last_action END,
          last_action_date = CASE WHEN COALESCE(EXCLUDED.last_action_date, '') >= COALESCE("Bills".last_action_date, '') THEN EXCLUDED.last_action_date ELSE "Bills".last_action_date END`,
-      ["bill_id", "session_id", "bill_number", "status", "status_desc", "status_date", "title", "description", "committee_id", "committee", "last_action_date", "last_action", "url", "state_link", "change_hash", "state"].map((k) => col(b, k)),
+      ["bill_id", "session_id", "bill_number", "status", "status_desc", "status_date", "title", "description", "committee_id", "committee", "last_action_date", "last_action", "url", "state_link", "change_hash", "state",
+       "special", "legiscan_session_id", "session_title", "bill_type", "bill_type_id", "body", "current_body", "completed", "pending_committee_id"].map((k) => col(b, k)),
     );
     add("bills", b.length);
   }
@@ -280,13 +360,32 @@ async function flush(sql: Sql, rows: Rows, counts: Record<string, number>) {
     const history = dedupe(rows.history.filter(mine), (r) => `${r.bill_id}:${r.date}:${r.sequence}`);
     const subjects = dedupe(rows.subjects.filter(mine), (r) => `${r.bill_id}:${r.subject_id}`);
     const sameAs = dedupe(rows.sameAs.filter(mine), (r) => `${r.bill_id}:${r.sast_type_id}:${r.sast_bill_id}`);
+    const calendar = dedupe(rows.calendar.filter(mine), (r) => `${r.bill_id}:${r.seq}`);
+    const progress = dedupe(rows.progress.filter(mine), (r) => `${r.bill_id}:${r.seq}`);
+    const referrals = dedupe(rows.referrals.filter(mine), (r) => `${r.bill_id}:${r.seq}`);
     await sql.transaction([
       sql.query(`DELETE FROM "Sponsors" WHERE bill_id = ANY($1::bigint[])`, [ids]),
       sql.query(`DELETE FROM "History Table" WHERE bill_id = ANY($1::bigint[])`, [ids]),
       sql.query(`DELETE FROM "Subjects" WHERE bill_id = ANY($1::bigint[])`, [ids]),
       sql.query(`DELETE FROM "SameAs" WHERE bill_id = ANY($1::bigint[])`, [ids]),
+      sql.query(`DELETE FROM "Calendar" WHERE bill_id = ANY($1::bigint[])`, [ids]),
+      sql.query(`DELETE FROM "Progress" WHERE bill_id = ANY($1::bigint[])`, [ids]),
+      sql.query(`DELETE FROM "Referrals" WHERE bill_id = ANY($1::bigint[])`, [ids]),
       ...(sponsors.length
-        ? [sql.query(`INSERT INTO "Sponsors" (bill_id, people_id, position) SELECT * FROM unnest($1::bigint[], $2::bigint[], $3::bigint[])`, [col(sponsors, "bill_id"), col(sponsors, "people_id"), col(sponsors, "position")])]
+        ? [sql.query(`INSERT INTO "Sponsors" (bill_id, people_id, position, sponsor_type_id, committee_sponsor, sponsor_committee_id) SELECT * FROM unnest($1::bigint[], $2::bigint[], $3::bigint[], $4::int[], $5::boolean[], $6::text[])`,
+            [col(sponsors, "bill_id"), col(sponsors, "people_id"), col(sponsors, "position"), col(sponsors, "sponsor_type_id"), col(sponsors, "committee_sponsor"), col(sponsors, "sponsor_committee_id")])]
+        : []),
+      ...(calendar.length
+        ? [sql.query(`INSERT INTO "Calendar" (bill_id, seq, type_id, type, date, time, location, description) SELECT * FROM unnest($1::bigint[], $2::int[], $3::int[], $4::text[], $5::text[], $6::text[], $7::text[], $8::text[])`,
+            ["bill_id", "seq", "type_id", "type", "date", "time", "location", "description"].map((k) => col(calendar, k)))]
+        : []),
+      ...(progress.length
+        ? [sql.query(`INSERT INTO "Progress" (bill_id, seq, date, event_id, event) SELECT * FROM unnest($1::bigint[], $2::int[], $3::text[], $4::int[], $5::text[])`,
+            ["bill_id", "seq", "date", "event_id", "event"].map((k) => col(progress, k)))]
+        : []),
+      ...(referrals.length
+        ? [sql.query(`INSERT INTO "Referrals" (bill_id, seq, date, committee_id, chamber, name) SELECT * FROM unnest($1::bigint[], $2::int[], $3::text[], $4::text[], $5::text[], $6::text[])`,
+            ["bill_id", "seq", "date", "committee_id", "chamber", "name"].map((k) => col(referrals, k)))]
         : []),
       ...(history.length
         ? [sql.query(`INSERT INTO "History Table" (bill_id, date, chamber, sequence, action) SELECT * FROM unnest($1::bigint[], $2::text[], $3::text[], $4::bigint[], $5::text[])`, [col(history, "bill_id"), col(history, "date"), col(history, "chamber"), col(history, "sequence"), col(history, "action")])]
@@ -302,6 +401,9 @@ async function flush(sql: Sql, rows: Rows, counts: Record<string, number>) {
     add("history", history.length);
     add("subjects", subjects.length);
     add("sameAs", sameAs.length);
+    add("calendar", calendar.length);
+    add("progress", progress.length);
+    add("referrals", referrals.length);
   }
 
   for (const b of chunk(dedupe(rows.documents, (r) => String(r.document_id)), BATCH)) {
@@ -355,6 +457,9 @@ async function dropMintedDuplicates(sql: Sql, sessionYear: number): Promise<numb
     sql.query(`DELETE FROM "History Table" WHERE bill_id = ANY($1::bigint[])`, [ids]),
     sql.query(`DELETE FROM "Subjects" WHERE bill_id = ANY($1::bigint[])`, [ids]),
     sql.query(`DELETE FROM "SameAs" WHERE bill_id = ANY($1::bigint[])`, [ids]),
+    sql.query(`DELETE FROM "Calendar" WHERE bill_id = ANY($1::bigint[])`, [ids]),
+    sql.query(`DELETE FROM "Progress" WHERE bill_id = ANY($1::bigint[])`, [ids]),
+    sql.query(`DELETE FROM "Referrals" WHERE bill_id = ANY($1::bigint[])`, [ids]),
     sql.query(`DELETE FROM "Bills" WHERE bill_id = ANY($1::bigint[])`, [ids]),
   ]);
   return ids.length;
@@ -460,6 +565,43 @@ async function runDelta(sql: Sql, key: string, state: string, sessionId: number,
   counts.rollCallsLeft = Math.max(0, newRollCalls.length - maxRollCalls);
 }
 
+/** getSessionPeople: the whole roster of a session, members who sponsored nothing included. */
+async function runPeople(sql: Sql, key: string, state: string, sessionId: number, counts: Record<string, number>) {
+  const d = await legiscan(key, "getSessionPeople", { id: sessionId });
+  counts.queries += 1;
+  const rows = emptyRows();
+  for (const p of d.sessionpeople?.people ?? []) if (p?.people_id) rows.people.set(Number(p.people_id), mapPerson(p, state));
+  counts.roster = rows.people.size;
+  await flush(sql, rows, counts);
+}
+
+/**
+ * The monitor list: bills marked in the LegiScan account come back with status
+ * and change_hash in ONE query, across states. `?set=<bill_id,…>&action=monitor|remove`
+ * marks them; without `set` the list is read and stale ones re-fetched.
+ */
+async function runMonitor(sql: Sql, key: string, set: string, action: string, maxBills: number, counts: Record<string, number>) {
+  if (set) {
+    const r = await legiscan(key, "setMonitor", { list: set, action: action === "remove" ? "remove" : "monitor" });
+    counts.queries += 1;
+    counts.set = Object.keys(r.return ?? {}).length;
+  }
+  const d = await legiscan(key, "getMonitorListRaw", { record: "current" });
+  counts.queries += 1;
+  const items = Object.values(d.monitorlist ?? {}).filter((v: any) => v && typeof v === "object" && v.bill_id) as any[];
+  counts.monitored = items.length;
+  const known = new Map<number, string>(((await sql.query(`SELECT bill_id, change_hash FROM "Bills" WHERE bill_id = ANY($1::bigint[])`, [items.map((i) => Number(i.bill_id))])) as any[]).map((r: any) => [Number(r.bill_id), String(r.change_hash ?? "")]));
+  const changed = items.filter((i) => known.get(Number(i.bill_id)) !== String(i.change_hash));
+  counts.changed = changed.length;
+  const rows = emptyRows();
+  for (const i of changed.slice(0, maxBills)) {
+    const b = await legiscan(key, "getBill", { id: i.bill_id });
+    counts.queries += 1;
+    mapBill(b.bill, rows);
+  }
+  await flush(sql, rows, counts);
+}
+
 export default async function handler(req: any, res: any) {
   const secret = process.env.CRON_SECRET;
   const given = String(req.headers?.authorization ?? "").replace(/^Bearer\s+/i, "") || String(req.query?.secret ?? "");
@@ -470,7 +612,7 @@ export default async function handler(req: any, res: any) {
   if (!key || !dbUrl) return res.status(503).json({ error: "LEGISCAN_API_KEY and POLICY_DATABASE_URL are both required" });
 
   const sql = neon(dbUrl);
-  const mode = req.query?.mode === "dataset" ? "dataset" : "delta";
+  const mode = String(req.query?.mode ?? "delta");
   const state = String(req.query?.state ?? "NY").toUpperCase();
   // LegiScan's session id for each current session, and the year our rows carry
   // (year_start). NJ opens its sessions in even years, NY and Congress in odd.
@@ -483,7 +625,18 @@ export default async function handler(req: any, res: any) {
   try {
     await prepareSchema(sql);
     if (mode === "dataset") await runDataset(sql, key, state, sessionId, req.query?.access_key ? String(req.query.access_key) : undefined, counts);
-    else {
+    else if (mode === "people") await runPeople(sql, key, state, sessionId, counts);
+    else if (mode === "monitor") await runMonitor(sql, key, String(req.query?.set ?? ""), String(req.query?.action ?? "monitor"), Math.min(400, Number(req.query?.max ?? 100) || 100), counts);
+    else if (mode === "search") {
+      // Read-only passthrough of the national full-text search (2,000 hits a page, with change hashes). One query per call.
+      const d = await legiscan(key, "getSearchRaw", { state: String(req.query?.scope ?? "ALL"), query: String(req.query?.q ?? ""), page: Number(req.query?.page ?? 1) || 1 });
+      counts.queries += 1;
+      return res.status(200).json({ ok: true, mode, summary: d.searchresult?.summary, results: Object.values(d.searchresult ?? {}).filter((v: any) => v && typeof v === "object" && v.bill_id), ms: Date.now() - t0 });
+    } else if (mode === "sponsored") {
+      const d = await legiscan(key, "getSponsoredList", { id: Number(req.query?.people_id) });
+      counts.queries += 1;
+      return res.status(200).json({ ok: true, mode, sponsor: d.sponsoredbills?.sponsor, sessions: d.sponsoredbills?.sessions, bills: d.sponsoredbills?.bills, ms: Date.now() - t0 });
+    } else {
       if (!sessionYear) return res.status(400).json({ error: "delta needs ?year= for a non-current session" });
       await runDelta(sql, key, state, sessionId, sessionYear, Math.min(400, Number(req.query?.max ?? 300) || 300), Math.min(150, Number(req.query?.maxRollCalls ?? 100) || 100), counts);
     }
