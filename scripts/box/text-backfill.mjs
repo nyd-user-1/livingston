@@ -80,10 +80,13 @@ function call(args, { quiet = false } = {}) {
   });
 }
 
+const dropped2 = (b) => (Array.isArray(b.dropped) ? b.dropped : []);
+
 /** Loop one scope until the handler stops finding work. Returns a summary. */
 async function drain(label, argsFor) {
   const totals = { rounds: 0, considered: 0, inserted: 0, updated: 0, unchanged: 0, chars: 0, failed: 0, skipped: 0 };
   let errors = 0;
+  let zeroText = 0;
   const t0 = Date.now();
   for (let round = 1; round <= MAX_ROUNDS; round += 1) {
     const r = await call(argsFor(round));
@@ -110,6 +113,20 @@ async function drain(label, argsFor) {
       log(`${label}: every document in this batch was refused by the host (${Number(b["skip_robots"] ?? 0)} robots, ${Number(b["skip_host-dropped"] ?? 0)} dropped) — recording the verdict and leaving the rest of this scope alone`);
       return { ...totals, label, refused: true, errored: false, secs: (Date.now() - t0) / 1000 };
     }
+    // A host that five-strikes itself out is only DROPPED for the life of one
+    // handler process, so the next round starts a fresh fetcher, takes five more
+    // 429s, and drops it again — 400 rows and two minutes per round, for as long
+    // as the state has documents. Hawaii did exactly that twice before this
+    // existed. Two consecutive batches that yield no text at all is the signal:
+    // two, not one, so a transient blip cannot close a state that is merely
+    // having a bad minute.
+    if (Number(b.considered ?? 0) > 0 && Number(b.chars ?? 0) === 0) {
+      zeroText += 1;
+      if (zeroText >= 2) {
+        log(`${label}: two consecutive batches produced no text at all (last: ${skips} skipped${dropped2(b).length ? `, hosts dropped ${dropped2(b).join(",")}` : ""}) — stopping this scope, the verdict is recorded in "BillTexts"`);
+        return { ...totals, label, refused: true, errored: false, secs: (Date.now() - t0) / 1000 };
+      }
+    } else zeroText = 0;
     const dropped = Array.isArray(b.dropped) ? b.dropped : [];
     log(`${label} round ${round}: considered ${b.considered ?? 0} · inserted ${b.inserted ?? 0} · unchanged ${b.unchanged ?? 0} · skipped ${skips} · ${((b.ms ?? 0) / 1000).toFixed(0)}s${dropped.length ? ` · DROPPED HOSTS ${dropped.join(",")}` : ""}`);
 

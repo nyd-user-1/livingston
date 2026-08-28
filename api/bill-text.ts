@@ -195,7 +195,7 @@ async function withRetry<T>(what: () => Promise<T>, counts: Counts, tries = 4): 
     try { return await what(); } catch (e) {
       last = e;
       const m = String((e as Error).message ?? e);
-      const transient = /connection slots|fetch failed|ECONNRESET|ETIMEDOUT|too many connections|Connection terminated/i.test(m);
+      const transient = /connection slots|too many clients|fetch failed|ECONNRESET|ETIMEDOUT|too many connections|Connection terminated|Client has encountered a connection error/i.test(m);
       if (!transient || i === tries - 1) throw e;
       counts.dbRetries = (counts.dbRetries ?? 0) + 1;
       await new Promise((ok) => setTimeout(ok, 250 * 2 ** i + Math.random() * 250));
