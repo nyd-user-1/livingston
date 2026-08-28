@@ -99,3 +99,86 @@ alec:340b-transparency-and-accountability-act  "340B Transparency and Accountabi
 (Also removed 8 rows my own first run wrote before `normaliseState` existed, keyed `U.S. HOUSE`/`U.S. SENATE` and superseded by corrected `US` rows. 557 → 549.)
 
 **🚩 A cross-lane finding the search/model lane needs, and it is structural, not incidental: every one of the 549 CPI matches is `session_id < 2023`** — 2003 to 2019, with the bulk in 2015–2019. **BT's walker is scoped to `session_id >= 2023`.** So of 546 resolved matches we currently hold the *text* of **8**, all in one cluster and one state, and under the present scope that number will not grow. The labels and the text are in different halves of the corpus. If these curated pairs are to be the training signal the brief calls them, **something has to fetch text for 2015–2019 for ~546 specific bills** — which is a tiny, targeted job (546 documents, not 483,000), not a change to the nightly walk. Recommend a one-shot `--sessions`-style pass driven from `"ModelBillMatches"`; I have not built it, because widening BT's scope is the lead's call and this lane's brief does not cover it.
+
+**16:31 — ALEC complete, and a defect of mine caught by the proof rather than by the tests.**
+
+**ALEC: `EXIT=0`, 1,125 fetched + 3 from the smoke test = 1,128 policies, 7,030,594 characters, 1,128 requests, zero strikes, 23.5 minutes at 1 req/s.**
+
+| | |
+|---|---|
+| type | Model Policy 702 · Model Resolution 319 · Statement of Principle 55 · Model Ordinance 10 · Policy Statement 9 · unlabelled 33 |
+| status | Final 1,071 · Sunset Review 25 · unlabelled 32 |
+| years | **1994 → 2026**; by decade 1990s **76**, 2000s **139**, 2010s **510**, 2020s **403** |
+| top issues | Environmental Stewardship 79 · Tax Reform 78 · Criminal Justice 73 · Lawsuit Reform 66 · Federalism 60 · Workforce Development 60 · Education 57 |
+| storage | `"ModelBills"` 4,560 kB · `"ModelBillMatches"` 960 kB |
+
+One policy has no text — `alec:amendments-to-universal-regulatory-sandbox-model-act`, which is an *amendments* page rather than a policy. 1,127 of 1,128 carry the model language.
+
+**Spot checks (a): ALEC fidelity, two pages refetched and compared** — `privatization-and-initiative-panel-act` stored 4,559 / refetched 4,559 and `courier-application-services-act` 5,736 / 5,736, **length equal, first and last 200 characters matching** in both.
+
+**Spot check (c): the CPI matches whose text we already hold — and it is the copycat phenomenon on screen.** All 8 are the **Child Welfare Provider Inclusion Act**, which CPI filed under `blitz-adoption-bill`, reintroduced in **both chambers across 2013, 2014, 2015, 2017 and 2019** — `US HB5285 (2013)` 11,346 chars, `SB2706 (2013)` 10,969, `HB1299 (2015)` 11,341, `SB667 (2015)` 10,619, `HB1881 (2017)` 10,861, `SB811 (2017)` 11,479, `SB274 (2019)` 11,593. Same title, same length band, six years, two chambers. That is what a human-curated cluster is *for*.
+
+**🚩 And the eighth row was mine, and wrong.** `US HR897 (2019)` came back as *"Expressing the sense of the House… direct emergency economic stimulus"* — nothing to do with adoption. Cause: the spreadsheet's `bill_number` column says `HR897`, and **in our schema `HR` is H.Res. while `HB` is H.R.** — so a column meaning "H.R. 897" resolved cleanly and confidently onto H.RES. 897. **The worst way for a curated label to be wrong: no error, no null, just the wrong bill.** The source disambiguates itself — its own link is `/bill/HB897/2019` — so the loader now **takes the bill number from the row's URL when it disagrees with the column**, and counts how often that happens. It is exactly one row of 549, and it would have poisoned a training pair.
+
+---
+
+# FINAL REPORT — lane MB
+
+## 1. Counts per source
+
+| | rows | with text | characters | notes |
+|---|---|---|---|---|
+| **`"ModelBills"` — alec** | **1,128** | 1,127 | **7,030,594** | 1994 → 2026 |
+| **`"ModelBills"` — cpi** | 9 | 0 | 0 | the nine Project Blitz clusters; the playbook itself is not in the spreadsheet and is not ours to publish, so `text` is honestly NULL |
+| **`"ModelBillMatches"` — cpi** | **548** | — | — | **545 resolved to a `bill_id` (99.5%)**, 9 clusters, 51 jurisdictions |
+| storage | `"ModelBills"` 4,560 kB · `"ModelBillMatches"` 960 kB | | | |
+
+**ALEC:** Model Policy 702 · Model Resolution 319 · Statement of Principle 55 · Model Ordinance 10 · Policy Statement 9 · unlabelled 33. Status Final 1,071 · Sunset Review 25 · unlabelled 32. By decade **1990s 76 · 2000s 139 · 2010s 510 · 2020s 403**. Top issues Environmental Stewardship 79, Tax Reform 78, Criminal Justice 73, Lawsuit Reform 66, Federalism 60, Workforce Development 60, Education 57. **1,128 requests, zero strikes, 23.5 min at 1 req/s, `EXIT=0`.**
+The one policy without text is `alec:amendments-to-universal-regulatory-sandbox-model-act` — an *amendments* page, not a policy.
+
+**549 CSV rows → 548 stored** because the spreadsheet lists **`IN SB0066 (2016)` twice** under "Counter". The unique index collapses it; that is the source's duplicate, not a loss.
+
+## 2. The ten largest clusters (there are only nine)
+
+| model cluster | bills | states | resolved |
+|---|---|---|---|
+| Free Exercise of Religion | 200 | 39 | 200 |
+| Marriage | 86 | 28 | 85 |
+| Adoption Bill | 66 | 22 | 65 |
+| National Motto Display Act | 46 | 21 | 46 |
+| Religious Freedom Restoration Act | 42 | 15 | 42 |
+| Bible Literacy Act | 37 | 17 | 37 |
+| Occupational License | 36 | 14 | 36 |
+| Counter | 23 | 9 | 22 |
+| Religious Freedom Day | 12 | 10 | 12 |
+
+## 3. Spot checks
+
+**ALEC fidelity — refetched from alec.org and compared:** `privatization-and-initiative-panel-act` stored 4,559 / refetched 4,559; `courier-application-services-act` 5,736 / 5,736. **Length equal, first and last 200 characters matching, both.**
+
+**A curated cluster, seen in our own text — the check the brief asked for.** Of 545 resolved matches, **8** have their text in `"BillTexts"` today, and all eight are one story: the **Child Welfare Provider Inclusion Act**, which CPI filed under `blitz-adoption-bill`, reintroduced in **both chambers across four Congresses** —
+`HB5285 (2013)` 11,346 · `SB2706 (2013)` 10,969 · `HB1299 (2015)` 11,341 · `SB667 (2015)` 10,619 · `HB1881 (2017)` 10,861 · `SB811 (2017)` 11,479 · **`HB897 (2019)` 11,285** · `SB274 (2019)` 11,593.
+Same title, same length band, six years, two chambers. That is the copycat phenomenon on screen, and it is exactly what a human-curated label is for.
+
+**🚩 That check found a defect of mine, and it is the important finding of this lane.** Before the fix the eighth row was `US HR897 (2019)` — *"Expressing the sense of the House… direct emergency economic stimulus"*, nothing to do with adoption. Cause: the spreadsheet's `bill_number` column says `HR897`, and **in our schema `HR` is H.Res. while `HB` is H.R.**, so a column meaning "H.R. 897" resolved **cleanly and confidently onto the wrong chamber's instrument**. No error, no null — just the wrong bill in a table whose entire value is that a human said these two are the same. The source disambiguates itself (`/bill/HB897/2019`), so the loader now takes the number from the row's own link: **26 of 549 rows disagree that way.** After the fix all 545 resolve on an *exact* match and the fuzzy ladder is unused.
+
+**And the same shape of bug twice, worth naming.** The upsert is keyed on values a correction can change, so each fix wrote a new row and orphaned the old one — 549→557 after the state fix, 549→574 after the number fix. **An upsert keyed on something a bug fix can change is not idempotent.** `"ModelBillMatches"` gained `fetched_at`, and the loader now marks what it writes and sweeps what it did not (26 swept). The table converges on re-run instead of growing.
+
+## 4. What could not be resolved, and why
+
+**3 of 548.** Not one is a gap in our data that anyone could close by trying harder:
+- **`ND 2003 SB2188`** — genuine absence. We hold **0** North Dakota bills for 2003, and its link is to Westlaw rather than LegiScan.
+- **`TX 2018 HB517`**, **`SC 2016 HB4508`** — the spreadsheet labels a two-year session by its second year while its own link says the first. Dropping the year finds **more than one** candidate, so the uniqueness guard **refuses**. That is the guard working: a resolver that picked one would be silently wrong, which is the failure this whole lane exists to avoid.
+
+## 5. Hosts, terms and what was deliberately not done
+
+- **NCSL: stopped, and quoted.** `robots.txt` gives `ClaudeBot`, `GPTBot`, `CCBot`, `Amazonbot` and six SEO crawlers `Disallow: /`, with `Crawl-delay: 5` for `*`. Every page answers our UA with **HTTP 403 behind a Cloudflare challenge** (`server=cloudflare`, `<title>Just a moment...</title>`), **including their own terms of use** — so the terms could not be read to be quoted, and that 403 is itself the answer. Our UA is not literally `ClaudeBot`, so the robots block does not bind on a strict reading; but a membership body has refused twice and this lane's purpose is a training signal. **~50 topic databases not collected.** The route, if wanted, is institutional: NCSL sells State Net access.
+- **CPI's tracker: gone, and shown to be gone.** Host `ENOTFOUND`, article 404, **603 URLs archived** by the Wayback Machine of which **four are API calls and one returned 200**, and the archived HTML is a Nuxt shell with `data:[{}]`. The ~10,000 copied bills are not recoverable. The one captured API response is kept raw in `~/cache/model-bills/cpi/` and **deliberately not loaded as matches** — a search result for one phrase with no model bill at the other end is not a curated pair, and labelling it as one would invent something the source never said.
+- **ALEC: allowed** (`Disallow:` empty, no crawl-delay), sitemaps used instead of 57 index pages, raw HTML cached to `~/cache/model-bills/alec/` **before** parsing — which paid immediately when the first parser scraped the site-wide navigation and tagged every policy with all 46 issues. Re-parsed from cache, **no second request to their site**.
+- **Not done:** no `src/` change; two tables only, plus `fetched_at` on one of them; no ALEC→state matching, because ALEC publishes no such labels and inventing them here would be the opposite of this lane's point.
+
+## 6. 🚩 The finding the model/search lane most needs
+
+**Every one of the 548 CPI matches is `session_id < 2023`** — 2003 to 2019, mostly 2015–2019 — **and BT's walker is scoped to `session_id >= 2023`.** So of 545 resolved matches we hold the *text* of **8**, and under the present scope that will not change. **The labels and the text are in different halves of the corpus.** Making these pairs usable is a small, targeted job — **~545 specific documents, not 483,000** — driven from `"ModelBillMatches"` rather than a change to the nightly walk. I have not built it: widening BT's scope is the lead's call and this brief does not cover it.
+
+Alongside that: **ALEC is 1,127 model texts with no matches at all**, because ALEC does not publish which state bills copied them. CPI's tool was the thing that computed those links, and it is gone. So the two halves of "find this bill in other states" are now: **1,127 models with text and no labels (ALEC)**, and **545 labels with almost no text (CPI)**. The obvious next move — and it is a real one, not a consolation — is to *recompute* CPI's analysis ourselves: we hold 2.2 M bills, we are building their text, and the one surviving API response shows their output was `{bill, n_matches, n_states}` keyed on the same LegiScan `bill_id` we use.
