@@ -1,4 +1,7 @@
 #!/usr/bin/env node
+// SUPERSEDED 2026-08-28: use scripts/pipeline/reconcile.mjs, which serves both the Open States engine and the native
+// loaders. This script predates the native rows in schema `openstates` and, without a source = 'openstates' filter,
+// would union them into its counts. Kept for the record of lane IN's diff; do not run it against current data.
 // scripts/independence/diff-openstates.mjs — lane IN, step 4.
 //
 // Compares one session, LegiScan (public."Bills" & friends) vs Open States (schema openstates),
