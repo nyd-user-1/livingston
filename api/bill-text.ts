@@ -240,28 +240,28 @@ class TextBuffer {
   private rows: TextRow[] = [];
   private stamps = new Map<number, number>();
   private lastFlush = Date.now();
+  private bytes = 0;
+  // Neon rejects a request over 64 MB outright — "request is too large (max is
+  // 67108864 bytes)", HTTP 413 — and fifty New York bill texts can pass that on
+  // their own. A row cap alone is not a size cap, and the difference cost a
+  // 44-page run of the NY backfill. 8 MB leaves the ceiling a wide berth.
+  private maxBytes = 8 * 1024 * 1024;
   constructor(private sql: Sql, private counts: Counts, private size = 50, private maxAgeMs = 30_000) {}
 
   async add(r: TextRow, chars?: number) {
     this.rows.push(r);
+    this.bytes += (r.text?.length ?? 0) + 200;
     if (chars && chars > 0) this.stamp(r.bill_id, chars);
-    if (this.rows.length >= this.size || Date.now() - this.lastFlush >= this.maxAgeMs) await this.flush();
+    if (this.rows.length >= this.size || this.bytes >= this.maxBytes || Date.now() - this.lastFlush >= this.maxAgeMs) await this.flush();
   }
 
   stamp(billId: number, chars: number) {
     this.stamps.set(billId, Math.max(this.stamps.get(billId) ?? 0, chars));
   }
 
-  async flush() {
-    this.lastFlush = Date.now();
-    const rows = this.rows;
-    this.rows = [];
-    if (rows.length) {
-      // Two rows for one document_id in the same statement would trip
-      // "ON CONFLICT DO UPDATE command cannot affect row a second time".
-      const byId = new Map<number, TextRow>();
-      for (const r of rows) byId.set(r.document_id, r);
-      const batch = [...byId.values()];
+
+  private async writeBatch(batch: TextRow[]) {
+    if (!batch.length) return;
       const text = batch.map((r) => r.text);
       const hash = batch.map((r) => (r.text ? sha(r.text) : null));
       const chars = batch.map((r) => (r.text ? r.text.length : 0));
@@ -285,6 +285,29 @@ class TextBuffer {
       this.counts.unchanged = (this.counts.unchanged ?? 0) + (batch.length - out.length);
       this.counts.chars = (this.counts.chars ?? 0) + chars.reduce((n, c) => n + c, 0);
       this.counts.writes = (this.counts.writes ?? 0) + 1;
+  }
+
+  async flush() {
+    this.lastFlush = Date.now();
+    const rows = this.rows;
+    this.rows = [];
+    this.bytes = 0;
+    if (rows.length) {
+      // Two rows for one document_id in the same statement would trip
+      // "ON CONFLICT DO UPDATE command cannot affect row a second time".
+      const byId = new Map<number, TextRow>();
+      for (const r of rows) byId.set(r.document_id, r);
+      let batch = [...byId.values()];
+      // A single document bigger than the ceiling cannot be batched with
+      // anything, and must not take its neighbours down with it.
+      const huge = batch.filter((r) => (r.text?.length ?? 0) > this.maxBytes);
+      if (huge.length) {
+        batch = batch.filter((r) => (r.text?.length ?? 0) <= this.maxBytes);
+        for (const one of huge) { this.rows = [one]; this.bytes = one.text?.length ?? 0; await this.writeBatch([one]); }
+        this.rows = [];
+        this.bytes = 0;
+      }
+      await this.writeBatch(batch);
     }
     if (this.stamps.size) {
       const ids = [...this.stamps.keys()];
