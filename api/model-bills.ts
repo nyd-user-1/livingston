@@ -326,11 +326,19 @@ async function resolveBill(sql: Sql, rawState: string, year: number | null, num:
   // is not. Only accepted when the state has exactly one bill with that number
   // across every session we hold, which is what keeps it from guessing.
   if (digits && year) {
+    // Both spellings of the chamber, because South Carolina writes H4508 where the
+    // spreadsheet writes HB4508 — dropping the year without also allowing that is
+    // half a pass and resolves nothing.
     const rows = (await sql.query(
-      `SELECT bill_id FROM "Bills" WHERE state = $1 AND regexp_replace(upper(bill_number), '^([A-Z]*)0+', '\\1') = $2 LIMIT 3`,
-      [state, `${letters}${digits}`],
+      `SELECT bill_id FROM "Bills"
+        WHERE state = $1
+          AND (regexp_replace(upper(bill_number), '^([A-Z]*)0+', '\\1') = $2
+            OR regexp_replace(upper(bill_number), '^([A-Z])[A-Z]*0*', '\\1') = $3)
+        LIMIT 3`,
+      [state, `${letters}${digits}`, `${letters.slice(0, 1)}${digits}`],
     )) as { bill_id: number }[];
     if (rows.length === 1) { counts.resolvedPass5 = (counts.resolvedPass5 ?? 0) + 1; return Number(rows[0].bill_id); }
+    if (rows.length > 1) counts.ambiguousYearFree = (counts.ambiguousYearFree ?? 0) + 1;
   }
   return null;
 }
