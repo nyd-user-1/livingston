@@ -1,7 +1,6 @@
 import { useNavigate, useLocation } from "react-router-dom";
 import {
   SquarePen,
-  Search,
   ChevronDown,
   ClipboardList,
   Share2,
@@ -9,7 +8,6 @@ import {
   Pencil,
   Trash2,
   MessageSquare,
-  LayoutGrid,
 } from "lucide-react";
 import { useState, useRef, useEffect } from "react";
 import { useChatSessions } from "@/hooks/useChatSessions";
@@ -168,12 +166,6 @@ interface SidebarProps {
  *  the nav, and deliberately leads nowhere. Fill this in to wire it up. */
 const WORKSPACE_ITEMS: { label: string; path: string; prefetch: () => Promise<unknown> }[] = [];
 
-/** medRxiv's sub-nav. livingston shows Papers only, and it lives at /papers now that
- *  the browse grid belongs to Grants & Benefits. */
-const ARCHIVE_ITEMS = [
-  { label: "Papers", path: "/papers", prefetch: () => import("@/pages/References") },
-];
-
 /** A collapsible nav group: the label opens its landing (or toggles when there is none); the chevron only toggles. */
 function Group({ label, icon, active, expanded, onToggle, onOpen, onHover, items, pathname, go }: {
   label: string; icon: React.ReactNode; active: boolean; expanded: boolean;
@@ -223,11 +215,7 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
   const location = useLocation();
   const [chatsExpanded, setChatsExpanded] = useState(true);
   const [workspaceExpanded, setWorkspaceExpanded] = useState(false);
-  const onMedrxiv = location.pathname.startsWith("/papers");
-  const [medrxivExpanded, setMedrxivExpanded] = useState(onMedrxiv);
   const { data: sessions, refresh } = useChatSessions();
-
-  useEffect(() => { if (onMedrxiv) setMedrxivExpanded(true); }, [onMedrxiv]);
 
   // Only close sidebar on mobile (< md breakpoint)
   const closeMobile = () => {
@@ -262,16 +250,6 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
             New Chat
           </button>
           <button
-            onClick={() => { navigate("/new-search"); closeMobile(); }}
-            className={`flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors ${
-              location.pathname === "/new-search" ? "bg-active" : "hover:bg-muted"
-            }`}
-          >
-            <Search className="h-4 w-4" />
-            New Search
-          </button>
-
-          <button
             onClick={() => { navigate("/programs"); closeMobile(); }}
             onMouseEnter={() => { import("@/pages/Programs"); }}
             className={`flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors ${
@@ -281,21 +259,6 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
             <ClipboardList className="h-4 w-4" />
             Grants &amp; Benefits
           </button>
-
-          {/* The archive. The label toggles the group; the sub-items are the
-              destinations. */}
-          <Group
-            label="medRxiv"
-            icon={<LayoutGrid className="h-4 w-4" />}
-            active={onMedrxiv}
-            expanded={medrxivExpanded}
-            onToggle={() => setMedrxivExpanded((v) => !v)}
-            onOpen={() => setMedrxivExpanded((v) => !v)}
-            onHover={() => { import("@/pages/References"); }}
-            items={ARCHIVE_ITEMS}
-            pathname={location.pathname}
-            go={(p) => { navigate(p); closeMobile(); }}
-          />
 
           {/* Workspace — inert on purpose. It renders exactly as the other
               groups do, but has no destinations behind it yet. */}

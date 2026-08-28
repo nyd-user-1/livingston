@@ -16,32 +16,32 @@ interface FeatureRow {
 
 const CATEGORIES: { name: string; rows: FeatureRow[] }[] = [
   {
-    name: "Search",
+    name: "Grants & Benefits",
     rows: [
       {
-        feature: "Corpus search",
+        feature: "The shelf",
         items: [
-          "Hybrid, Semantic, and Keyword modes, switchable in the UI",
-          "Hybrid fuses a dense encoder with Postgres full-text search (RRF)",
-          "Semantic runs the encoder alone over pgvector embeddings",
-          "Keyword runs weighted Postgres full-text search",
-          "A #KEY prefix looks a preprint up by key number in any mode",
-          "Debounced queries with an in-memory result cache",
+          "Every New York program on one shelf — the rail beside the chat, and the grid at /programs",
+          "Two applications are filled in with you: LDSS-2921 (cash, food, medical, heating, child care) and OCFS-6025 (child care)",
+          "Sixteen more programs come with how to apply, the phone number, and the link",
+          "Drag a card onto the chat to start",
         ],
       },
     ],
   },
   {
-    name: "Papers",
+    name: "Form interview",
     rows: [
       {
-        feature: "Browsing medRxiv",
+        feature: "Filling it in together",
         items: [
-          "The full medRxiv preprint corpus, newest first",
-          "Filter by author, key number, year, category, and journal",
-          "Paginated result grid of paper cards",
-          "Each card carries title, abstract, authors, subject chips, reference, and a dated DOI link",
-          "Copy a formatted reference from any card",
+          "Penny asks one section at a time, in plain words, with real controls in the conversation — not a form to scroll",
+          "Dates, fixed choices and yes/no questions are typed controls; free text stays free",
+          "Every answer is recorded as it is given and shown back as chips; edit any answer, at any point, from where you gave it",
+          "Penny cites the page and section of the printed form for anything she says the form asks",
+          "Stop any time; the record survives a refresh and the conversation picks up where it left off",
+          "Put it on the form: the answers are written into the real PDF, with anything unplaced on an appendix page",
+          "Download it, email it to yourself, or have it sent to the county office — with a copy to you",
         ],
       },
     ],
@@ -50,15 +50,12 @@ const CATEGORIES: { name: string; rows: FeatureRow[] }[] = [
     name: "Chat",
     rows: [
       {
-        feature: "Grounded conversation",
+        feature: "Conversation",
         items: [
           "Streaming answers from Amazon Bedrock, model selectable per message",
-          "Retrieval-augmented: the question is embedded and matched against the corpus before the model answers",
-          "Parallel retrieval arms — dense vectors, full-text, subject categories, author, and explicit key/DOI lookup",
-          "Answers cite preprints by key number and DOI",
-          "Full text is retrieved beyond the abstract where it is available",
-          "Publication status rides every record, so a published preprint is not described as unreviewed",
+          "Sample questions, and lists for grants, benefits and eligibility, under the + button",
           "Chat history persists and is listed in the sidebar; rename or delete any conversation",
+          "Edit anything you said in place — the conversation is not regenerated",
         ],
       },
     ],
@@ -128,7 +125,7 @@ export default function Features() {
             livingston — Features
           </h1>
           <p className="mt-2 text-sm md:text-base text-muted-foreground max-w-[600px] mx-auto">
-            Search, browse, and ask questions of the medRxiv preprint corpus.
+            New York benefits, filled in by conversation.
           </p>
         </div>
 
@@ -151,17 +148,17 @@ export default function Features() {
         {/* Footer */}
         <p className="text-center text-xs text-muted-foreground mt-8 max-w-[600px] mx-auto leading-relaxed">
           livingston is an independent project and is not affiliated with, endorsed by, or
-          sponsored by medRxiv. Preprint metadata is publicly available from the
-          medRxiv API. Preprints are not peer reviewed.
+          sponsored by New York State or any county. It prepares paperwork; it does not
+          file an application or decide anything. Your county district decides.
         </p>
 
         {/* CTA */}
         <div className="mt-8 flex justify-center">
           <a
-            href="/new-search"
+            href="/programs"
             className="inline-flex items-center gap-2 rounded-lg bg-foreground text-background px-5 py-2.5 text-sm font-medium hover:bg-foreground/85 transition-colors"
           >
-            Try livingston Search
+            See the programs
             <ArrowRight className="h-4 w-4" />
           </a>
         </div>

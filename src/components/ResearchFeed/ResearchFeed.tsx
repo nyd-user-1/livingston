@@ -14,7 +14,7 @@ interface ResearchFeedProps {
   onClose?: () => void;
 }
 
-export function ResearchFeed({ isOpen, mode = "activity", onClose: _onClose }: ResearchFeedProps) {
+export function ResearchFeed({ isOpen, mode = "activity" }: ResearchFeedProps) {
   const { events } = useResearchFeed();
   const papers = mode === "papers";
   const forms = mode === "forms";
@@ -28,7 +28,7 @@ export function ResearchFeed({ isOpen, mode = "activity", onClose: _onClose }: R
       }`}
     >
       <div className="w-[300px] h-full flex flex-col bg-background">
-        <FeedHeader label={forms ? "Grants & Benefits" : papers ? "Papers" : "Live Feed"} />
+        <FeedHeader label={forms ? "Grants & Benefits" : papers ? "Bills" : "Live Feed"} />
 
         <div className="flex-1 overflow-y-auto">
           {forms ? (

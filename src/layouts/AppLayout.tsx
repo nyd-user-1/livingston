@@ -70,10 +70,10 @@ export function AppLayout() {
                 <ClipboardList className="h-5 w-5" />
               </button>
             </Hint>
-            <Hint label="Recent papers" side="bottom">
+            <Hint label="Recent bills" side="bottom">
               <button
                 onClick={() => toggle("papers")}
-                aria-label="Recent papers"
+                aria-label="Recent bills"
                 aria-pressed={panel === "papers"}
                 className={`inline-flex items-center justify-center h-10 w-10 rounded-md transition-colors hover:bg-muted ${panel === "papers" ? "bg-muted text-foreground" : "text-foreground"}`}
               >

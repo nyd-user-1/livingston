@@ -99,15 +99,16 @@ export function PapersList() {
           value={query}
           onChange={setQuery}
           isLoading={searching && found.isFetching}
+          placeholder="Search bills…"
         />
       </div>
 
       {failed ? (
-        <Note>Could not load papers.</Note>
+        <Note>Could not load bills.</Note>
       ) : !records ? (
         <Outline />
       ) : !shown.length ? (
-        <Note>{searching ? `Nothing matches “${debounced.trim()}”.` : "No papers on record."}</Note>
+        <Note>{searching ? `Nothing matches “${debounced.trim()}”.` : "No bills on record."}</Note>
       ) : (
         <div className="flex flex-col gap-3 px-3 pb-3">
           {shown.map((record) => (

@@ -1,8 +1,8 @@
 import { useState, useRef, useEffect } from "react";
-import { ArrowUp, Square, ChevronDown, Search, Paperclip, X } from "lucide-react";
+import { ArrowUp, Square, ChevronDown, Paperclip, X } from "lucide-react";
 import { ENTITY_MIME, readDragEntity, type DragEntity } from "@/lib/drag-entity";
 import { PlusMenu } from "@/components/PlusMenu";
-import { useNavigate } from "react-router-dom";import { MODEL_OPTIONS, DEFAULT_MODEL_ID, modelById } from "@/lib/models";
+import { MODEL_OPTIONS, DEFAULT_MODEL_ID, modelById } from "@/lib/models";
 
 /* ------------------------------------------------------------------ */
 /*  Model selector — the roster lives in src/lib/models.ts             */
@@ -23,8 +23,6 @@ interface ChatInputProps {
   onStop?: () => void;
   isLoading?: boolean;
   initialValue?: string;
-  /** Show the magnifier next to "+" — switches to search mode (/search). Only the /chat page sets this. */
-  searchToggle?: boolean;
   /** Subject-scoped chats name their room here ("Ask a neurology question…"). */
   placeholder?: string;
   /**
@@ -36,8 +34,7 @@ interface ChatInputProps {
   onAttach?: (g: DragEntity | null) => void;
 }
 
-export function ChatInput({ onSubmit, onStop, isLoading, initialValue, searchToggle, placeholder, attached, onAttach }: ChatInputProps) {
-  const navigate = useNavigate();
+export function ChatInput({ onSubmit, onStop, isLoading, initialValue, placeholder, attached, onAttach }: ChatInputProps) {
   const [value, setValue] = useState(initialValue ?? "");
   const [dragOver, setDragOver] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -155,7 +152,7 @@ export function ChatInput({ onSubmit, onStop, isLoading, initialValue, searchTog
           value={value}
           onChange={(e) => setValue(e.target.value)}
           onKeyDown={handleKeyDown}
-          placeholder={placeholder ?? "Chat with livingston"}
+          placeholder={placeholder ?? "Chat…"}
           rows={1}
           className="flex-1 min-h-[40px] w-full resize-none border-0 bg-transparent focus-visible:ring-0 focus-visible:ring-offset-0 p-0 placeholder:text-muted-foreground/60 dark:placeholder:text-muted-foreground text-base text-foreground outline-none"
         />
@@ -165,17 +162,6 @@ export function ChatInput({ onSubmit, onStop, isLoading, initialValue, searchTog
           {/* + button with popup, and (on /chat) the search-mode toggle */}
           <div className="flex items-center gap-1">
             <PlusMenu mode="chat" onSelect={handleSelectPrompt} />
-            {searchToggle && (
-              <button
-                type="button"
-                onClick={() => navigate("/new-search")}
-                className="h-8 w-8 rounded-lg flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
-                aria-label="Search mode"
-                title="Search mode"
-              >
-                <Search className="h-4 w-4" />
-              </button>
-            )}
           </div>
 
           <div className="flex items-center gap-2">
