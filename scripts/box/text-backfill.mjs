@@ -90,12 +90,38 @@ function call(args, { quiet = false } = {}) {
   return new Promise((resolve) => {
     const child = spawn(process.execPath, [RUNNER, "--heap", HEAP, "api/bill-text.ts", ...args], { cwd: REPO, env: process.env });
     let out = "";
-    child.stdout.on("data", (b) => { out += b; });
-    child.stderr.on("data", (b) => { out += b; });
+    // Pass the child's progress through to OUR stdout as it arrives, instead of
+    // swallowing it until the call returns. A handler that prints one line a page
+    // is useless if the driver holds every line for ninety minutes — which is
+    // exactly what happened, and it cost two misdiagnoses of the same job: once
+    // "out of memory" (it was not; RSS peaked at 262 MB of a 3 GB heap) and once
+    // "stalled" (row counts do not move when every page is `unchanged`). The
+    // final `HTTP <n> {…}` line is held back because the driver reports it itself.
+    let pending = "";
+    const passThrough = (chunk) => {
+      out += chunk;
+      pending += chunk;
+      const lines = pending.split("\n");
+      pending = lines.pop() ?? "";
+      for (const l of lines) if (l.trim() && !/^HTTP \d+ /.test(l.trim())) console.log(`   | ${l}`);
+    };
+    child.stdout.on("data", (b) => passThrough(String(b)));
+    child.stderr.on("data", (b) => passThrough(String(b)));
     child.on("close", (code) => {
+      // The LAST `HTTP <n> {...}` line, not the whole of stdout. Handlers are
+      // allowed to print progress before their answer — the bulk NY run does,
+      // deliberately, so a ninety-minute job is distinguishable from a hung one —
+      // and parsing the entire stream as JSON turned a healthy run into
+      // "(unparseable answer)" and then into a failed job.
       let body = null;
-      try { body = JSON.parse(out.trim().replace(/^HTTP \d+ /, "")); } catch { body = null; }
-      if (!quiet && body === null) log(`   (unparseable answer) ${out.trim().slice(0, 300)}`);
+      const lines = out.trim().split("\n");
+      for (let i = lines.length - 1; i >= 0; i -= 1) {
+        const m = /^HTTP \d+ (\{.*)$/.exec(lines[i].trim());
+        if (!m) continue;
+        try { body = JSON.parse(m[1]); } catch { body = null; }
+        break;
+      }
+      if (!quiet && body === null) log(`   (no parseable HTTP answer) ${out.trim().slice(-300)}`);
       resolve({ code: code ?? 1, body, out: out.trim() });
     });
   });

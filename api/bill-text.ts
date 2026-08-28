@@ -459,7 +459,17 @@ async function runNySenateBulk(sql: Sql, key: string, session: number, maxPages:
         if (best) buf.stamp(billId, best);
         counts.bills = (counts.bills ?? 0) + 1;
       }
-      offset = Number(j.offsetEnd ?? offset + items.length) + 1;
+      const nextOffset = Number(j.offsetEnd ?? 0) > 0 ? Number(j.offsetEnd) + 1 : offset + items.length;
+      // A listing that stops advancing is a loop, not a page. Re-processing the
+      // same thousand bills burns CPU, grows the heap and writes nothing, because
+      // every row comes back `unchanged` — which is invisible in a row count and
+      // is precisely how this job spent six minutes looking alive.
+      if (nextOffset <= offset) {
+        counts.offsetStalled = offset;
+        console.log(`${new Date().toISOString().slice(11, 19)} NY ${yr}: offsetEnd did not advance past ${offset} (total ${total}) — stopping this session`);
+        break;
+      }
+      offset = nextOffset;
       pages += 1;
       counts.pages = pages;
       // One line a page, to stdout, which is the job log. A ninety-minute job
