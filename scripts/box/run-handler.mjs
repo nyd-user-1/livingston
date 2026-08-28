@@ -23,6 +23,10 @@
 // under `run-job`, and under `run-due` (which already passes
 // `--env-file=.env.local`, and whose values therefore win).
 //
+// It also puts ops/box/state-ca-bundle.pem on NODE_EXTRA_CA_CERTS before the
+// handler starts — see "the state CA bundle" below — because that variable is
+// read at process start and this is the one place every caller goes through.
+//
 // Exit codes: 0 = handler answered 2xx · 1 = non-2xx, or the handler threw ·
 //             2 = usage / missing handler (the job never ran).
 
@@ -80,15 +84,32 @@ function loadEnv(file) {
 }
 loadEnv(path.join(REPO, ".env.local"));
 
+/* ---- the state CA bundle ------------------------------------------------ */
+
+// Six state legislature servers send only their leaf certificate and omit the
+// intermediate that links it to a public root, so Node refuses them with
+// X509_V_ERR_UNABLE_TO_GET_ISSUER_CERT_LOCALLY. ops/box/state-ca-bundle.pem
+// holds those intermediates, each fetched from the CA named in the site's own
+// AIA extension and each verified to chain to a root already in the system
+// store (scripts/box/build-ca-bundle.mjs).
+//
+// NODE_EXTRA_CA_CERTS is read once, when Node starts, so it cannot be set from
+// inside a running process — it has to be in the environment before `node` runs.
+// Setting it HERE, in the one place every source and every schedule passes
+// through, means no caller and no manifest has to remember it: the drivers
+// spawn this runner, `run-due` invokes this runner, and both inherit it.
+const CA_BUNDLE = path.join(REPO, "ops", "box", "state-ca-bundle.pem");
+const needsCa = fs.existsSync(CA_BUNDLE) && process.env.NODE_EXTRA_CA_CERTS !== CA_BUNDLE;
+
 /* ---- --heap: re-exec once with a bigger old space ----------------------- */
 
 // NY's 2025-26 archive is a 72 MB zip and several states' are larger, so
 // `mode=dataset` wants 4096. Re-exec rather than making every caller remember
 // the node flag; RUN_HANDLER_HEAP marks the child so it cannot recurse.
-if (heapMb && !process.env.RUN_HANDLER_HEAP) {
-  const child = spawn(process.execPath, [`--max-old-space-size=${heapMb}`, SELF, ...argv], {
+if ((heapMb || needsCa) && !process.env.RUN_HANDLER_HEAP) {
+  const child = spawn(process.execPath, [...(heapMb ? [`--max-old-space-size=${heapMb}`] : []), SELF, ...argv], {
     stdio: "inherit",
-    env: { ...process.env, RUN_HANDLER_HEAP: String(heapMb) },
+    env: { ...process.env, RUN_HANDLER_HEAP: String(heapMb || "inherit"), ...(needsCa ? { NODE_EXTRA_CA_CERTS: CA_BUNDLE } : {}) },
   });
   for (const sig of ["SIGINT", "SIGTERM"]) process.on(sig, () => child.kill(sig));
   child.on("exit", (code, signal) => process.exit(signal ? 1 : code ?? 1));
