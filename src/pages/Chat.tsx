@@ -8,7 +8,17 @@ import { useChat, type ChatRoom, type Message } from "@/hooks/useChat";
 import { ARCHIVE_LABEL } from "@/hooks/useArchive";
 import { subjectTitle } from "@/lib/subjects";
 import type { DragEntity } from "@/lib/drag-entity";
-import { buildFormInterview, formById, recordedSoFar, sectionForKey, sectionLabel, type ProgramForm } from "@/lib/programs";
+import {
+  buildFormInterview,
+  formById,
+  formProgress,
+  isActionKey,
+  recordedSoFar,
+  sectionForKey,
+  sectionLabel,
+  type ProgramForm,
+} from "@/lib/programs";
+import type { BuiltPdf } from "@/components/ChatMessage";
 import {
   answerCount,
   emptyAnswers,
@@ -121,6 +131,9 @@ interface Question {
   /** Where `section` came from — reported, so the fallback rate is known. */
   via: "prose" | "keys" | "none";
   answered: boolean;
+  /** Its place among the questions of its section, so far: `1 of 2`. */
+  ordinal: number;
+  count: number;
 }
 
 // The prompt tells the model to say where it is ("Section 17 — Employment").
@@ -145,7 +158,7 @@ function detectSection(prose: string, keys: string[]): Pick<Question, "section" 
 function questionsOf(messages: Message[], answers: FormAnswers | null): Question[] {
   const out: Question[] = [];
   messages.forEach((m, i) => {
-    if (m.role !== "assistant" || m.isStreaming) return;
+    if (m.role !== "assistant" || m.isStreaming || m.kind) return;
     const fields = parseFieldBlock(m.content);
     if (!fields) return;
     const keys = fields.map((f) => f.key);
@@ -153,9 +166,30 @@ function questionsOf(messages: Message[], answers: FormAnswers | null): Question
     const followedByAnswers =
       next?.role === "user" && Object.keys(parseAnswerBlocks(next.content).values).length > 0;
     const answered = keys.some((k) => (answers?.values[k] ?? "").trim() !== "") || followedByAnswers;
-    out.push({ id: m.id, keys, answered, ...detectSection(stripFieldBlock(stripAnswerBlocks(m.content)), keys) });
+    out.push({ id: m.id, keys, answered, ordinal: 1, count: 1, ...detectSection(stripFieldBlock(stripAnswerBlocks(m.content)), keys) });
   });
+  // "Section 23 · 1 of 2": number the questions within each section.
+  const perSection = new Map<string, Question[]>();
+  for (const q of out) {
+    if (!q.section) continue;
+    if (!perSection.has(q.section)) perSection.set(q.section, []);
+    perSection.get(q.section)!.push(q);
+  }
+  for (const qs of perSection.values()) qs.forEach((q, i) => Object.assign(q, { ordinal: i + 1, count: qs.length }));
   return out;
+}
+
+/**
+ * What the model recorded from a prose turn: the answers block of the reply
+ * that followed it. Shown under the bubble as `Recorded:` chips.
+ */
+function derivedFrom(messages: Message[], i: number): Record<string, string> | undefined {
+  const m = messages[i];
+  if (m.role !== "user" || Object.keys(parseAnswerBlocks(m.content).values).length) return undefined;
+  const next = messages[i + 1];
+  if (!next || next.role !== "assistant" || next.isStreaming || next.kind) return undefined;
+  const values = Object.fromEntries(Object.entries(parseAnswerBlocks(next.content).values).filter(([k]) => !isActionKey(k)));
+  return Object.keys(values).length ? values : undefined;
 }
 
 /** Scroll a question into view and open its accordion. */
@@ -198,7 +232,7 @@ export default function Chat() {
       : null;
   }, [routeCategory, location.pathname]);
 
-  const { messages, isLoading, sendMessage, editMessage, stopGeneration, clearMessages, loadSession, sessionId } =
+  const { messages, isLoading, sendMessage, editMessage, appendMessage, stopGeneration, clearMessages, loadSession, sessionId } =
     useChat(room);
   // A paper dragged from the Papers panel onto the input. It stays attached —
   // and rides every message as context — until the chip's ✕ clears it.
@@ -215,11 +249,12 @@ export default function Chat() {
     answersRef.current = answers;
   }, [answers]);
 
-  /** Merge into the record, save it, and hand back the result. */
+  /** Merge into the record, save it, and hand back the result. Action keys never enter it. */
   const record = useCallback(
     (values: Record<string, string>) => {
       if (!filling) return null;
-      const next = mergeAnswers(answersRef.current ?? emptyAnswers(filling.id), { values, done: [] });
+      const kept = Object.fromEntries(Object.entries(values).filter(([k]) => !isActionKey(k)));
+      const next = mergeAnswers(answersRef.current ?? emptyAnswers(filling.id), { values: kept, done: [] });
       answersRef.current = next;
       saveAnswers(next, sessionId);
       setAnswers(next);
@@ -227,6 +262,50 @@ export default function Chat() {
     },
     [filling, sessionId],
   );
+
+  /* ---- the filled form, in the conversation ---------------------------- */
+  // `form.fill: yes` is an action, not an answer: the app builds the PDF and
+  // shows it as a turn of its own. The blob cannot be saved, so a `form-pdf`
+  // turn that comes back from the session is rebuilt from the record.
+  const [pdfs, setPdfs] = useState<Record<string, BuiltPdf>>({});
+  const building = useRef(new Set<string>());
+  const buildPdf = useCallback(
+    async (messageId: string) => {
+      if (!form || building.current.has(messageId)) return;
+      building.current.add(messageId);
+      setPdfs((p) => ({ ...p, [messageId]: { building: true } }));
+      try {
+        const { fillForm } = await import("@/lib/fill-form");
+        const bytes = await fillForm(form, answersRef.current ?? emptyAnswers(form.id));
+        const url = URL.createObjectURL(new Blob([bytes as BlobPart], { type: "application/pdf" }));
+        setPdfs((p) => {
+          if (p[messageId]?.url) URL.revokeObjectURL(p[messageId].url!);
+          return { ...p, [messageId]: { url, bytes, building: false } };
+        });
+      } catch (e) {
+        setPdfs((p) => ({ ...p, [messageId]: { building: false, error: (e as Error).message } }));
+      } finally {
+        building.current.delete(messageId);
+      }
+    },
+    [form],
+  );
+  /** Yes to the fill question, from the controls or from the model's block. */
+  const fillIfAsked = useCallback(
+    (values: Record<string, string>) => {
+      if (!/^(y|yes|true)$/i.test((values["form.fill"] ?? "").trim())) return;
+      const id = appendMessage("form-pdf");
+      void buildPdf(id);
+    },
+    [appendMessage, buildPdf],
+  );
+  // A session that carries a form-pdf turn gets its document back.
+  useEffect(() => {
+    if (!form) return;
+    for (const m of messages) {
+      if (m.kind === "form-pdf" && !pdfs[m.id] && !building.current.has(m.id)) void buildPdf(m.id);
+    }
+  }, [messages, form, pdfs, buildPdf]);
 
   /**
    * The form's system prompt, plus the record. History is the last 16
@@ -248,9 +327,22 @@ export default function Chat() {
   const navFor = (id: string): FormNav | undefined => {
     const i = questions.findIndex((q) => q.id === id);
     if (i < 0) return undefined;
-    const prev = questions[i - 1];
-    const next = questions[i + 1];
-    return { prevId: prev?.id, nextId: next?.id, nextAnswered: Boolean(next?.answered), sections, onJump: jumpToQuestion };
+    return { prevId: questions[i - 1]?.id, nextId: questions[i + 1]?.id, sections, onJump: jumpToQuestion };
+  };
+  // Progress that does not lag the interview: the open question's section,
+  // and every section before it, count as reached.
+  const progress = useMemo(() => {
+    if (!form || !answers) return undefined;
+    const p = formProgress(form, answers, lastQuestion?.section);
+    // Sections whose every question is answered are done too.
+    const done = new Set(sections.filter((s) => s.state === "done").map((s) => s.n));
+    return { ...p, done: Math.max(p.done, done.size) };
+  }, [form, answers, lastQuestion, sections]);
+  /** "Section 23 · 1 of 2" — a question's place, for its collapsed row. */
+  const placeOf = (q: Question) => {
+    if (!q.section) return undefined;
+    const head = /^\d/.test(q.section) ? `Section ${q.section}` : sectionLabel(form, q.section);
+    return q.count > 1 ? `${head} · ${q.ordinal} of ${q.count}` : head;
   };
 
   // Answers survive the tab. A benefits interview is forty minutes and people
@@ -290,12 +382,16 @@ export default function Chat() {
     if (!last?.content) return;
     const found = parseAnswerBlocks(last.content);
     if (!Object.keys(found.values).length && !found.done.length) return;
+    const values = Object.fromEntries(Object.entries(found.values).filter(([k]) => !isActionKey(k)));
     setAnswers((prev) => {
-      const next = mergeAnswers(prev ?? emptyAnswers(filling.id), found);
+      const next = mergeAnswers(prev ?? emptyAnswers(filling.id), { values, done: found.done });
+      answersRef.current = next;
       saveAnswers(next, sessionId);
       return next;
     });
-  }, [messages, isLoading, filling, sessionId]);
+    // The model may record a spoken "yes, fill it out" itself.
+    fillIfAsked(found.values);
+  }, [messages, isLoading, filling, sessionId, fillIfAsked]);
   const submit = (text: string, modelId: string) =>
     filling
       ? sendMessage(text, formContext(), undefined, modelId, "form")
@@ -446,6 +542,10 @@ export default function Chat() {
                   pdfUrl={msg.pdfUrl}
                   timestamp={msg.timestamp}
                   form={form}
+                  kind={msg.kind}
+                  pdf={msg.kind ? pdfs[msg.id] : undefined}
+                  record={filling ? answers?.values : undefined}
+                  derived={filling ? derivedFrom(messages, i) : undefined}
                   // the question this answer replies to — the grounding check
                   // scores the answer against the papers FOR that question
                   query={
@@ -461,21 +561,24 @@ export default function Chat() {
                           // Record locally first — the answer is the user's, not
                           // the model's recollection of it. Then the model hears
                           // it as a turn, with the whole record riding along.
+                          // A yes to the fill question also puts the form in
+                          // the conversation, after the reply that is coming.
                           const next = record(values);
                           void sendMessage(answersMessage(values), formContext(next), undefined, undefined, "form");
+                          fillIfAsked(values);
                         }
                       : undefined
                   }
                   valueFor={filling ? (key) => answers?.values[key] : undefined}
                   answered={q?.answered}
                   current={q ? q.id === lastQuestion?.id && !q.answered : undefined}
-                  sectionLabel={q?.section ? (/^\d/.test(q.section) ? `Section ${q.section}` : sectionLabel(form, q.section)) : undefined}
+                  sectionLabel={q ? placeOf(q) : undefined}
                   disabled={isLoading}
                   nav={q ? navFor(q.id) : undefined}
                   // Editing a user turn rewrites it in place; chip edits also
                   // land in the record. Nothing is sent to the model.
                   onEdit={(content, changed) => {
-                    editMessage(msg.id, content);
+                    if (content !== null) editMessage(msg.id, content);
                     if (changed && Object.keys(changed).length) record(changed);
                   }}
                 />
@@ -489,7 +592,7 @@ export default function Chat() {
           {/* Input pinned to bottom */}
           <div className="px-2 md:px-4 py-3 md:py-4 shrink-0 bg-background">
             {filling && answers && answerCount(answers) > 0 && (
-              <FormProgress form={formById(filling.id)} answers={answers} />
+              <FormProgress form={formById(filling.id)} answers={answers} progress={progress} />
             )}
             {filling && <FormRibbon label={filling.label} title={filling.title} onExit={() => { rememberActiveForm(null, sessionId); setAttached(null); }} />}
             {room && <AgentRibbon room={room} onExit={() => navigate("/new-chat")} />}
@@ -509,7 +612,7 @@ export default function Chat() {
         <div className="flex flex-1 flex-col items-center justify-center px-4 pt-header">
           {filling && answers && answerCount(answers) > 0 && (
             <div className="w-full">
-              <FormProgress form={formById(filling.id)} answers={answers} />
+              <FormProgress form={formById(filling.id)} answers={answers} progress={progress} />
             </div>
           )}
           {filling && (

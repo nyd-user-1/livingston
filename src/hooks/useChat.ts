@@ -40,11 +40,16 @@ export interface Message {
   pdfUrl?: string;
   /** When it was said. Set once, at creation; the user bubble shows the date. */
   timestamp?: string;
+  /** `form-pdf`: a turn the app made, not the model — the filled form. */
+  kind?: "form-pdf";
 }
 
 function makeId() {
   return Math.random().toString(36).slice(2, 10);
 }
+
+/** The words a `form-pdf` turn carries in the saved session (the PDF itself is rebuilt). */
+export const FORM_PDF_PLACEHOLDER = "(The filled form was shown here.)";
 
 function toPersistedMessages(msgs: Message[]): PersistedMessage[] {
   return msgs
@@ -58,6 +63,7 @@ function toPersistedMessages(msgs: Message[]): PersistedMessage[] {
       timestamp: m.timestamp ?? new Date().toISOString(),
       ...(m.pdfUrl ? { pdfUrl: m.pdfUrl } : {}),
       ...(m.sources ? { sources: m.sources } : {}),
+      ...(m.kind ? { kind: m.kind } : {}),
     }));
 }
 
@@ -117,11 +123,15 @@ export function useChat(room?: ChatRoom | null) {
         }
       }
 
-      // Build conversation history for the Edge Function
-      const historyMessages = messagesRef.current.slice(-10).map((m) => ({
-        role: m.role as "user" | "assistant",
-        content: m.content,
-      }));
+      // Build conversation history for the Edge Function. The app's own turns
+      // (the filled form) are not conversation and never reach the model.
+      const historyMessages = messagesRef.current
+        .filter((m) => !m.kind)
+        .slice(-10)
+        .map((m) => ({
+          role: m.role as "user" | "assistant",
+          content: m.content,
+        }));
 
       try {
         abortRef.current = new AbortController();
@@ -262,6 +272,7 @@ export function useChat(room?: ChatRoom | null) {
             ...(m.timestamp ? { timestamp: m.timestamp } : {}),
             ...(m.pdfUrl ? { pdfUrl: m.pdfUrl } : {}),
             ...(m.sources ? { sources: m.sources as MessageSources } : {}),
+            ...(m.kind ? { kind: m.kind } : {}),
           }))
         );
         return session;
@@ -310,11 +321,30 @@ export function useChat(room?: ChatRoom | null) {
     [persistence],
   );
 
+  /**
+   * A turn the app makes itself — the filled form — appended after whatever
+   * is there (including a reply still streaming) and saved with the session.
+   * Returns its id so the page can attach the built document to it.
+   */
+  const appendMessage = useCallback(
+    (kind: NonNullable<Message["kind"]>, content = FORM_PDF_PLACEHOLDER) => {
+      const msg: Message = { id: makeId(), role: "assistant", content, kind, timestamp: new Date().toISOString() };
+      const updated = [...messagesRef.current, msg];
+      messagesRef.current = updated;
+      setMessages((prev) => [...prev, msg]);
+      const sessionId = persistence.currentSessionId;
+      if (sessionId) void persistence.updateMessages(sessionId, toPersistedMessages(updated));
+      return msg.id;
+    },
+    [persistence],
+  );
+
   return {
     messages,
     isLoading,
     sendMessage,
     editMessage,
+    appendMessage,
     stopGeneration,
     clearMessages,
     loadSession,

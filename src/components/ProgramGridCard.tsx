@@ -1,7 +1,7 @@
 import { memo } from "react";
 import { ArrowUp, ClipboardList, Phone, ExternalLink, FileText } from "lucide-react";
 import { setDragEntity } from "@/lib/drag-entity";
-import { formEntity } from "@/components/FormCard";
+import { formEntity } from "@/lib/form-entity";
 import { formStats, type ProgramForm } from "@/lib/programs";
 
 /**
@@ -53,7 +53,7 @@ export const ProgramGridCard = memo(function ProgramGridCard({
     >
       {/* Name, and whether there is a form behind it */}
       <div className="mb-1 flex items-start gap-2">
-        <p className="text-base font-bold leading-snug text-foreground">{program.code}</p>
+        <p className="text-base font-bold leading-snug text-foreground" title={program.code}>{program.name}</p>
         {isForm ? (
           <ClipboardList className="ml-auto h-5 w-5 shrink-0 text-muted-foreground" />
         ) : (

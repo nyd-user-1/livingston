@@ -1,6 +1,6 @@
 import { useAppPanel } from "@/hooks/useAppPanel";
 import { FormCard } from "@/components/FormCard";
-import { FORMS, fillable, formStats, type ProgramForm } from "@/lib/programs";
+import { formStats, railForms, type ProgramForm } from "@/lib/programs";
 
 /**
  * The forms rail. Same construction as the Papers rail — a column of cards you
@@ -90,20 +90,13 @@ export function FormsList() {
   return (
     <div className="flex flex-col gap-3 px-3 pb-3 pt-2">
       <p className="px-1 text-[11px] leading-relaxed text-muted-foreground">
-        Drag one onto the chat. livingston fills the applications in with you, and talks the rest through.
+        Drag one onto the chat. Penny fills the applications in with you, and talks the rest through.
       </p>
 
       <p className="px-1 pt-1 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
-        Fill it in together
+        Let's fill it in together
       </p>
-      {FORMS.filter(fillable).map((f) => (
-        <FormCard key={f.id} form={f} onOpen={() => openPanel({ title: f.code, content: <FormDetail form={f} /> })} />
-      ))}
-
-      <p className="px-1 pt-2 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
-        Other help you may qualify for
-      </p>
-      {FORMS.filter((f) => !fillable(f)).map((f) => (
+      {railForms().map((f) => (
         <FormCard key={f.id} form={f} onOpen={() => openPanel({ title: f.code, content: <FormDetail form={f} /> })} />
       ))}
     </div>

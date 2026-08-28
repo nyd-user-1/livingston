@@ -15,7 +15,10 @@
 
 import { labelFor, optionsFor } from "@/lib/programs";
 
-export type FieldKind = "text" | "textarea" | "number" | "money" | "date" | "tel" | "email" | "ssn" | "select" | "radio" | "checkbox";
+export type FieldKind = "text" | "textarea" | "number" | "money" | "date" | "tel" | "email" | "ssn" | "select" | "radio" | "checkbox" | "attest";
+
+/** A field that stands in its own box: amber for something being attested to, blue for information. */
+export type FieldTone = "caution" | "info";
 
 export interface ChatField {
   /** A key from FORM_KEYS — this is what the answer gets stored under. */
@@ -29,11 +32,26 @@ export interface ChatField {
   /** Prefill, when the assistant is confirming something it already knows. */
   value?: string;
   optional?: boolean;
+  /** Boxed on its own, in this colour. `attest` is always `caution`. */
+  tone?: FieldTone;
+  /** The fine print behind an attestation, opened in a new tab from the box's ⓘ. */
+  href?: string;
 }
 
 const BLOCK = /```livingston-fields\s*([\s\S]*?)```/;
+const REVIEW = /```livingston-review\s*([\s\S]*?)```/;
 
-const KINDS: FieldKind[] = ["text", "textarea", "number", "money", "date", "tel", "email", "ssn", "select", "radio", "checkbox"];
+const KINDS: FieldKind[] = ["text", "textarea", "number", "money", "date", "tel", "email", "ssn", "select", "radio", "checkbox", "attest"];
+
+/**
+ * Keys the app boxes and colours on its own, whatever the model wrote — the
+ * certification is an attestation and the voter question is an offer, and
+ * neither should depend on the model remembering a `tone`.
+ */
+const HOUSE_TONE: Record<string, { tone: FieldTone; kind?: FieldKind; href?: string }> = {
+  "certification.agree": { tone: "caution", kind: "attest", href: "/forms/LDSS-2921.pdf#page=5" },
+  "voter.register": { tone: "info", href: "/forms/LDSS-2921.pdf#page=27" },
+};
 
 /** Read the field block out of a message, if there is one. */
 export function parseFieldBlock(text: string): ChatField[] | null {
@@ -68,11 +86,17 @@ export function parseFieldBlock(text: string): ChatField[] | null {
     // and the model's own option list is dropped.
     const fixed = optionsFor(key);
     if (fixed) {
-      kind = fixed.multi ? "checkbox" : "select";
+      kind = fixed.multi ? "checkbox" : kind === "attest" ? "attest" : "select";
       options = fixed.options;
     }
+    const house = HOUSE_TONE[key];
+    if (house?.kind) kind = house.kind;
+    // An attestation is yes/no; the house values win, the model's are dropped.
+    if (kind === "attest" && !options?.length) options = ["yes|I agree", "no|Not yet"];
     // A select with nothing to select from is a text box, not a dead dropdown.
     const settled: FieldKind = (kind === "select" || kind === "radio" || kind === "checkbox") && !options?.length ? "text" : kind;
+    const tone: FieldTone | undefined =
+      settled === "attest" ? "caution" : house?.tone ?? (f.tone === "caution" || f.tone === "info" ? f.tone : undefined);
     out.push({
       key,
       label: shown,
@@ -82,9 +106,18 @@ export function parseFieldBlock(text: string): ChatField[] | null {
       help: typeof f.help === "string" ? f.help : undefined,
       value: typeof f.value === "string" ? f.value : undefined,
       optional: f.optional === true,
+      tone,
+      href: house?.href ?? (typeof f.href === "string" && /^(\/|https?:\/\/)/.test(f.href) ? f.href : undefined),
     });
   }
   return out.length ? out : null;
+}
+
+/** The close: the model asks for the review; the app draws it from the record. */
+export const hasReviewBlock = (text: string) => REVIEW.test(text);
+
+export function stripReviewBlock(text: string): string {
+  return text.replace(REVIEW, "").replace(/\n{3,}/g, "\n\n").trimEnd();
 }
 
 /**

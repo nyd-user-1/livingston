@@ -196,7 +196,7 @@ function fillOcfs6025(doc: PDFDocument, v: Record<string, string>) {
     cb("lang_spanish", lang.includes("spanish"));
     if (!lang.includes("english") && !lang.includes("spanish")) {
       cb("lang_other", true);
-      tf("lang_other_text", v["language.speak"] ?? v["language.read"]);
+      tf("lang_other_text", v["language.speakDetail"] ?? v["language.readDetail"] ?? v["language.speak"] ?? v["language.read"]);
     }
   }
 
@@ -236,9 +236,9 @@ function fillOcfs6025(doc: PDFDocument, v: Record<string, string>) {
     const per = v[`income[${i}].period`] ?? "";
     const target =
       src.includes("child") ? "income_child_support" :
-      src.includes("disab") ? "income_disability" :
+      src.includes("disab") || src === "ssd" ? "income_disability" :
       src.includes("pension") || src.includes("retire") ? "income_pensions" :
-      src.includes("alimony") ? "income_alimony" :
+      src.includes("alimony") || src.includes("spousal") ? "income_alimony" :
       src.includes("public") || src.includes("tanf") ? "income_public_assistance" :
       src.includes("divid") || src.includes("interest") ? "income_dividends" :
       src.includes("job") || src.includes("work") || src.includes("wage") || src.includes("employ") ? "income_work" :

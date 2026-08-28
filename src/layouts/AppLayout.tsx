@@ -60,10 +60,10 @@ export function AppLayout() {
           <div id="header-search" className="pointer-events-auto flex-1 mx-2" />
 
           <div className="pointer-events-auto flex items-center gap-0.5">
-            <Hint label="Grants & Benefits" side="bottom">
+            <Hint label="Official forms" side="bottom">
               <button
                 onClick={() => toggle("forms")}
-                aria-label="Grants and Benefits"
+                aria-label="Official forms"
                 aria-pressed={panel === "forms"}
                 className={`inline-flex items-center justify-center h-10 w-10 rounded-md transition-colors hover:bg-muted ${panel === "forms" ? "bg-muted text-foreground" : "text-foreground"}`}
               >

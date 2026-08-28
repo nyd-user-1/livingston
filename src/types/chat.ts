@@ -5,6 +5,8 @@ export interface PersistedMessage {
   content: string;
   timestamp: string;
   pdfUrl?: string;
+  /** A turn the app made, not the model. `form-pdf` = the filled form was shown here. */
+  kind?: "form-pdf";
   sources?: {
     // `nsr` is the NSR-era wire key for corpus records. It is persisted inside
     // saved chat sessions, so renaming it orphans every stored session's source

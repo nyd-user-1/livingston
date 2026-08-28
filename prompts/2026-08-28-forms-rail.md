@@ -51,3 +51,14 @@ Chip style, header strip, grip, and the doc icon stay as they are.
 - Build result:
 - What you verified visually vs. in the built output:
 - Open items:
+
+Worker: Fable (lead session), 2026-08-28 ~03:30. Done directly on Brendan's instruction. Not verified in a browser.
+
+- Files changed: `src/lib/programs.ts` (`name`, minutes, EITC blurb, `railForms()`), `src/lib/form-entity.ts` (new — `formEntity` moved out of the component file for the fast-refresh lint rule), `src/components/FormCard.tsx` (rewritten), `src/components/ResearchFeed/FormsList.tsx`, `src/components/ResearchFeed/ResearchFeed.tsx`, `src/layouts/AppLayout.tsx` (hint label), `src/components/ProgramGridCard.tsx` (title shows `name`, imports `formEntity` from lib).
+- Body height chosen and how it was derived: `h-[174px]` — 12px padding + three lines of 13px/snug blurb (≈54) + a 48px minimum gap (`min-h-12 flex-1`) + two chip rows (2×22 + 4 gap) + 12px padding. The mock's body reads ≈170px at 1×. Blurb `line-clamp-3`, chips pinned with the flex spacer.
+- Chip measurement approach; the `+N` re-fit case: every chip is rendered plus a hidden `+N` span; a layout effect hides chips from the end until nothing — the `+N` included — sits on a third row (row = offsetTop step). Pure DOM, no state, so no render loop; re-run only when the container's WIDTH changes (a ResizeObserver that ignores height changes, which the hiding itself causes).
+- Names given to every card: Public Assistance (LDSS-2921), Childcare Assistance (OCFS-6025), Earned Income Tax Credit (EITC), Uninsured Care (ADAP), SSI / SSP; every other guide's code already reads as a name (SNAP, HEAP, WAP, WIC, School Meals, Medicaid, EPIC, NY Connects, Veterans, Medicare Savings, HIICAP, Senior Meals, SNAP-Ed, Victim Services, Head Start) and is used as-is. Minutes: LDSS-2921 30, EITC 15, HEAP 10. EITC blurb `Money back at tax time.` Header `Official forms`; intro says Penny; one list under `Let's fill it in together`; minutes on every card; pages/sections line, drag hint and phone number removed from the card.
+- Drag image with the tilt — fine, or reset on active? Not observed (no browser run). The tilt is kept on `active:`; if Chrome's snapshot of the rotated card looks wrong, add `active:rotate-0`.
+- Build result: `npx vite build` clean; eslint clean.
+- What you verified visually vs. in the built output: `railForms()` order checked in node: Public Assistance, Childcare Assistance, Earned Income Tax Credit, HEAP, SNAP, …
+- Open items: the tilt is `-rotate-6` (6°, inside 5–15°).

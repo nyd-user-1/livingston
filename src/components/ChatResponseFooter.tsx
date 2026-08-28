@@ -11,8 +11,9 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 /**
  * Moving between the questions of a form interview — the footer of every
  * assistant turn that carries a fields block gets a section menu and
- * up/down chevrons. Down only goes to a question that is already answered:
- * the frontier is where the user is, and the one after it does not exist.
+ * up/down chevrons. Up is the previous question, down the next one that
+ * exists; from question 1 you can walk down to the one you are on. Down is
+ * muted only at the last question, because there is nothing after it yet.
  */
 export interface FormNavSection {
   n: string;
@@ -24,16 +25,15 @@ export interface FormNavSection {
 export interface FormNav {
   prevId?: string;
   nextId?: string;
-  nextAnswered: boolean;
   sections: FormNavSection[];
   onJump: (id: string) => void;
 }
 
 const ICON =
   "inline-flex items-center justify-center h-7 w-7 rounded-[3px] text-muted-foreground hover:text-foreground hover:bg-muted transition-colors";
+const ICON_MUTED = `${ICON} cursor-default text-muted-foreground/40 hover:bg-transparent hover:text-muted-foreground/40`;
 
 function FormNavButtons({ nav }: { nav: FormNav }) {
-  const nextOk = Boolean(nav.nextId) && nav.nextAnswered;
   return (
     <>
       <Popover>
@@ -68,20 +68,20 @@ function FormNavButtons({ nav }: { nav: FormNav }) {
       </Popover>
       <button
         type="button"
-        disabled={!nav.prevId}
+        aria-disabled={!nav.prevId}
         onClick={() => nav.prevId && nav.onJump(nav.prevId)}
-        className={`${ICON} disabled:cursor-default disabled:text-muted-foreground/40 disabled:hover:bg-transparent`}
-        title="Previous question"
+        className={nav.prevId ? ICON : ICON_MUTED}
+        title={nav.prevId ? "Previous question" : "This is the first question"}
         aria-label="Previous question"
       >
         <ChevronUp className="h-4 w-4" />
       </button>
       <button
         type="button"
-        aria-disabled={!nextOk}
-        onClick={() => nextOk && nav.onJump(nav.nextId!)}
-        className={nextOk ? ICON : `${ICON} cursor-default text-muted-foreground/40 hover:bg-transparent hover:text-muted-foreground/40`}
-        title={nextOk ? "Next question" : nav.nextId ? "Next question — not answered yet" : "No next question yet"}
+        aria-disabled={!nav.nextId}
+        onClick={() => nav.nextId && nav.onJump(nav.nextId)}
+        className={nav.nextId ? ICON : ICON_MUTED}
+        title={nav.nextId ? "Next question" : "No next question yet"}
         aria-label="Next question"
       >
         <ChevronDown className="h-4 w-4" />
@@ -299,9 +299,9 @@ export function ChatResponseFooter({
     : 0;
 
   return (
-    // The rule gets 24px of room on both sides: it used to sit flush against
-    // the fields card. Prose ends flush too (last paragraph drops its margin).
-    <div className="mt-6 pt-6 border-t animate-in fade-in duration-300">
+    // 24px between whatever came last (prose, a fields card) and the rule; it
+    // used to sit flush. Prose ends flush too (last paragraph drops its margin).
+    <div className="mt-6 pt-3 border-t animate-in fade-in duration-300">
       <div className="flex items-center gap-1">
         {/* Sources (Book icon) */}
         {totalCount > 0 && (
