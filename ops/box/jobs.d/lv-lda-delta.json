@@ -1,0 +1,14 @@
+{
+  "job": "lv-lda-delta",
+  "repo": "livingston",
+  "cadence": "nightly",
+  "enabled": true,
+  "steps": [
+    "scripts/box/run-handler.mjs api/lda-sync.ts mode=delta"
+  ],
+  "_why": "Federal lobbying disclosures, nightly. Not a cron that ever existed on Vercel — the LDA route was built on 2026-08-28 and had only ever been driven by hand from a laptop — so this is the first time it is scheduled at all. mode=delta asks lda.gov for everything posted since a date rather than walking a filing year, which is the cheap steady-state shape: a normal night is a few pages of 25 filings.",
+  "_window": "No `since=`, so the handler defaults to two days ago. That overlap is load-bearing twice over. Once for resumability: a missed night is covered by the next one and there is no checkpoint to lose, because the filing upsert is keyed on filing_uuid and a re-touched filing is an UPDATE. And once for bill resolution: the resolver only fills `LobbyingBills.bill_id` for the filings it just ingested and only where it is still NULL, so a mention of a bill that Congress introduced the same day gets a second attempt tomorrow, after lv-legiscan-delta has banked it.",
+  "_pages": "The handler's default is 40 pages an invocation, and the delta does not need more — if a night ever does, `nextPage` in the answer says so in the job log and the next night's wider window picks it up. The backfill of whole filing years (2023-2026, thousands of pages) is scripts/box/lda-backfill.mjs, a different job, run once by hand; this manifest is only the steady state.",
+  "_key": "LDA_API_KEY is optional to the route and present on the box: without it lda.gov throttles hard enough that a 100-page walk is not viable. The handler already treats 429 as backoff-and-retry rather than failure, three times, before giving up loudly.",
+  "_backfill": "The one-off year backfill (scripts/box/lda-backfill.mjs 2026 2025 2024 2023) is started by hand through run-job UNDER THIS JOB'S NAME, not a name of its own. run-due refuses to launch a manifest whose tmux session already exists, so reusing the name is what keeps the nightly delta from becoming a second writer on LobbyingFilings/Activities/Bills while the backfill is walking the same years — the house rule about two writers, enforced by the scheduler rather than by anyone remembering. The cost is that run-due never stamps ~/.run-due.state for a hand-started run, so the job stays 'never run' and launches on the first wake after the backfill ends; that run is the ordinary delta and is cheap. The backfill resumes from \"LobbyingSync\" either way, so nothing is lost if it is interrupted."
+}

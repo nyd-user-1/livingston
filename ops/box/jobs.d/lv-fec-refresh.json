@@ -1,0 +1,16 @@
+{
+  "job": "lv-fec-refresh",
+  "repo": "livingston",
+  "cadence": "weekly",
+  "weekday": 1,
+  "enabled": true,
+  "steps": [
+    "scripts/box/fec-backfill.mjs --cycles 2026 --detail basic --batch 8"
+  ],
+  "_why": "Campaign finance for the 726 crosswalked members of Congress, refreshed weekly. Never a Vercel cron: one member costs about twelve OpenFEC calls at 1.1 s apart, so a full pass is hours of wall clock and could not have run inside a 300 s function even once. This is the job that most obviously belonged on a box rather than on a serverless platform.",
+  "_pacing": "No `refresh=`, so the handler's own default of 7 days decides who is stale — which is exactly weekly semantics, and means a member already pulled by the backfill is skipped rather than re-pulled. The driver's job is the hourly budget: the api.data.gov key allows 1,000 requests an hour and a 60-request burst window, the handler already spaces its own calls 1,100 ms apart to cover the burst, and the driver measures the queries each batch actually made and sleeps only the shortfall against 950/hour. It stops after twenty consecutive failures, and after ten batches where `remaining` has not moved — a 2xx that changes nothing would otherwise spin on the same rows all night, spending the key's quota on no progress.",
+  "_cycle": "One cycle, 2026, deliberately. The backfill covers 2026 and 2024; there is no reason to re-poll a closed cycle every week, and each extra cycle adds five calls per member. When 2028 opens, that constant changes here.",
+  "_detail": "basic — seven calls a member: candidate totals, committees, and per cycle the independent expenditures and the receipt aggregates. `--detail extras` (by size, by state) is a separate overnight job, not a weekly one, and the handler gates extras on fec_fetched_at being set so it can never run ahead of basic.",
+  "_order": "Monday, weekday 1, one day after lv-national-sweep, so the week's two long jobs do not contend for the box's two vCPU. Second of the five by filename, which does not matter for a weekly job — the weekday is the real ordering.",
+  "_backfill": "The one-off backfill (scripts/box/fec-backfill.mjs --cycles 2026,2024 --detail basic --batch 8 --refresh 30, and later --detail extras) is started by hand through run-job UNDER THIS JOB'S NAME. run-due will not launch a manifest whose tmux session already exists, so the name is what stops the weekly refresh from running as a second writer on \"People\" and spending the same 1,000-an-hour key twice. When the backfill ends the job is still 'never run', so the next wake launches this manifest — and with every member freshly stamped, the handler answers remaining=0 after one batch."
+}

@@ -1,0 +1,13 @@
+{
+  "job": "lv-bills-sync",
+  "repo": "livingston",
+  "cadence": "nightly",
+  "enabled": true,
+  "steps": [
+    "scripts/box/run-handler.mjs api/bills-sync.ts"
+  ],
+  "_why": "The NY Senate is the authority on the status of a current-session New York bill, and this is the only thing that keeps it current. It replaces the Vercel cron `/api/bills-sync` at 10:00 UTC, which ran under a 300 s function ceiling on a route whose own config asks for 120 s — a ceiling that has nothing to do with how long the work takes and everything to do with where it was running. Same handler, same query string, no timeout.",
+  "_window": "No `since=`, so the handler does what it always did: read the newest last_action_date on record and pull everything after it, 100 bills a page, up to 20 pages. That makes the job self-healing — a night that is missed or dies halfway simply widens tomorrow's window, and the upsert is keyed on bill id, so the overlap costs nothing. There is no checkpoint file anywhere in this job by design.",
+  "_order": "First of the five livingston manifests, and deliberately ahead of lv-legiscan-delta: for a current-session NY bill the Senate is the authority on status and LegiScan's importer is explicitly written never to move a status backwards, so the two are only consistent if the Senate's number is the one already in the row when LegiScan arrives. run-due globs ~/jobs.d/*.json in filename order and `lv-b` sorts before `lv-l`; nothing else enforces it, which is why it is written down.",
+  "_capacity": "MAX_CONCURRENT on the box is 2 (2 vCPU), and there are now eleven manifests across two repos. A night where three are due launches two and defers the third — run-due's anacron semantics mean the deferred one is due again on the very next hourly catch-up, so nothing is lost, but the whole set does not land in one burst. This is the cheapest of the five: one API key, a few hundred rows."
+}

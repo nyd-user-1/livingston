@@ -5,6 +5,9 @@
 //   ?mode=dataset&session=2188   one query: the session's weekly bulk archive
 //                                (every bill, person and roll call) — backfill,
 //                                and the Sunday refresh. Any session, any year.
+//                                &hash= and &special= are recorded in
+//                                "LegiscanDatasets" so the weekly national sweep
+//                                can skip a session whose archive has not changed.
 //   ?mode=delta                  daily: getMasterListRaw for the current session
 //                                (one query, every bill's change_hash), then
 //                                getBill only for what changed, getRollCall only
@@ -54,8 +57,16 @@ const chamberName = (c: unknown) => {
   return x.startsWith("S") ? "Senate" : x.startsWith("A") ? "Assembly" : x.startsWith("H") ? "House" : x.startsWith("L") ? "Legislature" : x.startsWith("C") ? "Council" : x || null;
 };
 
-/** LegiScan state_id → postal code, for the states we have seen it on. Runs always pass ?state=, so this is a backstop. */
-const STATE_BY_ID: Record<number, string> = { 32: "NY", 31: "NJ", 52: "US" };
+/**
+ * LegiScan state_id → postal code, for the states we have seen it on. Runs always pass ?state=, so this is a backstop.
+ * WARNING: 31 is NEW MEXICO, not New Jersey — New Jersey is 30. The wrong pairing here is what
+ * `national-full-plan.json` was built from, so 28 New Mexico datasets were imported as
+ * `?state=NJ` (their People and Roll Call rows carry state='NJ') and New Jersey's own nine
+ * bulk datasets were never in the plan at all. The authority is `getSessionList` with no
+ * state param: 993 rows, each with `state_abbr`, one query — which is what
+ * `scripts/box/national-sweep.mjs` now uses instead of any table like this one.
+ */
+const STATE_BY_ID: Record<number, string> = { 30: "NJ", 31: "NM", 32: "NY", 52: "US" };
 /** What each legislature calls its lower house. House unless listed. */
 const LOWER_HOUSE: Record<string, string> = { NY: "Assembly", NJ: "Assembly", CA: "Assembly", NV: "Assembly", WI: "Assembly", NE: "Legislature", DC: "Council", US: "House" };
 const lowerHouse = (state: string) => LOWER_HOUSE[state] ?? "House";
@@ -256,6 +267,14 @@ async function prepareSchema(sql: Sql) {
   await sql.query(`CREATE TABLE IF NOT EXISTS "Referrals" (bill_id bigint NOT NULL, seq int NOT NULL, date text, committee_id text, chamber text, name text, PRIMARY KEY (bill_id, seq))`);
   await sql.query(`CREATE TABLE IF NOT EXISTS "Subjects" (bill_id bigint NOT NULL, subject_id bigint NOT NULL, subject text, PRIMARY KEY (bill_id, subject_id))`);
   await sql.query(`CREATE TABLE IF NOT EXISTS "SameAs" (bill_id bigint NOT NULL, sast_type_id int NOT NULL, sast_type text, sast_bill_id bigint NOT NULL, sast_bill_number text, PRIMARY KEY (bill_id, sast_type_id, sast_bill_id))`);
+  // What the weekly national sweep diffs against. One `getDatasetList` names every
+  // session's dataset_hash; a row here whose hash still matches is a 20-70 MB zip
+  // nobody has to download. Written by this route at the end of a SUCCESSFUL
+  // mode=dataset run only, so a dataset that failed is retried, never skipped.
+  // A NULL dataset_hash means "imported, hash unknown" — the seed the sweep writes
+  // for everything the laptop had already imported before this ledger existed.
+  await sql.query(`CREATE TABLE IF NOT EXISTS "LegiscanDatasets" (state text NOT NULL, session_id int NOT NULL, dataset_hash text, dataset_size bigint, year int, special smallint, imported_at timestamptz NOT NULL DEFAULT now(), bills int, ms int, PRIMARY KEY (state, session_id))`);
+  await sql.query(`CREATE INDEX IF NOT EXISTS legiscan_datasets_imported_idx ON "LegiscanDatasets" (imported_at)`);
   for (const [name, def] of [
     ["bills_session_idx", `"Bills" (session_id)`],
     ["bills_last_action_idx", `"Bills" (last_action_date)`],
@@ -628,8 +647,22 @@ export default async function handler(req: any, res: any) {
   const counts: Record<string, number> = { queries: 0 };
   try {
     await prepareSchema(sql);
-    if (mode === "dataset") await runDataset(sql, key, state, sessionId, req.query?.access_key ? String(req.query.access_key) : undefined, counts);
-    else if (mode === "people") await runPeople(sql, key, state, sessionId, counts);
+    if (mode === "dataset") {
+      await runDataset(sql, key, state, sessionId, req.query?.access_key ? String(req.query.access_key) : undefined, counts);
+      // Record what was imported, keyed the way the sweep looks it up. dataset_size is
+      // the zip we actually decoded, not the size the list claimed — a measured number
+      // is the only one worth keeping.
+      await sql.query(
+        `INSERT INTO "LegiscanDatasets" (state, session_id, dataset_hash, dataset_size, year, special, imported_at, bills, ms)
+         VALUES ($1, $2, $3, $4, $5, $6, now(), $7, $8)
+         ON CONFLICT (state, session_id) DO UPDATE SET dataset_hash = EXCLUDED.dataset_hash, dataset_size = EXCLUDED.dataset_size,
+           year = COALESCE(EXCLUDED.year, "LegiscanDatasets".year), special = EXCLUDED.special,
+           imported_at = EXCLUDED.imported_at, bills = EXCLUDED.bills, ms = EXCLUDED.ms`,
+        [state, sessionId, req.query?.hash ? String(req.query.hash) : null, counts.zipBytes ?? null,
+         counts.year || Number(req.query?.year) || null, Number(req.query?.special ?? 0) || 0,
+         counts.bills ?? 0, Date.now() - t0],
+      );
+    } else if (mode === "people") await runPeople(sql, key, state, sessionId, counts);
     else if (mode === "monitor") await runMonitor(sql, key, String(req.query?.set ?? ""), String(req.query?.action ?? "monitor"), Math.min(400, Number(req.query?.max ?? 100) || 100), counts);
     else if (mode === "search") {
       // Read-only passthrough of the national full-text search (2,000 hits a page, with change hashes). One query per call.

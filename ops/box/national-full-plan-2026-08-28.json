@@ -1,0 +1,8903 @@
+[
+ {
+  "state": "NY",
+  "session": 2188,
+  "year": 2025,
+  "special": 0,
+  "title": "2025-2026 Regular Session",
+  "size": 72650491,
+  "access_key": "2QJDNNqGxvkqZHS2SrHT1g"
+ },
+ {
+  "state": "NY",
+  "session": 2031,
+  "year": 2023,
+  "special": 0,
+  "title": "2023-2024 Regular Session",
+  "size": 49111623,
+  "access_key": "5P2hDcv5Q17t64F54xoobs"
+ },
+ {
+  "state": "NY",
+  "session": 1813,
+  "year": 2021,
+  "special": 0,
+  "title": "2021-2022 Regular Session",
+  "size": 47409540,
+  "access_key": "1MR35iVcEzbVhgezhPraRH"
+ },
+ {
+  "state": "NY",
+  "session": 1644,
+  "year": 2019,
+  "special": 0,
+  "title": "2019-2020 Regular Session",
+  "size": 48133254,
+  "access_key": "3ZGcltxGVy6xZWIo3EkitA"
+ },
+ {
+  "state": "NY",
+  "session": 1420,
+  "year": 2017,
+  "special": 0,
+  "title": "2017-2018 Regular Session",
+  "size": 41360070,
+  "access_key": "5q0mHeamb2N89RcVd6mQqx"
+ },
+ {
+  "state": "NY",
+  "session": 1143,
+  "year": 2015,
+  "special": 0,
+  "title": "2015-2016 Regular Session",
+  "size": 31711331,
+  "access_key": "Ess3ne1llp8Vdoif35FD8"
+ },
+ {
+  "state": "NY",
+  "session": 1013,
+  "year": 2013,
+  "special": 0,
+  "title": "2013-2014 Regular Session",
+  "size": 31920638,
+  "access_key": "1Do1xDgQGNzM8nYTj8t6n1"
+ },
+ {
+  "state": "NY",
+  "session": 93,
+  "year": 2011,
+  "special": 0,
+  "title": "2011-2012 Regular Session",
+  "size": 33668756,
+  "access_key": "6IbVxhF2CfReb0muoZMuwO"
+ },
+ {
+  "state": "NY",
+  "session": 27,
+  "year": 2009,
+  "special": 0,
+  "title": "2009-2010 Regular Session",
+  "size": 23119794,
+  "access_key": "1ZsaWOtUYVETqGBvjasuHt"
+ },
+ {
+  "state": "NJ",
+  "session": 2251,
+  "year": 2026,
+  "special": 0,
+  "title": "2026 Regular Session",
+  "size": 1962630,
+  "access_key": "5fO4Ecdxi7WBCcximUK6HJ"
+ },
+ {
+  "state": "NJ",
+  "session": 2187,
+  "year": 2025,
+  "special": 0,
+  "title": "2025 Regular Session",
+  "size": 3339156,
+  "access_key": "3u82q1zKBSfY7kf3M8QPbX"
+ },
+ {
+  "state": "NJ",
+  "session": 2232,
+  "year": 2025,
+  "special": 1,
+  "title": "2025 2nd Special Session",
+  "size": 102910,
+  "access_key": "jsWPRecq0H5WcSeqAAnZD"
+ },
+ {
+  "state": "NJ",
+  "session": 2227,
+  "year": 2025,
+  "special": 1,
+  "title": "2025 1st Special Session",
+  "size": 140647,
+  "access_key": "1wNvR4KJJ1pzFXleSHpxX3"
+ },
+ {
+  "state": "NJ",
+  "session": 2126,
+  "year": 2024,
+  "special": 0,
+  "title": "2024 Regular Session",
+  "size": 1261908,
+  "access_key": "3BmSxWzBItjfrc2OdOqg1X"
+ },
+ {
+  "state": "NJ",
+  "session": 2150,
+  "year": 2024,
+  "special": 1,
+  "title": "2024 1st Special Session",
+  "size": 79552,
+  "access_key": "53DSJdDHgkY0wnNSYXI48b"
+ },
+ {
+  "state": "NJ",
+  "session": 2030,
+  "year": 2023,
+  "special": 0,
+  "title": "2023 Regular Session",
+  "size": 2283825,
+  "access_key": "1HpNC4zcivhe8k5ffbqR2a"
+ },
+ {
+  "state": "NJ",
+  "session": 1961,
+  "year": 2022,
+  "special": 0,
+  "title": "2022 Regular Session",
+  "size": 1075404,
+  "access_key": "5Gyn14GJAwcnyd4LcmgbAe"
+ },
+ {
+  "state": "NJ",
+  "session": 1977,
+  "year": 2022,
+  "special": 1,
+  "title": "2022 3rd Special Session",
+  "size": 63700,
+  "access_key": "1rfQ8tWxufkfQznyesekDe"
+ },
+ {
+  "state": "NJ",
+  "session": 1812,
+  "year": 2021,
+  "special": 0,
+  "title": "2021 Regular Session",
+  "size": 1624662,
+  "access_key": "3PfDLdBHIOkGWcjH9effkv"
+ },
+ {
+  "state": "NJ",
+  "session": 1967,
+  "year": 2021,
+  "special": 1,
+  "title": "2021 2nd Special Session",
+  "size": 106020,
+  "access_key": "gdnZxRjbRSoxlXlOeJQL7"
+ },
+ {
+  "state": "NJ",
+  "session": 1830,
+  "year": 2021,
+  "special": 1,
+  "title": "2021 1st Special Session",
+  "size": 71890,
+  "access_key": "6p4rG4PrmbthMtsHj9qGbS"
+ },
+ {
+  "state": "NJ",
+  "session": 1731,
+  "year": 2020,
+  "special": 0,
+  "title": "2020 Regular Session",
+  "size": 1478046,
+  "access_key": "wYQ6IuXpag8p35m6r9EwV"
+ },
+ {
+  "state": "NJ",
+  "session": 1788,
+  "year": 2020,
+  "special": 1,
+  "title": "2020 2nd Special Session",
+  "size": 67193,
+  "access_key": "66sqJAbYt3OsCoJZH5K0KC"
+ },
+ {
+  "state": "NJ",
+  "session": 1750,
+  "year": 2020,
+  "special": 1,
+  "title": "2020 1st Special Session",
+  "size": 125994,
+  "access_key": "7QxN2la3SL1WdVIndTVr4Z"
+ },
+ {
+  "state": "NJ",
+  "session": 1643,
+  "year": 2019,
+  "special": 0,
+  "title": "2019 Regular Session",
+  "size": 2916759,
+  "access_key": "73O6YQT3PeaqUeAKkgTkzS"
+ },
+ {
+  "state": "NJ",
+  "session": 1532,
+  "year": 2018,
+  "special": 0,
+  "title": "2018 Regular Session",
+  "size": 1778192,
+  "access_key": "7BexaOSTK7JL2UGSWTgXr4"
+ },
+ {
+  "state": "NJ",
+  "session": 1419,
+  "year": 2017,
+  "special": 0,
+  "title": "2017 Regular Session",
+  "size": 2677006,
+  "access_key": "S5xM3kr5w1KgrYlg8WXYh"
+ },
+ {
+  "state": "NJ",
+  "session": 1459,
+  "year": 2017,
+  "special": 1,
+  "title": "2017 1st Special Session",
+  "size": 79263,
+  "access_key": "6RcZj0CqAShBbMRvKq5KVN"
+ },
+ {
+  "state": "NJ",
+  "session": 1191,
+  "year": 2016,
+  "special": 0,
+  "title": "2016 Regular Session",
+  "size": 1635623,
+  "access_key": "bt2XPhYVHW2e8OAHXIaS7"
+ },
+ {
+  "state": "NJ",
+  "session": 1265,
+  "year": 2016,
+  "special": 1,
+  "title": "2016 2nd Special Session",
+  "size": 95643,
+  "access_key": "5H2IkMfPmTNpAUxNBigV8U"
+ },
+ {
+  "state": "NJ",
+  "session": 1142,
+  "year": 2015,
+  "special": 0,
+  "title": "2015 Regular Session",
+  "size": 2756501,
+  "access_key": "5XhrDn5gWH9VOjEF32Zyam"
+ },
+ {
+  "state": "NJ",
+  "session": 1167,
+  "year": 2015,
+  "special": 1,
+  "title": "2015 1st Special Session",
+  "size": 61286,
+  "access_key": "1TPHWmXEWaQBEXspXGK1gq"
+ },
+ {
+  "state": "NJ",
+  "session": 1073,
+  "year": 2014,
+  "special": 0,
+  "title": "2014 Regular Session",
+  "size": 1703578,
+  "access_key": "4VXxVIXiKqFAqNBWFJqjM4"
+ },
+ {
+  "state": "NJ",
+  "session": 1012,
+  "year": 2013,
+  "special": 0,
+  "title": "2013 Regular Session",
+  "size": 2778455,
+  "access_key": "5r2gv7JkFOg7dMA5KYuY8d"
+ },
+ {
+  "state": "NJ",
+  "session": 582,
+  "year": 2012,
+  "special": 0,
+  "title": "2012 Regular Session",
+  "size": 1255992,
+  "access_key": "1Vyg6VF0iod0jK4jFDmL5L"
+ },
+ {
+  "state": "NJ",
+  "session": 123,
+  "year": 2011,
+  "special": 0,
+  "title": "2011 Regular Session",
+  "size": 1827513,
+  "access_key": "7RMBJFDmBN70FFJqAjrqa7"
+ },
+ {
+  "state": "NJ",
+  "session": 65,
+  "year": 2010,
+  "special": 0,
+  "title": "2010 Regular Session",
+  "size": 1115310,
+  "access_key": "1YGtpFVI9sgmKX2LSJujJ8"
+ },
+ {
+  "state": "US",
+  "session": 2199,
+  "year": 2025,
+  "special": 0,
+  "title": "2025-2026 Regular Session",
+  "size": 62082538,
+  "access_key": "7C2qIXqV3Q1NuvpbKyYw9b"
+ },
+ {
+  "state": "US",
+  "session": 2041,
+  "year": 2023,
+  "special": 0,
+  "title": "2023-2024 Regular Session",
+  "size": 44967694,
+  "access_key": "2GHaqEAQrcvodcA7RnS7T2"
+ },
+ {
+  "state": "US",
+  "session": 1823,
+  "year": 2021,
+  "special": 0,
+  "title": "2021-2022 Regular Session",
+  "size": 43240349,
+  "access_key": "FTomMDzMHj7Vv1bxjr38o"
+ },
+ {
+  "state": "US",
+  "session": 1658,
+  "year": 2019,
+  "special": 0,
+  "title": "2019-2020 Regular Session",
+  "size": 45658394,
+  "access_key": "7fmkBgCjdCv3xaoY76MT5t"
+ },
+ {
+  "state": "US",
+  "session": 1435,
+  "year": 2017,
+  "special": 0,
+  "title": "2017-2018 Regular Session",
+  "size": 37850416,
+  "access_key": "5yDoQuxeeB5QvGB9EBKk1L"
+ },
+ {
+  "state": "US",
+  "session": 1156,
+  "year": 2015,
+  "special": 0,
+  "title": "2015-2016 Regular Session",
+  "size": 37492978,
+  "access_key": "7J2PIlVSLsy5AoC5KHIOvL"
+ },
+ {
+  "state": "US",
+  "session": 1026,
+  "year": 2013,
+  "special": 0,
+  "title": "2013-2014 Regular Session",
+  "size": 33545847,
+  "access_key": "MikE8jvMeQ17XYiLV9LSN"
+ },
+ {
+  "state": "US",
+  "session": 84,
+  "year": 2011,
+  "special": 0,
+  "title": "2011-2012 Regular Session",
+  "size": 36060226,
+  "access_key": "4xEHKlm8cUptcZ2lihiWGu"
+ },
+ {
+  "state": "US",
+  "session": 77,
+  "year": 2009,
+  "special": 0,
+  "title": "2009-2010 Regular Session",
+  "size": 31092786,
+  "access_key": "49AXtcuMXWWwqPqjFqjp4i"
+ },
+ {
+  "state": "AK",
+  "session": 2171,
+  "year": 2025,
+  "special": 0,
+  "title": "2025-2026 Regular Session",
+  "size": 2612966,
+  "access_key": "s9DY3yaPZZ7xiniN8yUCN"
+ },
+ {
+  "state": "AK",
+  "session": 2015,
+  "year": 2023,
+  "special": 0,
+  "title": "2023-2024 Regular Session",
+  "size": 2411179,
+  "access_key": "3UfmgMueayNKK4aVcZKhxr"
+ },
+ {
+  "state": "AK",
+  "session": 1796,
+  "year": 2021,
+  "special": 0,
+  "title": "2021-2022 Regular Session",
+  "size": 2309391,
+  "access_key": "6xZ6bpKclByvH1vbh1ciX4"
+ },
+ {
+  "state": "AK",
+  "session": 1622,
+  "year": 2019,
+  "special": 0,
+  "title": "2019-2020 Regular Session",
+  "size": 1527257,
+  "access_key": "6NbgfAF0GL5BanMyaqFrgn"
+ },
+ {
+  "state": "AK",
+  "session": 1397,
+  "year": 2017,
+  "special": 0,
+  "title": "2017-2018 Regular Session",
+  "size": 2301774,
+  "access_key": "3W33TFqhja0HGpg40L0Rmd"
+ },
+ {
+  "state": "AK",
+  "session": 1117,
+  "year": 2015,
+  "special": 0,
+  "title": "2015-2016 Regular Session",
+  "size": 1841363,
+  "access_key": "5jrY7IFsJgNd8OGybHHkOE"
+ },
+ {
+  "state": "AK",
+  "session": 991,
+  "year": 2013,
+  "special": 0,
+  "title": "2013-2014 Regular Session",
+  "size": 2117620,
+  "access_key": "3XMJbjrTY0JsDzXrGr45L"
+ },
+ {
+  "state": "AK",
+  "session": 122,
+  "year": 2011,
+  "special": 0,
+  "title": "2011-2012 Regular Session",
+  "size": 1481000,
+  "access_key": "7GUqDAoeSGfQxhjYjZzY5G"
+ },
+ {
+  "state": "AK",
+  "session": 58,
+  "year": 2009,
+  "special": 0,
+  "title": "2009-2010 Regular Session",
+  "size": 1650284,
+  "access_key": "6FJxbOgTE3OrBBW9gYfeAB"
+ },
+ {
+  "state": "AL",
+  "session": 2218,
+  "year": 2026,
+  "special": 0,
+  "title": "2026 Regular Session",
+  "size": 5284433,
+  "access_key": "7R9QLkyNRFofhbNYbTXcFX"
+ },
+ {
+  "state": "AL",
+  "session": 2262,
+  "year": 2026,
+  "special": 1,
+  "title": "2026 1st Special Session",
+  "size": 142163,
+  "access_key": "4HiYFNrnmpMWpDH50ZuzO7"
+ },
+ {
+  "state": "AL",
+  "session": 2148,
+  "year": 2025,
+  "special": 0,
+  "title": "2025 Regular Session",
+  "size": 4685736,
+  "access_key": "1CIH7g58t8AIDWZXD9N1Wv"
+ },
+ {
+  "state": "AL",
+  "session": 2103,
+  "year": 2024,
+  "special": 0,
+  "title": "2024 Regular Session",
+  "size": 3374663,
+  "access_key": "1K4N954LmTifJRKYA0s0No"
+ },
+ {
+  "state": "AL",
+  "session": 2014,
+  "year": 2023,
+  "special": 0,
+  "title": "2023 Regular Session",
+  "size": 3063352,
+  "access_key": "1NSZb08deh1gXMYxZfN7OK"
+ },
+ {
+  "state": "AL",
+  "session": 2060,
+  "year": 2023,
+  "special": 1,
+  "title": "2023 2nd Special Session",
+  "size": 135536,
+  "access_key": "6AK7DPqEASxsJvskhUw0p1"
+ },
+ {
+  "state": "AL",
+  "session": 2048,
+  "year": 2023,
+  "special": 1,
+  "title": "2023 1st Special Session",
+  "size": 110061,
+  "access_key": "5uUq6yE60Tu5NjGkRHNtfP"
+ },
+ {
+  "state": "AL",
+  "session": 1836,
+  "year": 2022,
+  "special": 0,
+  "title": "2022 Regular Session",
+  "size": 3405998,
+  "access_key": "2R3OMhejl94jS2EjQJLnhg"
+ },
+ {
+  "state": "AL",
+  "session": 1972,
+  "year": 2022,
+  "special": 1,
+  "title": "2022 1st Special Session",
+  "size": 94255,
+  "access_key": "1giYJPSzzH9IADZAJRDYBV"
+ },
+ {
+  "state": "AL",
+  "session": 1756,
+  "year": 2021,
+  "special": 0,
+  "title": "2021 Regular Session",
+  "size": 4506362,
+  "access_key": "6GTwTj57akSH8RZ35jS8y6"
+ },
+ {
+  "state": "AL",
+  "session": 1857,
+  "year": 2021,
+  "special": 1,
+  "title": "2021 2nd Special Session",
+  "size": 239388,
+  "access_key": "2huNbJI27nWnTonXf1Y2Hd"
+ },
+ {
+  "state": "AL",
+  "session": 1854,
+  "year": 2021,
+  "special": 1,
+  "title": "2021 1st Special Session",
+  "size": 142227,
+  "access_key": "4pPFaDwPCJGzSTs1vBQt3Q"
+ },
+ {
+  "state": "AL",
+  "session": 1706,
+  "year": 2020,
+  "special": 0,
+  "title": "2020 Regular Session",
+  "size": 1990333,
+  "access_key": "5iZfI0bPSgMdVsccX1Gg5r"
+ },
+ {
+  "state": "AL",
+  "session": 1621,
+  "year": 2019,
+  "special": 0,
+  "title": "2019 Regular Session",
+  "size": 3298259,
+  "access_key": "3Ub5ksLbqGC0fi2TmUTXRD"
+ },
+ {
+  "state": "AL",
+  "session": 1661,
+  "year": 2019,
+  "special": 1,
+  "title": "2019 1st Special Session",
+  "size": 125014,
+  "access_key": "180UkJqRzVhzboKuIDXHdv"
+ },
+ {
+  "state": "AL",
+  "session": 1468,
+  "year": 2018,
+  "special": 0,
+  "title": "2018 Regular Session",
+  "size": 3357715,
+  "access_key": "3Vp5Duu1iCn0J9J2rJdgvb"
+ },
+ {
+  "state": "AL",
+  "session": 1254,
+  "year": 2017,
+  "special": 0,
+  "title": "2017 Regular Session",
+  "size": 3391715,
+  "access_key": "4OZVXKsG90fTj5CRQ5OWPU"
+ },
+ {
+  "state": "AL",
+  "session": 1172,
+  "year": 2016,
+  "special": 0,
+  "title": "2016 Regular Session",
+  "size": 3003159,
+  "access_key": "3yYSMRRp5CKDkkQImERLGQ"
+ },
+ {
+  "state": "AL",
+  "session": 1253,
+  "year": 2016,
+  "special": 1,
+  "title": "2016 1st Special Session",
+  "size": 461357,
+  "access_key": "12lH1ckHiSRSo1eTMrjya4"
+ },
+ {
+  "state": "AL",
+  "session": 1159,
+  "year": 2015,
+  "special": 0,
+  "title": "2015 Regular Session",
+  "size": 3484985,
+  "access_key": "6EHK3eve6kqGR1giVxt8va"
+ },
+ {
+  "state": "AL",
+  "session": 1178,
+  "year": 2015,
+  "special": 1,
+  "title": "2015 2nd Special Session",
+  "size": 338064,
+  "access_key": "4TNwIDQTOH3OY5aC8Rz83I"
+ },
+ {
+  "state": "AL",
+  "session": 1173,
+  "year": 2015,
+  "special": 1,
+  "title": "2015 1st Special Session",
+  "size": 347080,
+  "access_key": "5Awb5daVrnE2r7h2KzcHQ4"
+ },
+ {
+  "state": "AL",
+  "session": 1116,
+  "year": 2015,
+  "special": 1,
+  "title": "2015 Organizational Session",
+  "size": 38358,
+  "access_key": "41uy7zpEuCtrEg871fnI60"
+ },
+ {
+  "state": "AL",
+  "session": 1038,
+  "year": 2014,
+  "special": 0,
+  "title": "2014 Regular Session",
+  "size": 3832849,
+  "access_key": "6vLtoGTrOY5Kg4vm7ehgPS"
+ },
+ {
+  "state": "AL",
+  "session": 959,
+  "year": 2013,
+  "special": 0,
+  "title": "2013 Regular Session",
+  "size": 4113161,
+  "access_key": "77T6ZBmlZOhYCTagRVPSXw"
+ },
+ {
+  "state": "AL",
+  "session": 159,
+  "year": 2012,
+  "special": 0,
+  "title": "2012 Regular Session",
+  "size": 4488964,
+  "access_key": "4vvBtHraZ3YnOwpxQCvTHo"
+ },
+ {
+  "state": "AL",
+  "session": 958,
+  "year": 2012,
+  "special": 1,
+  "title": "2012 1st Special Session",
+  "size": 227761,
+  "access_key": "5lWKwuQ7erNBSGEPd6CSaw"
+ },
+ {
+  "state": "AL",
+  "session": 131,
+  "year": 2011,
+  "special": 0,
+  "title": "2011 Regular Session",
+  "size": 4777249,
+  "access_key": "4KoCuikQrOUeIssf1g2zb3"
+ },
+ {
+  "state": "AL",
+  "session": 158,
+  "year": 2011,
+  "special": 1,
+  "title": "2011 Organizational Session",
+  "size": 58209,
+  "access_key": "19dO8u8523VZmHvEaEu8kE"
+ },
+ {
+  "state": "AL",
+  "session": 29,
+  "year": 2010,
+  "special": 0,
+  "title": "2010 Regular Session",
+  "size": 5865494,
+  "access_key": "5q2X7hMsGABa8eh6KIs3tj"
+ },
+ {
+  "state": "AL",
+  "session": 157,
+  "year": 2010,
+  "special": 1,
+  "title": "2010 1st Special Session",
+  "size": 365168,
+  "access_key": "4JpRUWehpiUpzct5JB2wpo"
+ },
+ {
+  "state": "AR",
+  "session": 2242,
+  "year": 2026,
+  "special": 0,
+  "title": "2026 Regular Session",
+  "size": 923916,
+  "access_key": "2eGzM4udmzq8rRnZRNDMqh"
+ },
+ {
+  "state": "AR",
+  "session": 2261,
+  "year": 2026,
+  "special": 1,
+  "title": "2026 1st Special Session",
+  "size": 137130,
+  "access_key": "7Co9BHyNsVSMBx4laAvid6"
+ },
+ {
+  "state": "AR",
+  "session": 2162,
+  "year": 2025,
+  "special": 0,
+  "title": "2025 Regular Session",
+  "size": 6792949,
+  "access_key": "23V1ZYZWZrZ5GoYLD0vkep"
+ },
+ {
+  "state": "AR",
+  "session": 2115,
+  "year": 2024,
+  "special": 0,
+  "title": "2024 Regular Session",
+  "size": 816442,
+  "access_key": "6McVjQbVW5sSqBntN3zqh3"
+ },
+ {
+  "state": "AR",
+  "session": 2146,
+  "year": 2024,
+  "special": 1,
+  "title": "2024 1st Special Session",
+  "size": 129995,
+  "access_key": "7bcSRJiq3nsMeWnC8ton5b"
+ },
+ {
+  "state": "AR",
+  "session": 2004,
+  "year": 2023,
+  "special": 0,
+  "title": "2023 Regular Session",
+  "size": 4784608,
+  "access_key": "I5tVB8krO57ZzU0yz3afX"
+ },
+ {
+  "state": "AR",
+  "session": 2099,
+  "year": 2023,
+  "special": 1,
+  "title": "2023 1st Special Session",
+  "size": 159249,
+  "access_key": "6ZgdwAbXIa7sGM7PHlccoM"
+ },
+ {
+  "state": "AR",
+  "session": 1951,
+  "year": 2022,
+  "special": 0,
+  "title": "2022 Regular Session",
+  "size": 976202,
+  "access_key": "6YBgzgso6HuBHwoLDkdutV"
+ },
+ {
+  "state": "AR",
+  "session": 1992,
+  "year": 2022,
+  "special": 1,
+  "title": "2022 1st Special Session",
+  "size": 120621,
+  "access_key": "72vKaUFj0vUdox8vdNqULF"
+ },
+ {
+  "state": "AR",
+  "session": 1781,
+  "year": 2021,
+  "special": 0,
+  "title": "2021 Regular Session",
+  "size": 5558356,
+  "access_key": "2Gcz0kkNhE2F8rMlg9Ng7F"
+ },
+ {
+  "state": "AR",
+  "session": 1966,
+  "year": 2021,
+  "special": 1,
+  "title": "2021 1st Special Session",
+  "size": 186134,
+  "access_key": "kzgXsbJxmJXCq59VMYpPU"
+ },
+ {
+  "state": "AR",
+  "session": 1846,
+  "year": 2021,
+  "special": 1,
+  "title": "2021 1st Special Session",
+  "size": 109712,
+  "access_key": "7M2I7nCuxZuU3hXv9n7TSb"
+ },
+ {
+  "state": "AR",
+  "session": 1721,
+  "year": 2020,
+  "special": 0,
+  "title": "2020 Regular Session",
+  "size": 647660,
+  "access_key": "22f6fQ3zwyyOxWVkyS6CPW"
+ },
+ {
+  "state": "AR",
+  "session": 1739,
+  "year": 2020,
+  "special": 1,
+  "title": "2020 1st Special Session",
+  "size": 87226,
+  "access_key": "bTfXPJw8qVUVA2eKHQvGr"
+ },
+ {
+  "state": "AR",
+  "session": 1615,
+  "year": 2019,
+  "special": 0,
+  "title": "2019 Regular Session",
+  "size": 4786886,
+  "access_key": "1pVsrHrATieEIxGS9zEgzg"
+ },
+ {
+  "state": "AR",
+  "session": 1521,
+  "year": 2018,
+  "special": 0,
+  "title": "2018 Regular Session",
+  "size": 884379,
+  "access_key": "6oSyDPR5K1jnKPRsOqfEUD"
+ },
+ {
+  "state": "AR",
+  "session": 1549,
+  "year": 2018,
+  "special": 1,
+  "title": "2018 1st Special Session",
+  "size": 135872,
+  "access_key": "cWZynKR2LLfxzZIy7rjB2"
+ },
+ {
+  "state": "AR",
+  "session": 1399,
+  "year": 2017,
+  "special": 0,
+  "title": "2017 Regular Session",
+  "size": 5525761,
+  "access_key": "5z9z5BhLu6JTElSe9mtknR"
+ },
+ {
+  "state": "AR",
+  "session": 1456,
+  "year": 2017,
+  "special": 1,
+  "title": "2017 1st Special Session",
+  "size": 102205,
+  "access_key": "1910BY5YQLCKWcPfjuLRrl"
+ },
+ {
+  "state": "AR",
+  "session": 1194,
+  "year": 2016,
+  "special": 0,
+  "title": "2016 Regular Session",
+  "size": 917412,
+  "access_key": "64rVfKfU0cB3US972ruzwe"
+ },
+ {
+  "state": "AR",
+  "session": 1228,
+  "year": 2016,
+  "special": 1,
+  "title": "2016 3rd Special Session",
+  "size": 169208,
+  "access_key": "4aby11PPAWUVXLbCqIF4OK"
+ },
+ {
+  "state": "AR",
+  "session": 1222,
+  "year": 2016,
+  "special": 1,
+  "title": "2016 2nd Special Session",
+  "size": 77943,
+  "access_key": "1ddThXC3PzKt7AEJ1or9Ae"
+ },
+ {
+  "state": "AR",
+  "session": 1119,
+  "year": 2015,
+  "special": 0,
+  "title": "2015 Regular Session",
+  "size": 5648163,
+  "access_key": "7LrZ6nzFtuppCnkCr9GBOj"
+ },
+ {
+  "state": "AR",
+  "session": 1165,
+  "year": 2015,
+  "special": 1,
+  "title": "2015 1st Special Session",
+  "size": 142626,
+  "access_key": "2fJZhFQ7BtuTxyLl764rOp"
+ },
+ {
+  "state": "AR",
+  "session": 1076,
+  "year": 2014,
+  "special": 0,
+  "title": "2014 Regular Session",
+  "size": 1002799,
+  "access_key": "4ZyHCDLFShG6SXHrk8KHap"
+ },
+ {
+  "state": "AR",
+  "session": 1104,
+  "year": 2014,
+  "special": 1,
+  "title": "2014 2nd Special Session",
+  "size": 106898,
+  "access_key": "26Qlhlslawp1syGYNS9ixc"
+ },
+ {
+  "state": "AR",
+  "session": 968,
+  "year": 2013,
+  "special": 0,
+  "title": "2013 Regular Session",
+  "size": 6772099,
+  "access_key": "6I6T5hA4BYWdKA8Sl9sdyw"
+ },
+ {
+  "state": "AR",
+  "session": 1053,
+  "year": 2013,
+  "special": 1,
+  "title": "2013 1st Special Session",
+  "size": 116214,
+  "access_key": "2ZIlHPtYSju94g7HNUwM8M"
+ },
+ {
+  "state": "AR",
+  "session": 957,
+  "year": 2012,
+  "special": 0,
+  "title": "2012 Regular Session",
+  "size": 980369,
+  "access_key": "eyo0m01Lwrk94zl6pvq2G"
+ },
+ {
+  "state": "AR",
+  "session": 117,
+  "year": 2011,
+  "special": 0,
+  "title": "2011 Regular Session",
+  "size": 5505226,
+  "access_key": "rjTcRB4ZNalJ6UVAuBNat"
+ },
+ {
+  "state": "AR",
+  "session": 80,
+  "year": 2010,
+  "special": 0,
+  "title": "2010 Regular Session",
+  "size": 473434,
+  "access_key": "43HGFRPhJAEWU8MBF9mQbt"
+ },
+ {
+  "state": "AZ",
+  "session": 2235,
+  "year": 2026,
+  "special": 0,
+  "title": "2026 Regular Session",
+  "size": 9900174,
+  "access_key": "2RZOxsBNv31LqDPahZiVJF"
+ },
+ {
+  "state": "AZ",
+  "session": 2155,
+  "year": 2025,
+  "special": 0,
+  "title": "2025 Regular Session",
+  "size": 8894322,
+  "access_key": "72NT9KNB4vIAjXn9gGLaok"
+ },
+ {
+  "state": "AZ",
+  "session": 2110,
+  "year": 2024,
+  "special": 0,
+  "title": "2024 Regular Session",
+  "size": 7096005,
+  "access_key": "2Gx1onpJxqW1CDNS0QhzR6"
+ },
+ {
+  "state": "AZ",
+  "session": 2010,
+  "year": 2023,
+  "special": 0,
+  "title": "2023 Regular Session",
+  "size": 6326316,
+  "access_key": "5wuGGelAIXFmQ0c2B0qJCg"
+ },
+ {
+  "state": "AZ",
+  "session": 1947,
+  "year": 2022,
+  "special": 0,
+  "title": "2022 Regular Session",
+  "size": 6365778,
+  "access_key": "ipBd3atqcthBo0YQLGmOd"
+ },
+ {
+  "state": "AZ",
+  "session": 1794,
+  "year": 2021,
+  "special": 0,
+  "title": "2021 Regular Session",
+  "size": 6958662,
+  "access_key": "lwPIdRn5uGVigzEFLfhNL"
+ },
+ {
+  "state": "AZ",
+  "session": 1840,
+  "year": 2021,
+  "special": 1,
+  "title": "2021 1st Special Session",
+  "size": 60344,
+  "access_key": "49F8WftytQ8Cp1YUtsU03i"
+ },
+ {
+  "state": "AZ",
+  "session": 1717,
+  "year": 2020,
+  "special": 0,
+  "title": "2020 Regular Session",
+  "size": 4966975,
+  "access_key": "3FqjhEzrxq4DJSUy7nTGM5"
+ },
+ {
+  "state": "AZ",
+  "session": 1623,
+  "year": 2019,
+  "special": 0,
+  "title": "2019 Regular Session",
+  "size": 4842015,
+  "access_key": "3zKVH5blR6mO8blsZGTGJn"
+ },
+ {
+  "state": "AZ",
+  "session": 1517,
+  "year": 2018,
+  "special": 0,
+  "title": "2018 Regular Session",
+  "size": 4761935,
+  "access_key": "3IIVSnVvqfgds7czixwuTf"
+ },
+ {
+  "state": "AZ",
+  "session": 1545,
+  "year": 2018,
+  "special": 1,
+  "title": "2018 1st Special Session",
+  "size": 55121,
+  "access_key": "5Y37rDpAobJv30k61w7pTE"
+ },
+ {
+  "state": "AZ",
+  "session": 1398,
+  "year": 2017,
+  "special": 0,
+  "title": "2017 Regular Session",
+  "size": 4351501,
+  "access_key": "73ut0TkqvIZn7iSQdSIs1Q"
+ },
+ {
+  "state": "AZ",
+  "session": 1188,
+  "year": 2016,
+  "special": 0,
+  "title": "2016 Regular Session",
+  "size": 4386376,
+  "access_key": "5X8a86NNZRte669s1GZD1W"
+ },
+ {
+  "state": "AZ",
+  "session": 1118,
+  "year": 2015,
+  "special": 0,
+  "title": "2015 Regular Session",
+  "size": 3864462,
+  "access_key": "2uVEaeg6GjL2jWyhY4zcxc"
+ },
+ {
+  "state": "AZ",
+  "session": 1185,
+  "year": 2015,
+  "special": 1,
+  "title": "2015 1st Special Session",
+  "size": 72888,
+  "access_key": "64aY8fgplJ0cZi4xbPNwRE"
+ },
+ {
+  "state": "AZ",
+  "session": 1067,
+  "year": 2014,
+  "special": 0,
+  "title": "2014 Regular Session",
+  "size": 3838573,
+  "access_key": "VFTwNb2cIHwMSLOj0ZNtz"
+ },
+ {
+  "state": "AZ",
+  "session": 1102,
+  "year": 2014,
+  "special": 1,
+  "title": "2014 2nd Special Session",
+  "size": 69973,
+  "access_key": "7FuAItk8EwG2Jz515KQyEP"
+ },
+ {
+  "state": "AZ",
+  "session": 992,
+  "year": 2013,
+  "special": 0,
+  "title": "2013 Regular Session",
+  "size": 3497770,
+  "access_key": "3mLd8XvZfVMPQzfo7j1YMt"
+ },
+ {
+  "state": "AZ",
+  "session": 1042,
+  "year": 2013,
+  "special": 1,
+  "title": "2013 1st Special Session",
+  "size": 94546,
+  "access_key": "2q6bASmc68c8P3KeF6wm9d"
+ },
+ {
+  "state": "AZ",
+  "session": 216,
+  "year": 2012,
+  "special": 0,
+  "title": "2012 Regular Session",
+  "size": 4255050,
+  "access_key": "4pEx55KzK4a6OF51HUhpRX"
+ },
+ {
+  "state": "AZ",
+  "session": 118,
+  "year": 2011,
+  "special": 0,
+  "title": "2011 Regular Session",
+  "size": 3925386,
+  "access_key": "6Bgde0Igg2NqtKlKxQ3FQA"
+ },
+ {
+  "state": "AZ",
+  "session": 213,
+  "year": 2011,
+  "special": 1,
+  "title": "2011 4th Special Session",
+  "size": 54558,
+  "access_key": "7ODn1BI4zeFPuNIyQ2mGpr"
+ },
+ {
+  "state": "AZ",
+  "session": 215,
+  "year": 2011,
+  "special": 1,
+  "title": "2011 3rd Special Session",
+  "size": 22307,
+  "access_key": "43JPJ93rcTmXKZXvMAWt11"
+ },
+ {
+  "state": "AZ",
+  "session": 214,
+  "year": 2011,
+  "special": 1,
+  "title": "2011 2nd Special Session",
+  "size": 54939,
+  "access_key": "1c6PQWJTpfN4B9a6A5Qok"
+ },
+ {
+  "state": "AZ",
+  "session": 212,
+  "year": 2011,
+  "special": 1,
+  "title": "2011 1st Special Session",
+  "size": 60242,
+  "access_key": "4raEpxyIorvPydxz17dmeU"
+ },
+ {
+  "state": "AZ",
+  "session": 66,
+  "year": 2010,
+  "special": 0,
+  "title": "2010 Regular Session",
+  "size": 2217048,
+  "access_key": "5ZgApbjT6OGGKySdGCbdju"
+ },
+ {
+  "state": "AZ",
+  "session": 209,
+  "year": 2010,
+  "special": 1,
+  "title": "2010 9th Special Session",
+  "size": 54644,
+  "access_key": "7XRm2d33ZCxX9tK8WTjgTg"
+ },
+ {
+  "state": "AZ",
+  "session": 208,
+  "year": 2010,
+  "special": 1,
+  "title": "2010 8th Special Session",
+  "size": 65789,
+  "access_key": "1CoEsBICLpAaO74DMNtwhG"
+ },
+ {
+  "state": "AZ",
+  "session": 210,
+  "year": 2010,
+  "special": 1,
+  "title": "2010 7th Special Session",
+  "size": 132992,
+  "access_key": "4yasRUXzItia8Oc7zS7AvV"
+ },
+ {
+  "state": "AZ",
+  "session": 211,
+  "year": 2010,
+  "special": 1,
+  "title": "2010 6th Special Session",
+  "size": 57165,
+  "access_key": "5fltPw8tqGoLGNbBtYm3WF"
+ },
+ {
+  "state": "CA",
+  "session": 2172,
+  "year": 2025,
+  "special": 0,
+  "title": "2025-2026 Regular Session",
+  "size": 27481958,
+  "access_key": "312xvhDcyO1AogO5ZoR9Fq"
+ },
+ {
+  "state": "CA",
+  "session": 2016,
+  "year": 2023,
+  "special": 0,
+  "title": "2023-2024 Regular Session",
+  "size": 25095682,
+  "access_key": "7iuPDTBZA1Aurdi7POgQEV"
+ },
+ {
+  "state": "CA",
+  "session": 1791,
+  "year": 2021,
+  "special": 0,
+  "title": "2021-2022 Regular Session",
+  "size": 22799636,
+  "access_key": "2JE8LfW8l21qS0fCukPSXe"
+ },
+ {
+  "state": "CA",
+  "session": 1624,
+  "year": 2019,
+  "special": 0,
+  "title": "2019-2020 Regular Session",
+  "size": 18380327,
+  "access_key": "XtadzwuBQ59PK9i9Z2OHX"
+ },
+ {
+  "state": "CA",
+  "session": 1400,
+  "year": 2017,
+  "special": 0,
+  "title": "2017-2018 Regular Session",
+  "size": 23477079,
+  "access_key": "7MjhqS7f1jXvGdIDiKGSGh"
+ },
+ {
+  "state": "CA",
+  "session": 1120,
+  "year": 2015,
+  "special": 0,
+  "title": "2015-2016 Regular Session",
+  "size": 21756793,
+  "access_key": "2t8E1l0eQOgrjZrFP1V6r9"
+ },
+ {
+  "state": "CA",
+  "session": 993,
+  "year": 2013,
+  "special": 0,
+  "title": "2013-2014 Regular Session",
+  "size": 19864376,
+  "access_key": "7jwNpaLJs5Q6KyJsq3ORyL"
+ },
+ {
+  "state": "CA",
+  "session": 82,
+  "year": 2011,
+  "special": 0,
+  "title": "2011-2012 Regular Session",
+  "size": 18860012,
+  "access_key": "5OXusvl5YmJ6a91dsbbsoR"
+ },
+ {
+  "state": "CA",
+  "session": 30,
+  "year": 2009,
+  "special": 0,
+  "title": "2009-2010 Regular Session",
+  "size": 19010681,
+  "access_key": "2bOalzhFiilAoswFlR1ABm"
+ },
+ {
+  "state": "CO",
+  "session": 2243,
+  "year": 2026,
+  "special": 0,
+  "title": "2026 Regular Session",
+  "size": 6505958,
+  "access_key": "67RtJ6DgWQVREG30N2nCV2"
+ },
+ {
+  "state": "CO",
+  "session": 2173,
+  "year": 2025,
+  "special": 0,
+  "title": "2025 Regular Session",
+  "size": 6859651,
+  "access_key": "EzbfEVdVJ733VaBaICAWE"
+ },
+ {
+  "state": "CO",
+  "session": 2224,
+  "year": 2025,
+  "special": 1,
+  "title": "2025 1st Special Session",
+  "size": 322446,
+  "access_key": "GBm57C3wOwH86LpvNTVMC"
+ },
+ {
+  "state": "CO",
+  "session": 2116,
+  "year": 2024,
+  "special": 0,
+  "title": "2024 Regular Session",
+  "size": 6241794,
+  "access_key": "4N6zjIKQR7hYMo2bSngx5p"
+ },
+ {
+  "state": "CO",
+  "session": 2154,
+  "year": 2024,
+  "special": 1,
+  "title": "2024 1st Special Session",
+  "size": 105634,
+  "access_key": "772tdTj8b8vKaHyl0Yhg6U"
+ },
+ {
+  "state": "CO",
+  "session": 2017,
+  "year": 2023,
+  "special": 0,
+  "title": "2023 Regular Session",
+  "size": 5579847,
+  "access_key": "2ZJsLbWWafPM3C56WMuqh5"
+ },
+ {
+  "state": "CO",
+  "session": 2112,
+  "year": 2023,
+  "special": 1,
+  "title": "2023 1st Special Session",
+  "size": 133169,
+  "access_key": "2RFj3RqA2m4UuhBvWBH3eG"
+ },
+ {
+  "state": "CO",
+  "session": 1970,
+  "year": 2022,
+  "special": 0,
+  "title": "2022 Regular Session",
+  "size": 5798133,
+  "access_key": "2PNcEisxSjpQ7gzkRkfpgA"
+ },
+ {
+  "state": "CO",
+  "session": 1797,
+  "year": 2021,
+  "special": 0,
+  "title": "2021 Regular Session",
+  "size": 5692878,
+  "access_key": "5p7LNFVcLiijsbrVN5bhME"
+ },
+ {
+  "state": "CO",
+  "session": 1722,
+  "year": 2020,
+  "special": 0,
+  "title": "2020 Regular Session",
+  "size": 3205038,
+  "access_key": "7mhB2urZ0oVIyWmRJMbMql"
+ },
+ {
+  "state": "CO",
+  "session": 1789,
+  "year": 2020,
+  "special": 1,
+  "title": "2020 1st Special Session",
+  "size": 185859,
+  "access_key": "1ub8O0WMXSmBxn21lAIKxn"
+ },
+ {
+  "state": "CO",
+  "session": 1625,
+  "year": 2019,
+  "special": 0,
+  "title": "2019 Regular Session",
+  "size": 3873583,
+  "access_key": "3Z6p3yKM9Po5JHkEzVXsd6"
+ },
+ {
+  "state": "CO",
+  "session": 1522,
+  "year": 2018,
+  "special": 0,
+  "title": "2018 Regular Session",
+  "size": 4066858,
+  "access_key": "50KQc4BU56sqml2OnWN4ar"
+ },
+ {
+  "state": "CO",
+  "session": 1401,
+  "year": 2017,
+  "special": 0,
+  "title": "2017 Regular Session",
+  "size": 3553506,
+  "access_key": "1G6logG5kxUerBfzkk48Vw"
+ },
+ {
+  "state": "CO",
+  "session": 1477,
+  "year": 2017,
+  "special": 1,
+  "title": "2017 1st Special Session",
+  "size": 58346,
+  "access_key": "6bBWQBAfQsP1GlWsj6b0h5"
+ },
+ {
+  "state": "CO",
+  "session": 1195,
+  "year": 2016,
+  "special": 0,
+  "title": "2016 Regular Session",
+  "size": 4429546,
+  "access_key": "V3cNgkwWCem8kwAIuOjjs"
+ },
+ {
+  "state": "CO",
+  "session": 1121,
+  "year": 2015,
+  "special": 0,
+  "title": "2015 Regular Session",
+  "size": 3060506,
+  "access_key": "kfLhUTidweQeCCEh8wQ2D"
+ },
+ {
+  "state": "CO",
+  "session": 1077,
+  "year": 2014,
+  "special": 0,
+  "title": "2014 Regular Session",
+  "size": 3345519,
+  "access_key": "3VIZ9wT3C0BTABiwP3ultj"
+ },
+ {
+  "state": "CO",
+  "session": 994,
+  "year": 2013,
+  "special": 0,
+  "title": "2013 Regular Session",
+  "size": 4064994,
+  "access_key": "3lRhnpA8KuQ6mKnJzu4mkI"
+ },
+ {
+  "state": "CO",
+  "session": 925,
+  "year": 2012,
+  "special": 0,
+  "title": "2012 Regular Session",
+  "size": 3502209,
+  "access_key": "1e3ScvrlDJjiXXFlw8AybA"
+ },
+ {
+  "state": "CO",
+  "session": 111,
+  "year": 2011,
+  "special": 0,
+  "title": "2011 Regular Session",
+  "size": 2893976,
+  "access_key": "29CKneakhcLRmLFROGAclQ"
+ },
+ {
+  "state": "CO",
+  "session": 68,
+  "year": 2010,
+  "special": 0,
+  "title": "2010 Regular Session",
+  "size": 2099666,
+  "access_key": "53yOVGxxP6u96FOug3bQ6B"
+ },
+ {
+  "state": "CT",
+  "session": 2244,
+  "year": 2026,
+  "special": 0,
+  "title": "2026 Regular Session",
+  "size": 4841187,
+  "access_key": "1kSs5u437IDlok4NsoIZ7V"
+ },
+ {
+  "state": "CT",
+  "session": 2174,
+  "year": 2025,
+  "special": 0,
+  "title": "2025 Regular Session",
+  "size": 10344646,
+  "access_key": "2bSeVEjddPnKX4pbcdLtec"
+ },
+ {
+  "state": "CT",
+  "session": 2117,
+  "year": 2024,
+  "special": 0,
+  "title": "2024 Regular Session",
+  "size": 3859498,
+  "access_key": "7eP9Cp8nzKqhcIlViDBkh4"
+ },
+ {
+  "state": "CT",
+  "session": 2018,
+  "year": 2023,
+  "special": 0,
+  "title": "2023 Regular Session",
+  "size": 7598178,
+  "access_key": "2xFdsMG6VEFC8K91uyG6GS"
+ },
+ {
+  "state": "CT",
+  "session": 1952,
+  "year": 2022,
+  "special": 0,
+  "title": "2022 Regular Session",
+  "size": 3674136,
+  "access_key": "14Fxx8Y3ty9THF9vdRE6VH"
+ },
+ {
+  "state": "CT",
+  "session": 1798,
+  "year": 2021,
+  "special": 0,
+  "title": "2021 Regular Session",
+  "size": 6868113,
+  "access_key": "5avtyqzUJCZVcoxOe71qhG"
+ },
+ {
+  "state": "CT",
+  "session": 1723,
+  "year": 2020,
+  "special": 0,
+  "title": "2020 Regular Session",
+  "size": 2139155,
+  "access_key": "6FIsebyxU2hj4Tsid85U2X"
+ },
+ {
+  "state": "CT",
+  "session": 1626,
+  "year": 2019,
+  "special": 0,
+  "title": "2019 Regular Session",
+  "size": 7791047,
+  "access_key": "2lKo6Bpe8IdrO53QE23O74"
+ },
+ {
+  "state": "CT",
+  "session": 1523,
+  "year": 2018,
+  "special": 0,
+  "title": "2018 Regular Session",
+  "size": 3211322,
+  "access_key": "4j655LUpckO2II3735MyLA"
+ },
+ {
+  "state": "CT",
+  "session": 1402,
+  "year": 2017,
+  "special": 0,
+  "title": "2017 Regular Session",
+  "size": 6595411,
+  "access_key": "4LPiK9DBZ79OjXs1Xy78gi"
+ },
+ {
+  "state": "CT",
+  "session": 1196,
+  "year": 2016,
+  "special": 0,
+  "title": "2016 Regular Session",
+  "size": 2927659,
+  "access_key": "1gSHGJtLPQbQTYjxFdk2Y0"
+ },
+ {
+  "state": "CT",
+  "session": 1122,
+  "year": 2015,
+  "special": 0,
+  "title": "2015 Regular Session",
+  "size": 4962422,
+  "access_key": "3ZWm1H16aK1krTAnY2VTBE"
+ },
+ {
+  "state": "CT",
+  "session": 1078,
+  "year": 2014,
+  "special": 0,
+  "title": "2014 Regular Session",
+  "size": 2651976,
+  "access_key": "NZtMc5UEOwj5mvr8D6CDJ"
+ },
+ {
+  "state": "CT",
+  "session": 995,
+  "year": 2013,
+  "special": 0,
+  "title": "2013 Regular Session",
+  "size": 5223336,
+  "access_key": "6AhKgG7VnyPQe5DjpbJcI7"
+ },
+ {
+  "state": "CT",
+  "session": 955,
+  "year": 2012,
+  "special": 0,
+  "title": "2012 Regular Session",
+  "size": 2391527,
+  "access_key": "fV7NHVsMPn8f63jSPwlhz"
+ },
+ {
+  "state": "CT",
+  "session": 90,
+  "year": 2011,
+  "special": 0,
+  "title": "2011 Regular Session",
+  "size": 5006749,
+  "access_key": "1dw5ROudripZOJqLdaPunn"
+ },
+ {
+  "state": "CT",
+  "session": 45,
+  "year": 2010,
+  "special": 0,
+  "title": "2010 Regular Session",
+  "size": 2165109,
+  "access_key": "4cB4aODdgoKjyjxkPqwUrs"
+ },
+ {
+  "state": "DC",
+  "session": 2198,
+  "year": 2025,
+  "special": 0,
+  "title": "2025-2026 Regular Session",
+  "size": 4066028,
+  "access_key": "6CnIVlNuj8BYlh049bFemT"
+ },
+ {
+  "state": "DC",
+  "session": 2040,
+  "year": 2023,
+  "special": 0,
+  "title": "2023-2024 Regular Session",
+  "size": 4694790,
+  "access_key": "6qvGuKTOyoveF4DqLS6T6r"
+ },
+ {
+  "state": "DC",
+  "session": 1822,
+  "year": 2021,
+  "special": 0,
+  "title": "2021-2022 Regular Session",
+  "size": 5561796,
+  "access_key": "1HVksPakJDJcdOlJy9Xg64"
+ },
+ {
+  "state": "DC",
+  "session": 1657,
+  "year": 2019,
+  "special": 0,
+  "title": "2019-2020 Regular Session",
+  "size": 4439828,
+  "access_key": "1qVRzMkRW1X5peBliDtLCt"
+ },
+ {
+  "state": "DC",
+  "session": 1434,
+  "year": 2017,
+  "special": 0,
+  "title": "2017-2018 Regular Session",
+  "size": 4843626,
+  "access_key": "77oRSSqX17kvvgwfmpShkV"
+ },
+ {
+  "state": "DC",
+  "session": 1155,
+  "year": 2015,
+  "special": 0,
+  "title": "2015-2016 Regular Session",
+  "size": 4193942,
+  "access_key": "5gIMo4ESRAMOWplrCXaOOU"
+ },
+ {
+  "state": "DC",
+  "session": 1025,
+  "year": 2013,
+  "special": 0,
+  "title": "2013-2014 Regular Session",
+  "size": 4566868,
+  "access_key": "2eSZp2QpxBpak3KjQXVj8T"
+ },
+ {
+  "state": "DE",
+  "session": 2163,
+  "year": 2025,
+  "special": 0,
+  "title": "2025-2026 Regular Session",
+  "size": 5336088,
+  "access_key": "4NpGeXMLJwRcfPqRJVlmFV"
+ },
+ {
+  "state": "DE",
+  "session": 2005,
+  "year": 2023,
+  "special": 0,
+  "title": "2023-2024 Regular Session",
+  "size": 4122743,
+  "access_key": "3Wvgyj5mRR8EqBBONYVLSk"
+ },
+ {
+  "state": "DE",
+  "session": 1782,
+  "year": 2021,
+  "special": 0,
+  "title": "2021-2022 Regular Session",
+  "size": 3645890,
+  "access_key": "5PVaXOvgPBgH7GgmzESKjj"
+ },
+ {
+  "state": "DE",
+  "session": 1627,
+  "year": 2019,
+  "special": 0,
+  "title": "2019-2020 Regular Session",
+  "size": 2252644,
+  "access_key": "10hq0JVynfSp9E0cOSnK8W"
+ },
+ {
+  "state": "DE",
+  "session": 1403,
+  "year": 2017,
+  "special": 0,
+  "title": "2017-2018 Regular Session",
+  "size": 2919122,
+  "access_key": "2eaLHevZVevWvHqqId1jqH"
+ },
+ {
+  "state": "DE",
+  "session": 1123,
+  "year": 2015,
+  "special": 0,
+  "title": "2015-2016 Regular Session",
+  "size": 2720937,
+  "access_key": "5xq5IJWfBSiLCBSTPbbRa0"
+ },
+ {
+  "state": "DE",
+  "session": 996,
+  "year": 2013,
+  "special": 0,
+  "title": "2013-2014 Regular Session",
+  "size": 2787459,
+  "access_key": "4soE57rNHy0IEeclx5wMfQ"
+ },
+ {
+  "state": "DE",
+  "session": 104,
+  "year": 2011,
+  "special": 0,
+  "title": "2011-2012 Regular Session",
+  "size": 2685890,
+  "access_key": "4XzymZsWyelLGVk2DJEFQ2"
+ },
+ {
+  "state": "DE",
+  "session": 50,
+  "year": 2009,
+  "special": 0,
+  "title": "2009-2010 Regular Session",
+  "size": 2806327,
+  "access_key": "2braQKDrSUmNnaGAyY9SeO"
+ },
+ {
+  "state": "FL",
+  "session": 2220,
+  "year": 2026,
+  "special": 0,
+  "title": "2026 Regular Session",
+  "size": 6378520,
+  "access_key": "4uSFDhs1dlMAr3QW6juZk7"
+ },
+ {
+  "state": "FL",
+  "session": 2266,
+  "year": 2026,
+  "special": 1,
+  "title": "2026 6th Special Session",
+  "size": 166045,
+  "access_key": "6VXwjVoAxbiRV0cJVR1H0S"
+ },
+ {
+  "state": "FL",
+  "session": 2260,
+  "year": 2026,
+  "special": 1,
+  "title": "2026 5th Special Session",
+  "size": 243993,
+  "access_key": "6o1grM3WydlxUCbrdYvFSG"
+ },
+ {
+  "state": "FL",
+  "session": 2259,
+  "year": 2026,
+  "special": 1,
+  "title": "2026 4th Special Session",
+  "size": 157539,
+  "access_key": "3QSiyWQHsjcwU3F9kuDILK"
+ },
+ {
+  "state": "FL",
+  "session": 2135,
+  "year": 2025,
+  "special": 0,
+  "title": "2025 Regular Session",
+  "size": 6766874,
+  "access_key": "2MNqKsgtAwrcFAVcXduuNf"
+ },
+ {
+  "state": "FL",
+  "session": 2212,
+  "year": 2025,
+  "special": 1,
+  "title": "2025 3rd Special Session",
+  "size": 166553,
+  "access_key": "4V1FmwufS3whE8mgkuwW2o"
+ },
+ {
+  "state": "FL",
+  "session": 2203,
+  "year": 2025,
+  "special": 1,
+  "title": "2025 1st Special Session",
+  "size": 52483,
+  "access_key": "1DUbpm8dXbXuFDVSYVhTBM"
+ },
+ {
+  "state": "FL",
+  "session": 2204,
+  "year": 2025,
+  "special": 1,
+  "title": "2025 2nd Special Session",
+  "size": 152528,
+  "access_key": "3n1hD17nwtePbAdIhR5dqI"
+ },
+ {
+  "state": "FL",
+  "session": 2059,
+  "year": 2024,
+  "special": 0,
+  "title": "2024 Regular Session",
+  "size": 5715187,
+  "access_key": "4qP0qsaG8IBj0XXKHy90j5"
+ },
+ {
+  "state": "FL",
+  "session": 1987,
+  "year": 2023,
+  "special": 0,
+  "title": "2023 Regular Session",
+  "size": 5832879,
+  "access_key": "1NKR7eCUFvtwLO13paeb6v"
+ },
+ {
+  "state": "FL",
+  "session": 2105,
+  "year": 2023,
+  "special": 1,
+  "title": "2023 3rd Special Session",
+  "size": 144842,
+  "access_key": "2r5X2OHJcUjMQhaksxv9yi"
+ },
+ {
+  "state": "FL",
+  "session": 2047,
+  "year": 2023,
+  "special": 1,
+  "title": "2023 2nd Special Session",
+  "size": 128624,
+  "access_key": "7OWn8sPM80vkzbT4v6gnxq"
+ },
+ {
+  "state": "FL",
+  "session": 1841,
+  "year": 2022,
+  "special": 0,
+  "title": "2022 Regular Session",
+  "size": 8637812,
+  "access_key": "KIzm0esn9d2Ui0TGEXfXx"
+ },
+ {
+  "state": "FL",
+  "session": 2042,
+  "year": 2022,
+  "special": 1,
+  "title": "2022 1st Special Session",
+  "size": 111016,
+  "access_key": "1WWL7vKQX7PNoPTQ98dahJ"
+ },
+ {
+  "state": "FL",
+  "session": 1980,
+  "year": 2022,
+  "special": 1,
+  "title": "2022 4th Special Session",
+  "size": 114785,
+  "access_key": "36fHo80w39gyUoFuLSpv8Y"
+ },
+ {
+  "state": "FL",
+  "session": 1976,
+  "year": 2022,
+  "special": 1,
+  "title": "2022 3rd Special Session",
+  "size": 97194,
+  "access_key": "5m5qXx6t1pUSJygtI6FAnC"
+ },
+ {
+  "state": "FL",
+  "session": 1762,
+  "year": 2021,
+  "special": 0,
+  "title": "2021 Regular Session",
+  "size": 7444840,
+  "access_key": "4is1bMQBVoWhiBmZ1jS7V6"
+ },
+ {
+  "state": "FL",
+  "session": 1917,
+  "year": 2021,
+  "special": 1,
+  "title": "2021 2nd Special Session",
+  "size": 115254,
+  "access_key": "xjzb6bAUkLFfwb58tEuNg"
+ },
+ {
+  "state": "FL",
+  "session": 1832,
+  "year": 2021,
+  "special": 1,
+  "title": "2021 1st Special Session",
+  "size": 124178,
+  "access_key": "6p8CXG6MkjghIMyjM7uW0v"
+ },
+ {
+  "state": "FL",
+  "session": 1709,
+  "year": 2020,
+  "special": 0,
+  "title": "2020 Regular Session",
+  "size": 6024487,
+  "access_key": "5IJt7l54CJecJoyV5JnxM8"
+ },
+ {
+  "state": "FL",
+  "session": 1602,
+  "year": 2019,
+  "special": 0,
+  "title": "2019 Regular Session",
+  "size": 5919700,
+  "access_key": "1Wq09wrXCbLyWlWLybjIFd"
+ },
+ {
+  "state": "FL",
+  "session": 1469,
+  "year": 2018,
+  "special": 0,
+  "title": "2018 Regular Session",
+  "size": 5435279,
+  "access_key": "60ElROTLvilfoPIUw0I6OE"
+ },
+ {
+  "state": "FL",
+  "session": 1256,
+  "year": 2017,
+  "special": 0,
+  "title": "2017 Regular Session",
+  "size": 5587823,
+  "access_key": "Z9TX9j6k2o5A96HpqcWFp"
+ },
+ {
+  "state": "FL",
+  "session": 1461,
+  "year": 2017,
+  "special": 1,
+  "title": "2017 1st Special Session",
+  "size": 108475,
+  "access_key": "4azu6GMv3zXmYGFWfzNrCB"
+ },
+ {
+  "state": "FL",
+  "session": 1169,
+  "year": 2016,
+  "special": 0,
+  "title": "2016 Regular Session",
+  "size": 4008470,
+  "access_key": "1lDYKK0dQCWlRtbmtQrgmW"
+ },
+ {
+  "state": "FL",
+  "session": 1105,
+  "year": 2015,
+  "special": 0,
+  "title": "2015 Regular Session",
+  "size": 3719102,
+  "access_key": "1JBHe8qTXplHVXryU68bnx"
+ },
+ {
+  "state": "FL",
+  "session": 1179,
+  "year": 2015,
+  "special": 1,
+  "title": "2015 3rd Special Session",
+  "size": 86357,
+  "access_key": "3EsdyeiodXZI5pVgfajSSr"
+ },
+ {
+  "state": "FL",
+  "session": 1176,
+  "year": 2015,
+  "special": 1,
+  "title": "2015 2nd Special Session",
+  "size": 90626,
+  "access_key": "MHr1y5YMdt4WhAaUVsbZH"
+ },
+ {
+  "state": "FL",
+  "session": 1163,
+  "year": 2015,
+  "special": 1,
+  "title": "2015 1st Special Session",
+  "size": 200248,
+  "access_key": "7F1OFEy51UQE5i04o53C8y"
+ },
+ {
+  "state": "FL",
+  "session": 1046,
+  "year": 2014,
+  "special": 0,
+  "title": "2014 Regular Session",
+  "size": 4047196,
+  "access_key": "6EI3eB8TKR8G6yJz5SA7xK"
+ },
+ {
+  "state": "FL",
+  "session": 1110,
+  "year": 2014,
+  "special": 1,
+  "title": "2014 1st Special Session",
+  "size": 92775,
+  "access_key": "5UL0LhzDGjBYhUcIfUrEuZ"
+ },
+ {
+  "state": "FL",
+  "session": 961,
+  "year": 2013,
+  "special": 0,
+  "title": "2013 Regular Session",
+  "size": 4160473,
+  "access_key": "2Cj57HW0Gjd3IpbVd0twxo"
+ },
+ {
+  "state": "FL",
+  "session": 288,
+  "year": 2012,
+  "special": 0,
+  "title": "2012 Regular Session",
+  "size": 4321834,
+  "access_key": "151ma1NqHNlgWfXkAURO3s"
+ },
+ {
+  "state": "FL",
+  "session": 960,
+  "year": 2012,
+  "special": 1,
+  "title": "2012 2nd Special Session",
+  "size": 9129,
+  "access_key": "561SJXBG6SgyPZKeEEqmsi"
+ },
+ {
+  "state": "FL",
+  "session": 130,
+  "year": 2011,
+  "special": 0,
+  "title": "2011 Regular Session",
+  "size": 4154670,
+  "access_key": "133ZKmgj4tvweewh3WGj9E"
+ },
+ {
+  "state": "FL",
+  "session": 35,
+  "year": 2010,
+  "special": 0,
+  "title": "2010 Regular Session",
+  "size": 5088757,
+  "access_key": "4bG369XzJ2XOjlN39GeaKx"
+ },
+ {
+  "state": "FL",
+  "session": 287,
+  "year": 2010,
+  "special": 1,
+  "title": "2010 1st Special Session",
+  "size": 41143,
+  "access_key": "5pbY3a7sEI3cR8MRIOmlSk"
+ },
+ {
+  "state": "FL",
+  "session": 286,
+  "year": 2010,
+  "special": 1,
+  "title": "2010 Organizational Session",
+  "size": 8096,
+  "access_key": "3519v47PbVVrHaVTVEj9En"
+ },
+ {
+  "state": "GA",
+  "session": 2268,
+  "year": 2026,
+  "special": 1,
+  "title": "2026 1st Special Session",
+  "size": 842390,
+  "access_key": "bAjxC03rJv0IQRMSIBXsj"
+ },
+ {
+  "state": "GA",
+  "session": 2167,
+  "year": 2025,
+  "special": 0,
+  "title": "2025-2026 Regular Session",
+  "size": 16014830,
+  "access_key": "6LO6PoxbI9TH0RtLdLIsqQ"
+ },
+ {
+  "state": "GA",
+  "session": 2008,
+  "year": 2023,
+  "special": 0,
+  "title": "2023-2024 Regular Session",
+  "size": 9980011,
+  "access_key": "6hULxRB8YmEqkEWjrMe55I"
+ },
+ {
+  "state": "GA",
+  "session": 2114,
+  "year": 2023,
+  "special": 1,
+  "title": "2023 1st Special Session",
+  "size": 238212,
+  "access_key": "16EueTyUaWxgWPQPAEg4C8"
+ },
+ {
+  "state": "GA",
+  "session": 1786,
+  "year": 2021,
+  "special": 0,
+  "title": "2021-2022 Regular Session",
+  "size": 9916009,
+  "access_key": "xDAmMYbWidpu0hah42YdF"
+ },
+ {
+  "state": "GA",
+  "session": 1919,
+  "year": 2021,
+  "special": 1,
+  "title": "2021 1st Special Session",
+  "size": 336061,
+  "access_key": "5cQYDxf1pvej9r37oWgpfU"
+ },
+ {
+  "state": "GA",
+  "session": 1738,
+  "year": 2020,
+  "special": 1,
+  "title": "2020 1st Special Session",
+  "size": 121642,
+  "access_key": "3tEeu4i6zoCJ2NoiGdER4S"
+ },
+ {
+  "state": "GA",
+  "session": 1618,
+  "year": 2019,
+  "special": 0,
+  "title": "2019-2020 Regular Session",
+  "size": 8422959,
+  "access_key": "73NA3lIWMy7XAf0v8gnD7y"
+ },
+ {
+  "state": "GA",
+  "session": 1614,
+  "year": 2018,
+  "special": 1,
+  "title": "2018 1st Special Session",
+  "size": 166313,
+  "access_key": "1nQXCy95QP1GQT7FQwCLu7"
+ },
+ {
+  "state": "GA",
+  "session": 1404,
+  "year": 2017,
+  "special": 0,
+  "title": "2017-2018 Regular Session",
+  "size": 8473219,
+  "access_key": "70iJcHgKvjSjCJV5OYozEY"
+ },
+ {
+  "state": "GA",
+  "session": 1124,
+  "year": 2015,
+  "special": 0,
+  "title": "2015-2016 Regular Session",
+  "size": 8731675,
+  "access_key": "2A3MITa242c1fXnQhfbYvD"
+ },
+ {
+  "state": "GA",
+  "session": 971,
+  "year": 2013,
+  "special": 0,
+  "title": "2013-2014 Regular Session",
+  "size": 8683123,
+  "access_key": "1Szt24YYyUfruxH9vxz4kO"
+ },
+ {
+  "state": "GA",
+  "session": 100,
+  "year": 2011,
+  "special": 0,
+  "title": "2011-2012 Regular Session",
+  "size": 9630618,
+  "access_key": "X1UbSsvarKGXtf6r7sXDH"
+ },
+ {
+  "state": "GA",
+  "session": 33,
+  "year": 2009,
+  "special": 0,
+  "title": "2009-2010 Regular Session",
+  "size": 10059124,
+  "access_key": "6Yibt5fbmVcssIqv9jf3FK"
+ },
+ {
+  "state": "HI",
+  "session": 2245,
+  "year": 2026,
+  "special": 0,
+  "title": "2026 Regular Session",
+  "size": 21395931,
+  "access_key": "2UldcpJ31dhoOjJc41DNo8"
+ },
+ {
+  "state": "HI",
+  "session": 2175,
+  "year": 2025,
+  "special": 0,
+  "title": "2025 Regular Session",
+  "size": 13678645,
+  "access_key": "1bFcGvRPPSqMPKfd09Ob6X"
+ },
+ {
+  "state": "HI",
+  "session": 2118,
+  "year": 2024,
+  "special": 0,
+  "title": "2024 Regular Session",
+  "size": 15622105,
+  "access_key": "6NeDkpQ5qw8Fr3uwR1J2Sk"
+ },
+ {
+  "state": "HI",
+  "session": 2019,
+  "year": 2023,
+  "special": 0,
+  "title": "2023 Regular Session",
+  "size": 10207476,
+  "access_key": "4p8sRBbhEz89Mzh0P9ZzLz"
+ },
+ {
+  "state": "HI",
+  "session": 1953,
+  "year": 2022,
+  "special": 0,
+  "title": "2022 Regular Session",
+  "size": 15996366,
+  "access_key": "7E5KnQhTaHHE5nMnUxSLEO"
+ },
+ {
+  "state": "HI",
+  "session": 1799,
+  "year": 2021,
+  "special": 0,
+  "title": "2021 Regular Session",
+  "size": 9532954,
+  "access_key": "2f0FZKJn4JbNiAXYgkArGV"
+ },
+ {
+  "state": "HI",
+  "session": 1724,
+  "year": 2020,
+  "special": 0,
+  "title": "2020 Regular Session",
+  "size": 15361101,
+  "access_key": "5S90rEhPyU20LsDMT0qFCQ"
+ },
+ {
+  "state": "HI",
+  "session": 1628,
+  "year": 2019,
+  "special": 0,
+  "title": "2019 Regular Session",
+  "size": 8513907,
+  "access_key": "2LVOdCIDlpE82aJwZcIuYR"
+ },
+ {
+  "state": "HI",
+  "session": 1710,
+  "year": 2019,
+  "special": 1,
+  "title": "2019 1st Special Session",
+  "size": 8619,
+  "access_key": "2JA4nzPxVVr9bkmp7ZJ0E3"
+ },
+ {
+  "state": "HI",
+  "session": 1715,
+  "year": 2019,
+  "special": 1,
+  "title": "2019 2nd Special Session",
+  "size": 8642,
+  "access_key": "7IYxolYDQFTqpleC5VRSr9"
+ },
+ {
+  "state": "HI",
+  "session": 1524,
+  "year": 2018,
+  "special": 0,
+  "title": "2018 Regular Session",
+  "size": 12224710,
+  "access_key": "5COjsvssNR4cgcW4qeUNQn"
+ },
+ {
+  "state": "HI",
+  "session": 1590,
+  "year": 2018,
+  "special": 1,
+  "title": "2018 1st Special Session",
+  "size": 7653,
+  "access_key": "45OWcvo5Y494IfSzQ7eZgI"
+ },
+ {
+  "state": "HI",
+  "session": 1405,
+  "year": 2017,
+  "special": 0,
+  "title": "2017 Regular Session",
+  "size": 7279402,
+  "access_key": "3Wd47MEzANqaMUjZjYiP7v"
+ },
+ {
+  "state": "HI",
+  "session": 1478,
+  "year": 2017,
+  "special": 1,
+  "title": "2017 2nd Special Session",
+  "size": 8095,
+  "access_key": "GSlAUpZet2W5x36CrfRem"
+ },
+ {
+  "state": "HI",
+  "session": 1474,
+  "year": 2017,
+  "special": 1,
+  "title": "2017 1st Special Session",
+  "size": 36610,
+  "access_key": "7JPEukqMhAwfQBVysdv7lJ"
+ },
+ {
+  "state": "HI",
+  "session": 1197,
+  "year": 2016,
+  "special": 0,
+  "title": "2016 Regular Session",
+  "size": 11302639,
+  "access_key": "5qOKP3IzHxufb3Sif8bRnL"
+ },
+ {
+  "state": "HI",
+  "session": 1252,
+  "year": 2016,
+  "special": 1,
+  "title": "2016 2nd Special Session",
+  "size": 18155,
+  "access_key": "cURfdf2TiwMwLUa3fm3aX"
+ },
+ {
+  "state": "HI",
+  "session": 1244,
+  "year": 2016,
+  "special": 1,
+  "title": "2016 1st Special Session",
+  "size": 8598,
+  "access_key": "7KEKacPby0WiAMXhKDPoV"
+ },
+ {
+  "state": "HI",
+  "session": 1125,
+  "year": 2015,
+  "special": 0,
+  "title": "2015 Regular Session",
+  "size": 6995682,
+  "access_key": "7AExurg9ubX2J3500bkews"
+ },
+ {
+  "state": "HI",
+  "session": 1186,
+  "year": 2015,
+  "special": 1,
+  "title": "2015 1st Special Session",
+  "size": 8583,
+  "access_key": "6Oe2mCL1XWtPEabsOjphau"
+ },
+ {
+  "state": "HI",
+  "session": 1079,
+  "year": 2014,
+  "special": 0,
+  "title": "2014 Regular Session",
+  "size": 10487317,
+  "access_key": "48IBMRR31eNRzYtIj53mT6"
+ },
+ {
+  "state": "HI",
+  "session": 1158,
+  "year": 2014,
+  "special": 1,
+  "title": "2014 1st Special Session",
+  "size": 8486,
+  "access_key": "1ppZ7O0NwH2vdFUs1QbM5m"
+ },
+ {
+  "state": "HI",
+  "session": 997,
+  "year": 2013,
+  "special": 0,
+  "title": "2013 Regular Session",
+  "size": 6974146,
+  "access_key": "cdApko1zSHVdlTkwJTvFH"
+ },
+ {
+  "state": "HI",
+  "session": 927,
+  "year": 2012,
+  "special": 0,
+  "title": "2012 Regular Session",
+  "size": 11147521,
+  "access_key": "cwi4h4ovcaoBurQaJqQU5"
+ },
+ {
+  "state": "HI",
+  "session": 124,
+  "year": 2011,
+  "special": 0,
+  "title": "2011 Regular Session",
+  "size": 7292220,
+  "access_key": "390zTtPMkwvl0xCUYSOVx"
+ },
+ {
+  "state": "HI",
+  "session": 63,
+  "year": 2010,
+  "special": 0,
+  "title": "2010 Regular Session",
+  "size": 11442684,
+  "access_key": "3X5KNy9GclWrAycmWQqczu"
+ },
+ {
+  "state": "IA",
+  "session": 2177,
+  "year": 2025,
+  "special": 0,
+  "title": "2025-2026 Regular Session",
+  "size": 9319501,
+  "access_key": "1IrBBCV6W2sfSfJyC4lPP6"
+ },
+ {
+  "state": "IA",
+  "session": 2022,
+  "year": 2023,
+  "special": 0,
+  "title": "2023-2024 Regular Session",
+  "size": 7395312,
+  "access_key": "4Zv9lWx3DWy6VR2ApcOwFF"
+ },
+ {
+  "state": "IA",
+  "session": 1803,
+  "year": 2021,
+  "special": 0,
+  "title": "2021-2022 Regular Session",
+  "size": 6601092,
+  "access_key": "4H15bA3vAWHKDNSkkfdNbU"
+ },
+ {
+  "state": "IA",
+  "session": 1632,
+  "year": 2019,
+  "special": 0,
+  "title": "2019-2020 Regular Session",
+  "size": 5930691,
+  "access_key": "3iIZSM7Y4MfC4eDOsCYvIW"
+ },
+ {
+  "state": "IA",
+  "session": 1409,
+  "year": 2017,
+  "special": 0,
+  "title": "2017-2018 Regular Session",
+  "size": 5345610,
+  "access_key": "3BYv7PoBOklMuztBpUgGrT"
+ },
+ {
+  "state": "IA",
+  "session": 1129,
+  "year": 2015,
+  "special": 0,
+  "title": "2015-2016 Regular Session",
+  "size": 4729346,
+  "access_key": "5OdHARjWu2Tgf17TqwJX4D"
+ },
+ {
+  "state": "IA",
+  "session": 1001,
+  "year": 2013,
+  "special": 0,
+  "title": "2013-2014 Regular Session",
+  "size": 4286483,
+  "access_key": "3pSoAqWqgWtaUkJ3wxgfne"
+ },
+ {
+  "state": "IA",
+  "session": 119,
+  "year": 2011,
+  "special": 0,
+  "title": "2011-2012 Regular Session",
+  "size": 3508583,
+  "access_key": "4T3AWqLj0o3suyUEEHU40O"
+ },
+ {
+  "state": "IA",
+  "session": 52,
+  "year": 2009,
+  "special": 0,
+  "title": "2009-2010 Regular Session",
+  "size": 3257256,
+  "access_key": "3GPYP7RqgtHz0jkHZj64tw"
+ },
+ {
+  "state": "ID",
+  "session": 2246,
+  "year": 2026,
+  "special": 0,
+  "title": "2026 Regular Session",
+  "size": 2161745,
+  "access_key": "7OIsLCpHfZVsBkVOqU42Ny"
+ },
+ {
+  "state": "ID",
+  "session": 2168,
+  "year": 2025,
+  "special": 0,
+  "title": "2025 Regular Session",
+  "size": 2159332,
+  "access_key": "4yjywqat5ITG8387F28ItU"
+ },
+ {
+  "state": "ID",
+  "session": 2119,
+  "year": 2024,
+  "special": 0,
+  "title": "2024 Regular Session",
+  "size": 1856240,
+  "access_key": "6YJzwj1MWQ5R6LkAaCOa43"
+ },
+ {
+  "state": "ID",
+  "session": 2011,
+  "year": 2023,
+  "special": 0,
+  "title": "2023 Regular Session",
+  "size": 1637467,
+  "access_key": "5El5AcZVMgcPjHO2GPbqSF"
+ },
+ {
+  "state": "ID",
+  "session": 1954,
+  "year": 2022,
+  "special": 0,
+  "title": "2022 Regular Session",
+  "size": 1600833,
+  "access_key": "5UQaLmhUsP0Hnt91Z22Myn"
+ },
+ {
+  "state": "ID",
+  "session": 1994,
+  "year": 2022,
+  "special": 1,
+  "title": "2022 1st Special Session",
+  "size": 59478,
+  "access_key": "1lERgcuyWo5LCYGVFhvDoD"
+ },
+ {
+  "state": "ID",
+  "session": 1800,
+  "year": 2021,
+  "special": 0,
+  "title": "2021 Regular Session",
+  "size": 1756160,
+  "access_key": "1uvVocwSTtgjqm5LyDNit8"
+ },
+ {
+  "state": "ID",
+  "session": 1725,
+  "year": 2020,
+  "special": 0,
+  "title": "2020 Regular Session",
+  "size": 1490539,
+  "access_key": "rRryFWNZx0IIDl3vVdpUL"
+ },
+ {
+  "state": "ID",
+  "session": 1766,
+  "year": 2020,
+  "special": 1,
+  "title": "2020 1st Special Session",
+  "size": 72786,
+  "access_key": "2HAjsOF88ijXma68QPkFqT"
+ },
+ {
+  "state": "ID",
+  "session": 1629,
+  "year": 2019,
+  "special": 0,
+  "title": "2019 Regular Session",
+  "size": 1417644,
+  "access_key": "32B1y3Y4NxOkzt0BkUrI8A"
+ },
+ {
+  "state": "ID",
+  "session": 1525,
+  "year": 2018,
+  "special": 0,
+  "title": "2018 Regular Session",
+  "size": 1498669,
+  "access_key": "3EFWtFVdqBQPiGePJkTaYL"
+ },
+ {
+  "state": "ID",
+  "session": 1406,
+  "year": 2017,
+  "special": 0,
+  "title": "2017 Regular Session",
+  "size": 1472703,
+  "access_key": "4T6bs4iXrglLl9iVXE0Y4D"
+ },
+ {
+  "state": "ID",
+  "session": 1198,
+  "year": 2016,
+  "special": 0,
+  "title": "2016 Regular Session",
+  "size": 1586731,
+  "access_key": "42MSKh9GSQFsD3m1iQgutQ"
+ },
+ {
+  "state": "ID",
+  "session": 1126,
+  "year": 2015,
+  "special": 0,
+  "title": "2015 Regular Session",
+  "size": 1506308,
+  "access_key": "5rSUrEW1IhGuHBUI74WI6o"
+ },
+ {
+  "state": "ID",
+  "session": 1162,
+  "year": 2015,
+  "special": 1,
+  "title": "2015 1st Special Session",
+  "size": 54468,
+  "access_key": "52qoBbt0MG9NlTemMmI0Ft"
+ },
+ {
+  "state": "ID",
+  "session": 1080,
+  "year": 2014,
+  "special": 0,
+  "title": "2014 Regular Session",
+  "size": 1538863,
+  "access_key": "7f1mAE6LmcW1onyP0GOV0N"
+ },
+ {
+  "state": "ID",
+  "session": 998,
+  "year": 2013,
+  "special": 0,
+  "title": "2013 Regular Session",
+  "size": 1525924,
+  "access_key": "Ts9o7cUQ2Q2pxivpnYgFl"
+ },
+ {
+  "state": "ID",
+  "session": 922,
+  "year": 2012,
+  "special": 0,
+  "title": "2012 Regular Session",
+  "size": 1449347,
+  "access_key": "4i5CMuVNLvRkkaYzs6vzdV"
+ },
+ {
+  "state": "ID",
+  "session": 101,
+  "year": 2011,
+  "special": 0,
+  "title": "2011 Regular Session",
+  "size": 1285193,
+  "access_key": "39jQcYLvonrhtpeQlPieHF"
+ },
+ {
+  "state": "ID",
+  "session": 51,
+  "year": 2010,
+  "special": 0,
+  "title": "2010 Regular Session",
+  "size": 806055,
+  "access_key": "1pvfMYjTHRzV7zfLufK579"
+ },
+ {
+  "state": "IL",
+  "session": 2176,
+  "year": 2025,
+  "special": 0,
+  "title": "2025-2026 Regular Session",
+  "size": 37310955,
+  "access_key": "1zFEzWeaUXOJprUtgf7qmV"
+ },
+ {
+  "state": "IL",
+  "session": 2020,
+  "year": 2023,
+  "special": 0,
+  "title": "2023-2024 Regular Session",
+  "size": 25206316,
+  "access_key": "12BabyXrBfsziQWegOXccK"
+ },
+ {
+  "state": "IL",
+  "session": 1801,
+  "year": 2021,
+  "special": 0,
+  "title": "2021-2022 Regular Session",
+  "size": 25162429,
+  "access_key": "sVZDw4ehMUL70L8Xzuw8v"
+ },
+ {
+  "state": "IL",
+  "session": 1630,
+  "year": 2019,
+  "special": 0,
+  "title": "2019-2020 Regular Session",
+  "size": 23069672,
+  "access_key": "3u74gBgSnWGw0E5esx6lYB"
+ },
+ {
+  "state": "IL",
+  "session": 1407,
+  "year": 2017,
+  "special": 0,
+  "title": "2017-2018 Regular Session",
+  "size": 26150201,
+  "access_key": "1obzAQV0OmoSeu8Kfc2bR5"
+ },
+ {
+  "state": "IL",
+  "session": 1127,
+  "year": 2015,
+  "special": 0,
+  "title": "2015-2016 Regular Session",
+  "size": 25828481,
+  "access_key": "4vFpSvQyeAGsH1DUNWdfyf"
+ },
+ {
+  "state": "IL",
+  "session": 999,
+  "year": 2013,
+  "special": 0,
+  "title": "2013-2014 Regular Session",
+  "size": 24501603,
+  "access_key": "4IJSiZW82LTA5ogUiHKGOc"
+ },
+ {
+  "state": "IL",
+  "session": 112,
+  "year": 2011,
+  "special": 0,
+  "title": "2011-2012 Regular Session",
+  "size": 23987485,
+  "access_key": "ATWyJoZ4Ml7zCLsGodCQc"
+ },
+ {
+  "state": "IL",
+  "session": 21,
+  "year": 2009,
+  "special": 0,
+  "title": "2009-2010 Regular Session",
+  "size": 25816773,
+  "access_key": "4tRozeHzlGOjRQgeJBDSqn"
+ },
+ {
+  "state": "IN",
+  "session": 2234,
+  "year": 2026,
+  "special": 0,
+  "title": "2026 Regular Session",
+  "size": 3514179,
+  "access_key": "1rQ9fd5b6cP4bIVzIGWGLG"
+ },
+ {
+  "state": "IN",
+  "session": 2143,
+  "year": 2025,
+  "special": 0,
+  "title": "2025 Regular Session",
+  "size": 5404177,
+  "access_key": "2OZT56pMuywSAUxFHz8iTz"
+ },
+ {
+  "state": "IN",
+  "session": 2106,
+  "year": 2024,
+  "special": 0,
+  "title": "2024 Regular Session",
+  "size": 2581875,
+  "access_key": "4k0nXvn1RuYip3k34UNCP8"
+ },
+ {
+  "state": "IN",
+  "session": 2021,
+  "year": 2023,
+  "special": 0,
+  "title": "2023 Regular Session",
+  "size": 3404674,
+  "access_key": "4ZWD6PwQa6ZMrPescBXttg"
+ },
+ {
+  "state": "IN",
+  "session": 1955,
+  "year": 2022,
+  "special": 0,
+  "title": "2022 Regular Session",
+  "size": 3147826,
+  "access_key": "2on8NCUNFBK8mBhII3niL9"
+ },
+ {
+  "state": "IN",
+  "session": 1990,
+  "year": 2022,
+  "special": 1,
+  "title": "2022 1st Special Session",
+  "size": 193673,
+  "access_key": "3vQO4TItculO1zMtSAqFzr"
+ },
+ {
+  "state": "IN",
+  "session": 1802,
+  "year": 2021,
+  "special": 0,
+  "title": "2021 Regular Session",
+  "size": 3740685,
+  "access_key": "4kKFZnIhvKZ6V3igKMbpcA"
+ },
+ {
+  "state": "IN",
+  "session": 1719,
+  "year": 2020,
+  "special": 0,
+  "title": "2020 Regular Session",
+  "size": 2953521,
+  "access_key": "15pgXnMMFvBwwZwV7h4eUy"
+ },
+ {
+  "state": "IN",
+  "session": 1631,
+  "year": 2019,
+  "special": 0,
+  "title": "2019 Regular Session",
+  "size": 4412759,
+  "access_key": "6D9dSxVqayOFSGLDSRbLTR"
+ },
+ {
+  "state": "IN",
+  "session": 1526,
+  "year": 2018,
+  "special": 0,
+  "title": "2018 Regular Session",
+  "size": 2999039,
+  "access_key": "2DmUlkExBETGB2ytIUfa3D"
+ },
+ {
+  "state": "IN",
+  "session": 1578,
+  "year": 2018,
+  "special": 1,
+  "title": "2018 1st Special Session",
+  "size": 102902,
+  "access_key": "5zoWqHFbK9ipsmbFAcUC72"
+ },
+ {
+  "state": "IN",
+  "session": 1408,
+  "year": 2017,
+  "special": 0,
+  "title": "2017 Regular Session",
+  "size": 3826324,
+  "access_key": "7KIsEwKWaM9ghTJjYOgIn7"
+ },
+ {
+  "state": "IN",
+  "session": 1199,
+  "year": 2016,
+  "special": 0,
+  "title": "2016 Regular Session",
+  "size": 2888331,
+  "access_key": "6tgzo2JC5Zg5hUlmYkPL4y"
+ },
+ {
+  "state": "IN",
+  "session": 1128,
+  "year": 2015,
+  "special": 0,
+  "title": "2015 Regular Session",
+  "size": 3870487,
+  "access_key": "5jzOHxJQqTVOpvfobF17an"
+ },
+ {
+  "state": "IN",
+  "session": 1081,
+  "year": 2014,
+  "special": 0,
+  "title": "2014 Regular Session",
+  "size": 3078921,
+  "access_key": "6MfFb2i9SwaC7S7XgawOhW"
+ },
+ {
+  "state": "IN",
+  "session": 1000,
+  "year": 2013,
+  "special": 0,
+  "title": "2013 Regular Session",
+  "size": 3273583,
+  "access_key": "37r7AQb27goaJaslHcbalZ"
+ },
+ {
+  "state": "IN",
+  "session": 342,
+  "year": 2012,
+  "special": 0,
+  "title": "2012 Regular Session",
+  "size": 2355221,
+  "access_key": "5UcrvK2NKoignR2ZcXNu4t"
+ },
+ {
+  "state": "IN",
+  "session": 105,
+  "year": 2011,
+  "special": 0,
+  "title": "2011 Regular Session",
+  "size": 3333207,
+  "access_key": "6vwqCn47eoqOzryDi3INh5"
+ },
+ {
+  "state": "IN",
+  "session": 32,
+  "year": 2010,
+  "special": 0,
+  "title": "2010 Regular Session",
+  "size": 1575404,
+  "access_key": "1lRhqkO7rPYnR2H7cRtBZd"
+ },
+ {
+  "state": "KS",
+  "session": 2178,
+  "year": 2025,
+  "special": 0,
+  "title": "2025-2026 Regular Session",
+  "size": 4287992,
+  "access_key": "2FoyVyopTyKTvZ80Of84PL"
+ },
+ {
+  "state": "KS",
+  "session": 2147,
+  "year": 2024,
+  "special": 1,
+  "title": "2024 1st Special Session",
+  "size": 110945,
+  "access_key": "12xQs1nBSqD6T67MC6pFsd"
+ },
+ {
+  "state": "KS",
+  "session": 2023,
+  "year": 2023,
+  "special": 0,
+  "title": "2023-2024 Regular Session",
+  "size": 3664769,
+  "access_key": "3vWaVPPStSNeK1kmjgG4VJ"
+ },
+ {
+  "state": "KS",
+  "session": 1804,
+  "year": 2021,
+  "special": 0,
+  "title": "2021-2022 Regular Session",
+  "size": 3350543,
+  "access_key": "MMPkBH3CLh2qMR9PGuCqO"
+ },
+ {
+  "state": "KS",
+  "session": 1950,
+  "year": 2021,
+  "special": 1,
+  "title": "2021 1st Special Session",
+  "size": 101403,
+  "access_key": "7mVEB1YtrCCjotgakro0mc"
+ },
+ {
+  "state": "KS",
+  "session": 1746,
+  "year": 2020,
+  "special": 1,
+  "title": "2020 1st Special Session",
+  "size": 132759,
+  "access_key": "2GdCVcy8qM4X6I1Sg7lDKL"
+ },
+ {
+  "state": "KS",
+  "session": 1633,
+  "year": 2019,
+  "special": 0,
+  "title": "2019-2020 Regular Session",
+  "size": 2459301,
+  "access_key": "3eLruuGvAqdRt3hJXZske9"
+ },
+ {
+  "state": "KS",
+  "session": 1410,
+  "year": 2017,
+  "special": 0,
+  "title": "2017-2018 Regular Session",
+  "size": 2946917,
+  "access_key": "22qldYMuV1dD1g6xDlFHLr"
+ },
+ {
+  "state": "KS",
+  "session": 1245,
+  "year": 2016,
+  "special": 1,
+  "title": "2016 1st Special Session",
+  "size": 43147,
+  "access_key": "14P7GnTA1wCSXGLnCsXepx"
+ },
+ {
+  "state": "KS",
+  "session": 1130,
+  "year": 2015,
+  "special": 0,
+  "title": "2015-2016 Regular Session",
+  "size": 2931310,
+  "access_key": "4ZnUl9gbHKMgCXXXs84zIl"
+ },
+ {
+  "state": "KS",
+  "session": 1002,
+  "year": 2013,
+  "special": 0,
+  "title": "2013-2014 Regular Session",
+  "size": 2998149,
+  "access_key": "4RmRGPQ1co7uGIBWUPamty"
+ },
+ {
+  "state": "KS",
+  "session": 120,
+  "year": 2011,
+  "special": 0,
+  "title": "2011-2012 Regular Session",
+  "size": 3413996,
+  "access_key": "5IXudTAFROwFH54Jd10kgN"
+ },
+ {
+  "state": "KS",
+  "session": 73,
+  "year": 2009,
+  "special": 0,
+  "title": "2009-2010 Regular Session",
+  "size": 1846693,
+  "access_key": "3ORoUBgMjG4z5tCzMg6WoC"
+ },
+ {
+  "state": "KY",
+  "session": 2247,
+  "year": 2026,
+  "special": 0,
+  "title": "2026 Regular Session",
+  "size": 4923951,
+  "access_key": "VhQxhQa697HyGOwbMITT0"
+ },
+ {
+  "state": "KY",
+  "session": 2179,
+  "year": 2025,
+  "special": 0,
+  "title": "2025 Regular Session",
+  "size": 3937249,
+  "access_key": "TN0b313mIK4mZFR2hFHGs"
+ },
+ {
+  "state": "KY",
+  "session": 2120,
+  "year": 2024,
+  "special": 0,
+  "title": "2024 Regular Session",
+  "size": 3843109,
+  "access_key": "1RC6ehKuGj9icCcxUc2PVU"
+ },
+ {
+  "state": "KY",
+  "session": 2024,
+  "year": 2023,
+  "special": 0,
+  "title": "2023 Regular Session",
+  "size": 2747007,
+  "access_key": "7d4lIox5sZqpQway8kF2U2"
+ },
+ {
+  "state": "KY",
+  "session": 1853,
+  "year": 2022,
+  "special": 0,
+  "title": "2022 Regular Session",
+  "size": 3697337,
+  "access_key": "7BdcypTbv20NOMZDc5ei2X"
+ },
+ {
+  "state": "KY",
+  "session": 1993,
+  "year": 2022,
+  "special": 1,
+  "title": "2022 1st Special Session",
+  "size": 102766,
+  "access_key": "7JLA7qfMOJYBHl0DGGpxar"
+ },
+ {
+  "state": "KY",
+  "session": 1747,
+  "year": 2021,
+  "special": 0,
+  "title": "2021 Regular Session",
+  "size": 2830310,
+  "access_key": "6bU2enXRfAPKm1CEzIRqzv"
+ },
+ {
+  "state": "KY",
+  "session": 1849,
+  "year": 2021,
+  "special": 1,
+  "title": "2021 1st Special Session",
+  "size": 157669,
+  "access_key": "7N12RTiGUOWbxXnP0RHdcI"
+ },
+ {
+  "state": "KY",
+  "session": 1664,
+  "year": 2020,
+  "special": 0,
+  "title": "2020 Regular Session",
+  "size": 2905192,
+  "access_key": "1StrCBOG9bR6AzIfJ7LkR3"
+ },
+ {
+  "state": "KY",
+  "session": 1585,
+  "year": 2019,
+  "special": 0,
+  "title": "2019 Regular Session",
+  "size": 2884636,
+  "access_key": "5k22kc46VBu3ejz84ZAgfd"
+ },
+ {
+  "state": "KY",
+  "session": 1708,
+  "year": 2019,
+  "special": 1,
+  "title": "2019 1st Special Session",
+  "size": 188957,
+  "access_key": "6N5uMaw4Zx4CNidcI5ISSp"
+ },
+ {
+  "state": "KY",
+  "session": 1470,
+  "year": 2018,
+  "special": 0,
+  "title": "2018 Regular Session",
+  "size": 3345819,
+  "access_key": "3luAJoYA9l9zinMOAmQ7A1"
+ },
+ {
+  "state": "KY",
+  "session": 1660,
+  "year": 2018,
+  "special": 1,
+  "title": "2018 1st Special Session",
+  "size": 17901,
+  "access_key": "fyGs22C0igrpJcvfjGuWO"
+ },
+ {
+  "state": "KY",
+  "session": 1257,
+  "year": 2017,
+  "special": 0,
+  "title": "2017 Regular Session",
+  "size": 2218209,
+  "access_key": "6dKyVTgYxpkMQTcJpgItcv"
+ },
+ {
+  "state": "KY",
+  "session": 1161,
+  "year": 2016,
+  "special": 0,
+  "title": "2016 Regular Session",
+  "size": 2835560,
+  "access_key": "27cXaTjFb958jOI38zlg8O"
+ },
+ {
+  "state": "KY",
+  "session": 1103,
+  "year": 2015,
+  "special": 0,
+  "title": "2015 Regular Session",
+  "size": 2208311,
+  "access_key": "3pXUl68zdeCjjm2u5jI4NI"
+ },
+ {
+  "state": "KY",
+  "session": 1027,
+  "year": 2014,
+  "special": 0,
+  "title": "2014 Regular Session",
+  "size": 2530166,
+  "access_key": "4ro3VbvBUQelT0pr9wX0ll"
+ },
+ {
+  "state": "KY",
+  "session": 972,
+  "year": 2013,
+  "special": 0,
+  "title": "2013 Regular Session",
+  "size": 2060583,
+  "access_key": "hJEwVn9eDGEBNbXuqYJ5k"
+ },
+ {
+  "state": "KY",
+  "session": 1049,
+  "year": 2013,
+  "special": 1,
+  "title": "2013 1st Special Session",
+  "size": 234390,
+  "access_key": "6VIdWtBhoAL4OjYTrInK9b"
+ },
+ {
+  "state": "KY",
+  "session": 357,
+  "year": 2012,
+  "special": 0,
+  "title": "2012 Regular Session",
+  "size": 1449744,
+  "access_key": "7Om9B3ut3opQzFu8rmVmYV"
+ },
+ {
+  "state": "KY",
+  "session": 962,
+  "year": 2012,
+  "special": 1,
+  "title": "2012 1st Special Session",
+  "size": 34538,
+  "access_key": "1pLM6D3uc2gPUoV71SJEIe"
+ },
+ {
+  "state": "KY",
+  "session": 86,
+  "year": 2011,
+  "special": 0,
+  "title": "2011 Regular Session",
+  "size": 1179731,
+  "access_key": "6NbrrNd3TbtydQ0AZAQOUT"
+ },
+ {
+  "state": "KY",
+  "session": 356,
+  "year": 2011,
+  "special": 1,
+  "title": "2011 1st Special Session",
+  "size": 136426,
+  "access_key": "56psQhD6D4oSg2uZRJrDlw"
+ },
+ {
+  "state": "KY",
+  "session": 24,
+  "year": 2010,
+  "special": 0,
+  "title": "2010 Regular Session",
+  "size": 1515359,
+  "access_key": "P61U1RIFk56wsobu0Pot9"
+ },
+ {
+  "state": "KY",
+  "session": 355,
+  "year": 2010,
+  "special": 1,
+  "title": "2010 1st Special Session",
+  "size": 52887,
+  "access_key": "6nLUoWnKBmfpb2KuZI20aA"
+ },
+ {
+  "state": "LA",
+  "session": 2248,
+  "year": 2026,
+  "special": 0,
+  "title": "2026 Regular Session",
+  "size": 9925466,
+  "access_key": "3D5onhXAXHYUdjSnzUuV1n"
+ },
+ {
+  "state": "LA",
+  "session": 2180,
+  "year": 2025,
+  "special": 0,
+  "title": "2025 Regular Session",
+  "size": 6635792,
+  "access_key": "5Sec0beLTZ41ClywRh2BmQ"
+ },
+ {
+  "state": "LA",
+  "session": 2230,
+  "year": 2025,
+  "special": 1,
+  "title": "2025 1st Special Session",
+  "size": 182299,
+  "access_key": "Qczvjl5Ss4BrUEtfU7u3T"
+ },
+ {
+  "state": "LA",
+  "session": 2121,
+  "year": 2024,
+  "special": 0,
+  "title": "2024 Regular Session",
+  "size": 7228057,
+  "access_key": "72xwi3YDgBxLDugm25HxnJ"
+ },
+ {
+  "state": "LA",
+  "session": 2158,
+  "year": 2024,
+  "special": 1,
+  "title": "2024 3rd Special Session",
+  "size": 226410,
+  "access_key": "2G5e9csVgSzN0SPf6Auz3J"
+ },
+ {
+  "state": "LA",
+  "session": 2134,
+  "year": 2024,
+  "special": 1,
+  "title": "2024 2nd Special Session",
+  "size": 296976,
+  "access_key": "2NdAUPvD0g3bI0MDPnsi0W"
+ },
+ {
+  "state": "LA",
+  "session": 2130,
+  "year": 2024,
+  "special": 1,
+  "title": "2024 1st Special Session",
+  "size": 145749,
+  "access_key": "7Rd10dxH2MPhDtGXuXJmTb"
+ },
+ {
+  "state": "LA",
+  "session": 2025,
+  "year": 2023,
+  "special": 0,
+  "title": "2023 Regular Session",
+  "size": 5378046,
+  "access_key": "2MqkzM6t42XVu08wf8hlAC"
+ },
+ {
+  "state": "LA",
+  "session": 2046,
+  "year": 2023,
+  "special": 1,
+  "title": "2023 1st Special Session",
+  "size": 82843,
+  "access_key": "2E7XWHi1IwuCo5O7hWyJ39"
+ },
+ {
+  "state": "LA",
+  "session": 1949,
+  "year": 2022,
+  "special": 0,
+  "title": "2022 Regular Session",
+  "size": 7177642,
+  "access_key": "YVOmen1n7fCredGOS6KNh"
+ },
+ {
+  "state": "LA",
+  "session": 1985,
+  "year": 2022,
+  "special": 1,
+  "title": "2022 2nd Special Session",
+  "size": 87576,
+  "access_key": "4Ec8g9PxG0iRTX0I4EH1Aj"
+ },
+ {
+  "state": "LA",
+  "session": 1973,
+  "year": 2022,
+  "special": 1,
+  "title": "2022 1st Special Session",
+  "size": 213570,
+  "access_key": "1aCeA1sngGxZQYtdbvxiNl"
+ },
+ {
+  "state": "LA",
+  "session": 1805,
+  "year": 2021,
+  "special": 0,
+  "title": "2021 Regular Session",
+  "size": 5188954,
+  "access_key": "1HLuid65oWQCeS7Vx5D7QL"
+ },
+ {
+  "state": "LA",
+  "session": 1726,
+  "year": 2020,
+  "special": 0,
+  "title": "2020 Regular Session",
+  "size": 4332853,
+  "access_key": "6HdnL1jEl85Lx7dxEMXACY"
+ },
+ {
+  "state": "LA",
+  "session": 1768,
+  "year": 2020,
+  "special": 1,
+  "title": "2020 2nd Special Session",
+  "size": 1143731,
+  "access_key": "1mb4IjqIIUnwKYWiBGEsVR"
+ },
+ {
+  "state": "LA",
+  "session": 1745,
+  "year": 2020,
+  "special": 1,
+  "title": "2020 1st Special Session",
+  "size": 910717,
+  "access_key": "2wBmkXhIoEiM2Iz4gndR2e"
+ },
+ {
+  "state": "LA",
+  "session": 1634,
+  "year": 2019,
+  "special": 0,
+  "title": "2019 Regular Session",
+  "size": 5419396,
+  "access_key": "3UvdrE3nwsorhhFOzDlYmH"
+ },
+ {
+  "state": "LA",
+  "session": 1527,
+  "year": 2018,
+  "special": 0,
+  "title": "2018 Regular Session",
+  "size": 6624086,
+  "access_key": "4DgzAnOvEhbJik2oH73TfR"
+ },
+ {
+  "state": "LA",
+  "session": 1586,
+  "year": 2018,
+  "special": 1,
+  "title": "2018 3rd Special Session",
+  "size": 224598,
+  "access_key": "6GZkT500BLS2L8PqswK4YN"
+ },
+ {
+  "state": "LA",
+  "session": 1584,
+  "year": 2018,
+  "special": 1,
+  "title": "2018 2nd Special Session",
+  "size": 515699,
+  "access_key": "2febuVPKZtZvsA0gjAfUGb"
+ },
+ {
+  "state": "LA",
+  "session": 1547,
+  "year": 2018,
+  "special": 1,
+  "title": "2018 1st Special Session",
+  "size": 244474,
+  "access_key": "1lCcxxCYoO3JKb8mWhwgP8"
+ },
+ {
+  "state": "LA",
+  "session": 1411,
+  "year": 2017,
+  "special": 0,
+  "title": "2017 Regular Session",
+  "size": 4788654,
+  "access_key": "1y06BtOKzpN6zebklZhXAV"
+ },
+ {
+  "state": "LA",
+  "session": 1463,
+  "year": 2017,
+  "special": 1,
+  "title": "2017 2nd Special Session",
+  "size": 152838,
+  "access_key": "3Ivg4lieQMlBB351Urta8I"
+ },
+ {
+  "state": "LA",
+  "session": 1452,
+  "year": 2017,
+  "special": 1,
+  "title": "2017 1st Special Session",
+  "size": 269478,
+  "access_key": "2wrQF1a8apmghXA2TNnGqI"
+ },
+ {
+  "state": "LA",
+  "session": 1193,
+  "year": 2016,
+  "special": 0,
+  "title": "2016 Regular Session",
+  "size": 6681501,
+  "access_key": "n09DdJsYpFQJTT8xAOGsi"
+ },
+ {
+  "state": "LA",
+  "session": 1229,
+  "year": 2016,
+  "special": 1,
+  "title": "2016 2nd Special Session",
+  "size": 474943,
+  "access_key": "6YVUBi1mMbcfXdQ9ALLvJX"
+ },
+ {
+  "state": "LA",
+  "session": 1220,
+  "year": 2016,
+  "special": 1,
+  "title": "2016 1st Special Session",
+  "size": 639655,
+  "access_key": "14Fp494h3oYnOPbgex3qcx"
+ },
+ {
+  "state": "LA",
+  "session": 1131,
+  "year": 2015,
+  "special": 0,
+  "title": "2015 Regular Session",
+  "size": 5700482,
+  "access_key": "2mL4hxK9EFdbJykVu6CoXw"
+ },
+ {
+  "state": "LA",
+  "session": 1082,
+  "year": 2014,
+  "special": 0,
+  "title": "2014 Regular Session",
+  "size": 8117693,
+  "access_key": "65c41fs8J2YNgK17vF0g0e"
+ },
+ {
+  "state": "LA",
+  "session": 1003,
+  "year": 2013,
+  "special": 0,
+  "title": "2013 Regular Session",
+  "size": 5064858,
+  "access_key": "6sfSJf6b5R2fu3HhOMGWK2"
+ },
+ {
+  "state": "LA",
+  "session": 388,
+  "year": 2012,
+  "special": 0,
+  "title": "2012 Regular Session",
+  "size": 6908001,
+  "access_key": "4A8oZXtbUIomlNsb4moy1X"
+ },
+ {
+  "state": "LA",
+  "session": 132,
+  "year": 2011,
+  "special": 0,
+  "title": "2011 Regular Session",
+  "size": 4126319,
+  "access_key": "4qUpcuPg6Yqf5FexeX33lG"
+ },
+ {
+  "state": "LA",
+  "session": 386,
+  "year": 2011,
+  "special": 1,
+  "title": "2011 1st Special Session",
+  "size": 492620,
+  "access_key": "1TulBqlqCRkDELZ2391R2I"
+ },
+ {
+  "state": "LA",
+  "session": 60,
+  "year": 2010,
+  "special": 0,
+  "title": "2010 Regular Session",
+  "size": 7890092,
+  "access_key": "6TZ2Z0xx6yl8qsMgRl9mKR"
+ },
+ {
+  "state": "MA",
+  "session": 2182,
+  "year": 2025,
+  "special": 0,
+  "title": "2025-2026 Regular Session",
+  "size": 15562618,
+  "access_key": "6XR4OBLunBswPlw2aW5TTm"
+ },
+ {
+  "state": "MA",
+  "session": 2026,
+  "year": 2023,
+  "special": 0,
+  "title": "2023-2024 Regular Session",
+  "size": 14653351,
+  "access_key": "3SUZQ3nAJwhpEYgKTK5HIl"
+ },
+ {
+  "state": "MA",
+  "session": 1807,
+  "year": 2021,
+  "special": 0,
+  "title": "2021-2022 Regular Session",
+  "size": 15707756,
+  "access_key": "553MPzgqz7FnYH95bntd2n"
+ },
+ {
+  "state": "MA",
+  "session": 1637,
+  "year": 2019,
+  "special": 0,
+  "title": "2019-2020 Regular Session",
+  "size": 16288309,
+  "access_key": "7BFXp4iXeTSXGL3iHyOubr"
+ },
+ {
+  "state": "MA",
+  "session": 1413,
+  "year": 2017,
+  "special": 0,
+  "title": "2017-2018 Regular Session",
+  "size": 14767578,
+  "access_key": "b1rO94KLto6CL9WxTXAUq"
+ },
+ {
+  "state": "MA",
+  "session": 1134,
+  "year": 2015,
+  "special": 0,
+  "title": "2015-2016 Regular Session",
+  "size": 12799958,
+  "access_key": "7Q9AIgbFYyiaD7fySUITtc"
+ },
+ {
+  "state": "MA",
+  "session": 1006,
+  "year": 2013,
+  "special": 0,
+  "title": "2013-2014 Regular Session",
+  "size": 11120162,
+  "access_key": "4V8E9OxlHdljp9T8ImoUoA"
+ },
+ {
+  "state": "MA",
+  "session": 99,
+  "year": 2011,
+  "special": 0,
+  "title": "2011-2012 Regular Session",
+  "size": 10927151,
+  "access_key": "2zeNWYVf3Z8IzTcXKob0do"
+ },
+ {
+  "state": "MA",
+  "session": 28,
+  "year": 2009,
+  "special": 0,
+  "title": "2009-2010 Regular Session",
+  "size": 8478330,
+  "access_key": "6uvezYWHaKzMOsLEzuwM3l"
+ },
+ {
+  "state": "MD",
+  "session": 2240,
+  "year": 2026,
+  "special": 0,
+  "title": "2026 Regular Session",
+  "size": 9585429,
+  "access_key": "1Y5Nm0GCOPXYRspJZAxHVH"
+ },
+ {
+  "state": "MD",
+  "session": 2164,
+  "year": 2025,
+  "special": 0,
+  "title": "2025 Regular Session",
+  "size": 9173592,
+  "access_key": "6iSiXsqBO2bFc6cknIVNPN"
+ },
+ {
+  "state": "MD",
+  "session": 2111,
+  "year": 2024,
+  "special": 0,
+  "title": "2024 Regular Session",
+  "size": 8251013,
+  "access_key": "fGqh0xIOP9ZojmuaRgGTn"
+ },
+ {
+  "state": "MD",
+  "session": 2006,
+  "year": 2023,
+  "special": 0,
+  "title": "2023 Regular Session",
+  "size": 6835944,
+  "access_key": "3cTScJTUrKaJaCm4oURkrx"
+ },
+ {
+  "state": "MD",
+  "session": 1956,
+  "year": 2022,
+  "special": 0,
+  "title": "2022 Regular Session",
+  "size": 7062691,
+  "access_key": "3H7MedCvydvJhIim0yVCFt"
+ },
+ {
+  "state": "MD",
+  "session": 1783,
+  "year": 2021,
+  "special": 0,
+  "title": "2021 Regular Session",
+  "size": 6395742,
+  "access_key": "1CcyOOspbP6xgL1UKialaf"
+ },
+ {
+  "state": "MD",
+  "session": 1942,
+  "year": 2021,
+  "special": 1,
+  "title": "2021 1st Special Session",
+  "size": 92421,
+  "access_key": "2zMx35AIeOlAVgitUw6uK2"
+ },
+ {
+  "state": "MD",
+  "session": 1727,
+  "year": 2020,
+  "special": 0,
+  "title": "2020 Regular Session",
+  "size": 7522061,
+  "access_key": "72VvDrFaMEAn4w8u5OvBl2"
+ },
+ {
+  "state": "MD",
+  "session": 1636,
+  "year": 2019,
+  "special": 0,
+  "title": "2019 Regular Session",
+  "size": 7965741,
+  "access_key": "6r3gZ5qqkfoChx2igLGZ8d"
+ },
+ {
+  "state": "MD",
+  "session": 1528,
+  "year": 2018,
+  "special": 0,
+  "title": "2018 Regular Session",
+  "size": 9328822,
+  "access_key": "2psXUoN7wcFz7vGYIcvQ1u"
+ },
+ {
+  "state": "MD",
+  "session": 1412,
+  "year": 2017,
+  "special": 0,
+  "title": "2017 Regular Session",
+  "size": 8609459,
+  "access_key": "5kXzBi5yqL2ZHaTJzNbOiF"
+ },
+ {
+  "state": "MD",
+  "session": 1192,
+  "year": 2016,
+  "special": 0,
+  "title": "2016 Regular Session",
+  "size": 8346068,
+  "access_key": "2VKIpK8kJ1sQ7g2g07tlGm"
+ },
+ {
+  "state": "MD",
+  "session": 1133,
+  "year": 2015,
+  "special": 0,
+  "title": "2015 Regular Session",
+  "size": 6633882,
+  "access_key": "4Flz1bcKfNNQVKoQ70j4vc"
+ },
+ {
+  "state": "MD",
+  "session": 1054,
+  "year": 2014,
+  "special": 0,
+  "title": "2014 Regular Session",
+  "size": 7691014,
+  "access_key": "1JMIqAvglmTM7X4Xk8eqPE"
+ },
+ {
+  "state": "MD",
+  "session": 1005,
+  "year": 2013,
+  "special": 0,
+  "title": "2013 Regular Session",
+  "size": 7453320,
+  "access_key": "5jQPFdXFPblMQ6RhRvJ8kF"
+ },
+ {
+  "state": "MD",
+  "session": 924,
+  "year": 2012,
+  "special": 0,
+  "title": "2012 Regular Session",
+  "size": 6492214,
+  "access_key": "5JqQo61V05xnOwVLk4r71N"
+ },
+ {
+  "state": "MD",
+  "session": 963,
+  "year": 2012,
+  "special": 1,
+  "title": "2012 1st Special Session",
+  "size": 141361,
+  "access_key": "YO9bp4s6IFonqWdu9jTe2"
+ },
+ {
+  "state": "MD",
+  "session": 113,
+  "year": 2011,
+  "special": 0,
+  "title": "2011 Regular Session",
+  "size": 5526900,
+  "access_key": "66YCfKuFKalO6oCiuSWUed"
+ },
+ {
+  "state": "MD",
+  "session": 409,
+  "year": 2011,
+  "special": 1,
+  "title": "2011 1st Special Session",
+  "size": 192328,
+  "access_key": "5qbCUrddokOCu3WAMxAKcN"
+ },
+ {
+  "state": "MD",
+  "session": 34,
+  "year": 2010,
+  "special": 0,
+  "title": "2010 Regular Session",
+  "size": 5412199,
+  "access_key": "6uJabm23x1tfEB7hWYWbSM"
+ },
+ {
+  "state": "ME",
+  "session": 2181,
+  "year": 2025,
+  "special": 0,
+  "title": "2025-2026 Regular Session",
+  "size": 8999463,
+  "access_key": "2dhSvTSAnvGKiff8lC8Qld"
+ },
+ {
+  "state": "ME",
+  "session": 2013,
+  "year": 2023,
+  "special": 0,
+  "title": "2023-2024 Regular Session",
+  "size": 6857774,
+  "access_key": "2ROr0ifSv85qQjPUR0W76y"
+ },
+ {
+  "state": "ME",
+  "session": 1806,
+  "year": 2021,
+  "special": 0,
+  "title": "2021-2022 Regular Session",
+  "size": 5873273,
+  "access_key": "25ooZinQHXsaDGvucRzZqH"
+ },
+ {
+  "state": "ME",
+  "session": 1635,
+  "year": 2019,
+  "special": 0,
+  "title": "2019-2020 Regular Session",
+  "size": 5346946,
+  "access_key": "3iPEkP9CnxLuLwjc4ztPY8"
+ },
+ {
+  "state": "ME",
+  "session": 1258,
+  "year": 2017,
+  "special": 0,
+  "title": "2017-2018 Regular Session",
+  "size": 5325415,
+  "access_key": "3HOoSzKHALS9du6lDtZ6AR"
+ },
+ {
+  "state": "ME",
+  "session": 1132,
+  "year": 2015,
+  "special": 0,
+  "title": "2015-2016 Regular Session",
+  "size": 5049407,
+  "access_key": "NKv7h21HREpmQ83QJv1E8"
+ },
+ {
+  "state": "ME",
+  "session": 1004,
+  "year": 2013,
+  "special": 0,
+  "title": "2013-2014 Regular Session",
+  "size": 5371912,
+  "access_key": "2cxAfewbQD506wFWHEQowy"
+ },
+ {
+  "state": "ME",
+  "session": 81,
+  "year": 2011,
+  "special": 0,
+  "title": "2011-2012 Regular Session",
+  "size": 4483860,
+  "access_key": "1Ki2ah655Z7Gwj6GCUO6BW"
+ },
+ {
+  "state": "ME",
+  "session": 48,
+  "year": 2009,
+  "special": 0,
+  "title": "2009-2010 Regular Session",
+  "size": 3897829,
+  "access_key": "4JlYAjCH2IdPavgpdnvWfX"
+ },
+ {
+  "state": "MI",
+  "session": 2183,
+  "year": 2025,
+  "special": 0,
+  "title": "2025-2026 Regular Session",
+  "size": 14116358,
+  "access_key": "4Y8yY2aHELnc0bWTqLxTOp"
+ },
+ {
+  "state": "MI",
+  "session": 2027,
+  "year": 2023,
+  "special": 0,
+  "title": "2023-2024 Regular Session",
+  "size": 11804999,
+  "access_key": "6vS2Oye6XDGOH8SMuv11ra"
+ },
+ {
+  "state": "MI",
+  "session": 1808,
+  "year": 2021,
+  "special": 0,
+  "title": "2021-2022 Regular Session",
+  "size": 12055697,
+  "access_key": "4sVJVQCZqpxbn61dERRgPa"
+ },
+ {
+  "state": "MI",
+  "session": 1638,
+  "year": 2019,
+  "special": 0,
+  "title": "2019-2020 Regular Session",
+  "size": 10975299,
+  "access_key": "7fHjTwQV6Fj0C8EsWhRIus"
+ },
+ {
+  "state": "MI",
+  "session": 1414,
+  "year": 2017,
+  "special": 0,
+  "title": "2017-2018 Regular Session",
+  "size": 10510631,
+  "access_key": "6IC6dC0y55EhQ2drwOJApV"
+ },
+ {
+  "state": "MI",
+  "session": 1135,
+  "year": 2015,
+  "special": 0,
+  "title": "2015-2016 Regular Session",
+  "size": 10903220,
+  "access_key": "jJ7rwJAyj4EzaHCTupFMw"
+ },
+ {
+  "state": "MI",
+  "session": 1007,
+  "year": 2013,
+  "special": 0,
+  "title": "2013-2014 Regular Session",
+  "size": 11386461,
+  "access_key": "6i0ZgMyRU1Xqixa80pDaiE"
+ },
+ {
+  "state": "MI",
+  "session": 114,
+  "year": 2011,
+  "special": 0,
+  "title": "2011-2012 Regular Session",
+  "size": 11501111,
+  "access_key": "6yJbKtpiup57XbZONPlZeQ"
+ },
+ {
+  "state": "MI",
+  "session": 36,
+  "year": 2009,
+  "special": 0,
+  "title": "2009-2010 Regular Session",
+  "size": 10161813,
+  "access_key": "7Wnhb9BaQeZrHnp0pz0SGr"
+ },
+ {
+  "state": "MN",
+  "session": 2151,
+  "year": 2025,
+  "special": 0,
+  "title": "2025-2026 Regular Session",
+  "size": 20867944,
+  "access_key": "4NVPeNntHHibOau9kjCLWr"
+ },
+ {
+  "state": "MN",
+  "session": 2217,
+  "year": 2025,
+  "special": 1,
+  "title": "2025 1st Special Session",
+  "size": 301537,
+  "access_key": "77944OfQhxTtJfzbzdhJAO"
+ },
+ {
+  "state": "MN",
+  "session": 1986,
+  "year": 2023,
+  "special": 0,
+  "title": "2023-2024 Regular Session",
+  "size": 17253666,
+  "access_key": "3pRLuA2SvQKbu59SFekTfN"
+ },
+ {
+  "state": "MN",
+  "session": 1770,
+  "year": 2021,
+  "special": 0,
+  "title": "2021-2022 Regular Session",
+  "size": 14091576,
+  "access_key": "5g9YqFHKVbvhH6nGZVj0Gz"
+ },
+ {
+  "state": "MN",
+  "session": 1839,
+  "year": 2021,
+  "special": 1,
+  "title": "2021 1st Special Session",
+  "size": 423364,
+  "access_key": "9vCXBcwT6htFFeLhz0Cjd"
+ },
+ {
+  "state": "MN",
+  "session": 1787,
+  "year": 2020,
+  "special": 1,
+  "title": "2020 7th Special Session",
+  "size": 218687,
+  "access_key": "3CzuteoAeyFHtKtb9gfyiU"
+ },
+ {
+  "state": "MN",
+  "session": 1779,
+  "year": 2020,
+  "special": 1,
+  "title": "2020 6th Special Session",
+  "size": 147460,
+  "access_key": "vRDkc30s8LesbSyQBgbqS"
+ },
+ {
+  "state": "MN",
+  "session": 1773,
+  "year": 2020,
+  "special": 1,
+  "title": "2020 5th Special Session",
+  "size": 246399,
+  "access_key": "6f03c22F3b9kWooSB6kkgw"
+ },
+ {
+  "state": "MN",
+  "session": 1767,
+  "year": 2020,
+  "special": 1,
+  "title": "2020 4th Special Session",
+  "size": 178941,
+  "access_key": "4pKwTzRyajAoe5e2jlSe41"
+ },
+ {
+  "state": "MN",
+  "session": 1764,
+  "year": 2020,
+  "special": 1,
+  "title": "2020 3rd Special Session",
+  "size": 187343,
+  "access_key": "3YWWNXTcZCpGnpd9xXsUVl"
+ },
+ {
+  "state": "MN",
+  "session": 1757,
+  "year": 2020,
+  "special": 1,
+  "title": "2020 2nd Special Session",
+  "size": 355628,
+  "access_key": "4LbIv0UBbXAyMyKwO2ffLR"
+ },
+ {
+  "state": "MN",
+  "session": 1749,
+  "year": 2020,
+  "special": 1,
+  "title": "2020 1st Special Session",
+  "size": 642996,
+  "access_key": "2UpB0offEiAB1Ukyt9RWfJ"
+ },
+ {
+  "state": "MN",
+  "session": 1588,
+  "year": 2019,
+  "special": 0,
+  "title": "2019-2020 Regular Session",
+  "size": 14679057,
+  "access_key": "7W9rEkPO7ljjt8BWJt16HU"
+ },
+ {
+  "state": "MN",
+  "session": 1666,
+  "year": 2019,
+  "special": 1,
+  "title": "2019 1st Special Session",
+  "size": 180607,
+  "access_key": "15QceqwwjzFtbTgAd1mQCI"
+ },
+ {
+  "state": "MN",
+  "session": 1259,
+  "year": 2017,
+  "special": 0,
+  "title": "2017-2018 Regular Session",
+  "size": 13501402,
+  "access_key": "5XUBYWEDib4pQSBJXaFwpv"
+ },
+ {
+  "state": "MN",
+  "session": 1458,
+  "year": 2017,
+  "special": 1,
+  "title": "2017 1st Special Session",
+  "size": 136156,
+  "access_key": "2kdUbdTFO6llQ8Pway2JUQ"
+ },
+ {
+  "state": "MN",
+  "session": 1106,
+  "year": 2015,
+  "special": 0,
+  "title": "2015-2016 Regular Session",
+  "size": 12012732,
+  "access_key": "5chRp7899pNfkRfjWFjR43"
+ },
+ {
+  "state": "MN",
+  "session": 1166,
+  "year": 2015,
+  "special": 1,
+  "title": "2015 1st Special Session",
+  "size": 135258,
+  "access_key": "4JBQeAJ5WXJrNSFyLPOEGw"
+ },
+ {
+  "state": "MN",
+  "session": 976,
+  "year": 2013,
+  "special": 0,
+  "title": "2013-2014 Regular Session",
+  "size": 10176047,
+  "access_key": "15ENCZiTW18u0hcwfiiUQO"
+ },
+ {
+  "state": "MN",
+  "session": 1050,
+  "year": 2013,
+  "special": 1,
+  "title": "2013 1st Special Session",
+  "size": 164206,
+  "access_key": "6aipdnWksWHf5RNOWoQEFc"
+ },
+ {
+  "state": "MN",
+  "session": 964,
+  "year": 2012,
+  "special": 1,
+  "title": "2012 1st Special Session",
+  "size": 30487,
+  "access_key": "2X80a818JDMb8vONgm30ov"
+ },
+ {
+  "state": "MN",
+  "session": 98,
+  "year": 2011,
+  "special": 0,
+  "title": "2011-2012 Regular Session",
+  "size": 9004770,
+  "access_key": "11imv235JiFZP8LgmftoHv"
+ },
+ {
+  "state": "MN",
+  "session": 436,
+  "year": 2011,
+  "special": 1,
+  "title": "2011 1st Special Session",
+  "size": 124276,
+  "access_key": "40G0AnXejIjOCgoocS0Vp7"
+ },
+ {
+  "state": "MN",
+  "session": 70,
+  "year": 2009,
+  "special": 0,
+  "title": "2009-2010 Regular Session",
+  "size": 10424237,
+  "access_key": "IyLssKOpM9YP1jSm6Uppp"
+ },
+ {
+  "state": "MO",
+  "session": 2239,
+  "year": 2026,
+  "special": 0,
+  "title": "2026 Regular Session",
+  "size": 6722542,
+  "access_key": "7Pyk6pg5PyfzVfo0hvRVBx"
+ },
+ {
+  "state": "MO",
+  "session": 2169,
+  "year": 2025,
+  "special": 0,
+  "title": "2025 Regular Session",
+  "size": 5784159,
+  "access_key": "1PJ1zUgIRAk2MHHVZXOhUM"
+ },
+ {
+  "state": "MO",
+  "session": 2226,
+  "year": 2025,
+  "special": 1,
+  "title": "2025 2nd Special Session",
+  "size": 196595,
+  "access_key": "1LCpJ7BttipsraUpa4z9VX"
+ },
+ {
+  "state": "MO",
+  "session": 2216,
+  "year": 2025,
+  "special": 1,
+  "title": "2025 1st Special Session",
+  "size": 241383,
+  "access_key": "6JkPMiBMbCi4TTuZx3bupW"
+ },
+ {
+  "state": "MO",
+  "session": 2122,
+  "year": 2024,
+  "special": 0,
+  "title": "2024 Regular Session",
+  "size": 4348079,
+  "access_key": "3jE1pin7IARNnSf0hCWeaw"
+ },
+ {
+  "state": "MO",
+  "session": 2012,
+  "year": 2023,
+  "special": 0,
+  "title": "2023 Regular Session",
+  "size": 5119729,
+  "access_key": "Kktlv9eT1kzYaUmEfmcuO"
+ },
+ {
+  "state": "MO",
+  "session": 1957,
+  "year": 2022,
+  "special": 0,
+  "title": "2022 Regular Session",
+  "size": 4333561,
+  "access_key": "40CKnJ0m6TJfo6KCcpuxYL"
+ },
+ {
+  "state": "MO",
+  "session": 1995,
+  "year": 2022,
+  "special": 1,
+  "title": "2022 1st Special Session",
+  "size": 159927,
+  "access_key": "7O7ShLiPvV5oDlq8O4q5l1"
+ },
+ {
+  "state": "MO",
+  "session": 1790,
+  "year": 2021,
+  "special": 0,
+  "title": "2021 Regular Session",
+  "size": 4248171,
+  "access_key": "1v2fienR7rxUqzlAm9y8Bx"
+ },
+ {
+  "state": "MO",
+  "session": 1842,
+  "year": 2021,
+  "special": 1,
+  "title": "2021 1st Special Session",
+  "size": 117541,
+  "access_key": "6TCPAF6xLdmLYLPjCDSMc"
+ },
+ {
+  "state": "MO",
+  "session": 1720,
+  "year": 2020,
+  "special": 0,
+  "title": "2020 Regular Session",
+  "size": 3318734,
+  "access_key": "4KXZZURuxqcR0kBSGNihIh"
+ },
+ {
+  "state": "MO",
+  "session": 1774,
+  "year": 2020,
+  "special": 1,
+  "title": "2020 2nd Special Session",
+  "size": 34579,
+  "access_key": "2ow6uMwHJHUeUynR2W3Dj1"
+ },
+ {
+  "state": "MO",
+  "session": 1758,
+  "year": 2020,
+  "special": 1,
+  "title": "2020 1st Special Session",
+  "size": 204621,
+  "access_key": "3HRApIWbWY2p7wIAPwrWmO"
+ },
+ {
+  "state": "MO",
+  "session": 1640,
+  "year": 2019,
+  "special": 0,
+  "title": "2019 Regular Session",
+  "size": 3505503,
+  "access_key": "7BDRE8Uv52ViMK30jav1A"
+ },
+ {
+  "state": "MO",
+  "session": 1711,
+  "year": 2019,
+  "special": 1,
+  "title": "2019 1st Special Session",
+  "size": 134617,
+  "access_key": "268BlF18jSovljBp7klNSF"
+ },
+ {
+  "state": "MO",
+  "session": 1530,
+  "year": 2018,
+  "special": 0,
+  "title": "2018 Regular Session",
+  "size": 4061035,
+  "access_key": "3VQ8LhAk9guEoc7PCTAA2C"
+ },
+ {
+  "state": "MO",
+  "session": 1608,
+  "year": 2018,
+  "special": 1,
+  "title": "2018 2nd Special Session",
+  "size": 105793,
+  "access_key": "75bAYHYAIOCnuA1lgtFldw"
+ },
+ {
+  "state": "MO",
+  "session": 1579,
+  "year": 2018,
+  "special": 1,
+  "title": "2018 1st Special Session",
+  "size": 25039,
+  "access_key": "5bnN2ifB7va0tFNYx7MSen"
+ },
+ {
+  "state": "MO",
+  "session": 1416,
+  "year": 2017,
+  "special": 0,
+  "title": "2017 Regular Session",
+  "size": 3444775,
+  "access_key": "7KPeoQ3qZ8BNY5mHDTE5pL"
+ },
+ {
+  "state": "MO",
+  "session": 1465,
+  "year": 2017,
+  "special": 1,
+  "title": "2017 2nd Special Session",
+  "size": 138345,
+  "access_key": "7j96jqZiXxdYkcevrdjoTV"
+ },
+ {
+  "state": "MO",
+  "session": 1460,
+  "year": 2017,
+  "special": 1,
+  "title": "2017 1st Special Session",
+  "size": 34302,
+  "access_key": "2wI858CR7pmVNs7s5zn0Kg"
+ },
+ {
+  "state": "MO",
+  "session": 1189,
+  "year": 2016,
+  "special": 0,
+  "title": "2016 Regular Session",
+  "size": 4188950,
+  "access_key": "2YMfHe2147QsU1m5Uy8CYl"
+ },
+ {
+  "state": "MO",
+  "session": 1137,
+  "year": 2015,
+  "special": 0,
+  "title": "2015 Regular Session",
+  "size": 3573660,
+  "access_key": "1bP2ptF8AK81djaPOi8gXC"
+ },
+ {
+  "state": "MO",
+  "session": 1070,
+  "year": 2014,
+  "special": 0,
+  "title": "2014 Regular Session",
+  "size": 2763086,
+  "access_key": "4zIulEj2BEOk2JEbvAw2VU"
+ },
+ {
+  "state": "MO",
+  "session": 1009,
+  "year": 2013,
+  "special": 0,
+  "title": "2013 Regular Session",
+  "size": 2405959,
+  "access_key": "5PslEoCGRYhQIzRijZ5PHY"
+ },
+ {
+  "state": "MO",
+  "session": 1094,
+  "year": 2013,
+  "special": 1,
+  "title": "2013 1st Special Session",
+  "size": 14306,
+  "access_key": "4fcAtsMQvCCkOKcco5QIYe"
+ },
+ {
+  "state": "MO",
+  "session": 499,
+  "year": 2012,
+  "special": 0,
+  "title": "2012 Regular Session",
+  "size": 2412766,
+  "access_key": "WVjrY2vuVmRCWJoeNLY76"
+ },
+ {
+  "state": "MO",
+  "session": 97,
+  "year": 2011,
+  "special": 0,
+  "title": "2011 Regular Session",
+  "size": 2301811,
+  "access_key": "S3pkWRv8l5YDOx0RCPt6k"
+ },
+ {
+  "state": "MO",
+  "session": 498,
+  "year": 2011,
+  "special": 1,
+  "title": "2011 1st Special Session",
+  "size": 60377,
+  "access_key": "6iGxobO6hiEltHKMIHdgeG"
+ },
+ {
+  "state": "MO",
+  "session": 71,
+  "year": 2010,
+  "special": 0,
+  "title": "2010 Regular Session",
+  "size": 2628858,
+  "access_key": "m97QnY19JAKdXpgBbAYyB"
+ },
+ {
+  "state": "MO",
+  "session": 497,
+  "year": 2010,
+  "special": 1,
+  "title": "2010 1st Special Session",
+  "size": 21030,
+  "access_key": "7YIYX0zaVLonwzW4U0SXRa"
+ },
+ {
+  "state": "MS",
+  "session": 2249,
+  "year": 2026,
+  "special": 0,
+  "title": "2026 Regular Session",
+  "size": 9196028,
+  "access_key": "4G97aGrF0Uja7edd9OsniZ"
+ },
+ {
+  "state": "MS",
+  "session": 2271,
+  "year": 2026,
+  "special": 1,
+  "title": "2026 1st Special Session",
+  "size": 159292,
+  "access_key": "34Ru8Y2BMYn2utCuh7n2zP"
+ },
+ {
+  "state": "MS",
+  "session": 2184,
+  "year": 2025,
+  "special": 0,
+  "title": "2025 Regular Session",
+  "size": 8546619,
+  "access_key": "4SvVHDwI0yAI03OuJSz9XG"
+ },
+ {
+  "state": "MS",
+  "session": 2215,
+  "year": 2025,
+  "special": 1,
+  "title": "2025 1st Special Session",
+  "size": 573790,
+  "access_key": "5vDtYorZ92jCU84QDLpd3v"
+ },
+ {
+  "state": "MS",
+  "session": 2123,
+  "year": 2024,
+  "special": 0,
+  "title": "2024 Regular Session",
+  "size": 7458726,
+  "access_key": "7OiRl5BrK8hlX2WUtRnWB3"
+ },
+ {
+  "state": "MS",
+  "session": 2133,
+  "year": 2024,
+  "special": 1,
+  "title": "2024 2nd Special Session",
+  "size": 95524,
+  "access_key": "3PwPCKk85G1oy8gcQ3NHvV"
+ },
+ {
+  "state": "MS",
+  "session": 2132,
+  "year": 2024,
+  "special": 1,
+  "title": "2024 1st Special Session",
+  "size": 92762,
+  "access_key": "6zsRJXjK6VerQ0GoUg53au"
+ },
+ {
+  "state": "MS",
+  "session": 1998,
+  "year": 2023,
+  "special": 0,
+  "title": "2023 Regular Session",
+  "size": 6715678,
+  "access_key": "3AVdQ6icJ9sSNxRtAQQEro"
+ },
+ {
+  "state": "MS",
+  "session": 1958,
+  "year": 2022,
+  "special": 0,
+  "title": "2022 Regular Session",
+  "size": 6809308,
+  "access_key": "2XLxVLuSWu83faMb6n2AXR"
+ },
+ {
+  "state": "MS",
+  "session": 2000,
+  "year": 2022,
+  "special": 1,
+  "title": "2022 1st Special Session",
+  "size": 93445,
+  "access_key": "2IGTMBADC6P81bgZRxwpKv"
+ },
+ {
+  "state": "MS",
+  "session": 1809,
+  "year": 2021,
+  "special": 0,
+  "title": "2021 Regular Session",
+  "size": 5571989,
+  "access_key": "1mbYcaBF8qUwD6yUk3Yv7S"
+ },
+ {
+  "state": "MS",
+  "session": 1728,
+  "year": 2020,
+  "special": 0,
+  "title": "2020 Regular Session",
+  "size": 6395774,
+  "access_key": "4co5bhjGUVQP5g9ZfiDVkB"
+ },
+ {
+  "state": "MS",
+  "session": 1639,
+  "year": 2019,
+  "special": 0,
+  "title": "2019 Regular Session",
+  "size": 6219941,
+  "access_key": "7Jd6UH8Y3r4UNIhCyXRCkM"
+ },
+ {
+  "state": "MS",
+  "session": 1529,
+  "year": 2018,
+  "special": 0,
+  "title": "2018 Regular Session",
+  "size": 5986481,
+  "access_key": "1ptVhbLMqHe6qWWZro737z"
+ },
+ {
+  "state": "MS",
+  "session": 1605,
+  "year": 2018,
+  "special": 1,
+  "title": "2018 1st Special Session",
+  "size": 164642,
+  "access_key": "5NoS8ZASBAg7TlxVbUvn7n"
+ },
+ {
+  "state": "MS",
+  "session": 1415,
+  "year": 2017,
+  "special": 0,
+  "title": "2017 Regular Session",
+  "size": 6216633,
+  "access_key": "63eUdBoVVsE7jByKl3ZNZH"
+ },
+ {
+  "state": "MS",
+  "session": 1462,
+  "year": 2017,
+  "special": 1,
+  "title": "2017 1st Special Session",
+  "size": 216667,
+  "access_key": "4dnE6VWHDjZWGxXnl0xFzm"
+ },
+ {
+  "state": "MS",
+  "session": 1200,
+  "year": 2016,
+  "special": 0,
+  "title": "2016 Regular Session",
+  "size": 6357937,
+  "access_key": "2b7eYiVVLKiSWRDR7gy6pW"
+ },
+ {
+  "state": "MS",
+  "session": 1250,
+  "year": 2016,
+  "special": 1,
+  "title": "2016 2nd Special Session",
+  "size": 82004,
+  "access_key": "5h4U5Zthhk7Wy7OHIYNJnQ"
+ },
+ {
+  "state": "MS",
+  "session": 1219,
+  "year": 2016,
+  "special": 1,
+  "title": "2016 1st Special Session",
+  "size": 89845,
+  "access_key": "3YQAzwRB3DqcZvfGIxVhA4"
+ },
+ {
+  "state": "MS",
+  "session": 1136,
+  "year": 2015,
+  "special": 0,
+  "title": "2015 Regular Session",
+  "size": 6143154,
+  "access_key": "30nwdhqdsoQoATjV7ojjG9"
+ },
+ {
+  "state": "MS",
+  "session": 1083,
+  "year": 2014,
+  "special": 0,
+  "title": "2014 Regular Session",
+  "size": 5976809,
+  "access_key": "4ulWIERQH6JVSPjMhAUIdw"
+ },
+ {
+  "state": "MS",
+  "session": 1100,
+  "year": 2014,
+  "special": 1,
+  "title": "2014 2nd Special Session",
+  "size": 93106,
+  "access_key": "2jsoou64wzH44KYWVIgajT"
+ },
+ {
+  "state": "MS",
+  "session": 1099,
+  "year": 2014,
+  "special": 1,
+  "title": "2014 1st Special Session",
+  "size": 92240,
+  "access_key": "uwW1HKwbG1yKF5dLF5UA"
+ },
+ {
+  "state": "MS",
+  "session": 1008,
+  "year": 2013,
+  "special": 0,
+  "title": "2013 Regular Session",
+  "size": 6179702,
+  "access_key": "zMlJg10YtoM33OMgmlxnA"
+ },
+ {
+  "state": "MS",
+  "session": 1045,
+  "year": 2013,
+  "special": 1,
+  "title": "2013 2nd Special Session",
+  "size": 247618,
+  "access_key": "5dvZQNtzB3p9GVz2n5ALcG"
+ },
+ {
+  "state": "MS",
+  "session": 1037,
+  "year": 2013,
+  "special": 1,
+  "title": "2013 1st Special Session",
+  "size": 119824,
+  "access_key": "14c3nMgoOtV18DRFJdGVsQ"
+ },
+ {
+  "state": "MS",
+  "session": 476,
+  "year": 2012,
+  "special": 0,
+  "title": "2012 Regular Session",
+  "size": 6289473,
+  "access_key": "1Y0KSqUyGZEAsmP3HesNeG"
+ },
+ {
+  "state": "MS",
+  "session": 87,
+  "year": 2011,
+  "special": 0,
+  "title": "2011 Regular Session",
+  "size": 6499072,
+  "access_key": "4s5sPhHc2sSLDrK6kXWdZI"
+ },
+ {
+  "state": "MS",
+  "session": 475,
+  "year": 2011,
+  "special": 1,
+  "title": "2011 1st Special Session",
+  "size": 279297,
+  "access_key": "1IyxZXDl3VqgxxiaaYx3Ww"
+ },
+ {
+  "state": "MS",
+  "session": 44,
+  "year": 2010,
+  "special": 0,
+  "title": "2010 Regular Session",
+  "size": 6778057,
+  "access_key": "1vWX5QD9buxayERgbjDtYS"
+ },
+ {
+  "state": "MS",
+  "session": 474,
+  "year": 2010,
+  "special": 1,
+  "title": "2010 2nd Special Session",
+  "size": 225546,
+  "access_key": "7I4IX2rfQySu8mR8J9yXi5"
+ },
+ {
+  "state": "MS",
+  "session": 473,
+  "year": 2010,
+  "special": 1,
+  "title": "2010 1st Special Session",
+  "size": 83319,
+  "access_key": "5WmJHz5qkFIBhO1tIcmGBY"
+ },
+ {
+  "state": "MT",
+  "session": 2159,
+  "year": 2025,
+  "special": 0,
+  "title": "2025 Regular Session",
+  "size": 9379920,
+  "access_key": "5KN5aFmh4xz7AqATbdhvaY"
+ },
+ {
+  "state": "MT",
+  "session": 1991,
+  "year": 2023,
+  "special": 0,
+  "title": "2023 Regular Session",
+  "size": 8279710,
+  "access_key": "5gBf2HS7IYFS3VnIzdqXli"
+ },
+ {
+  "state": "MT",
+  "session": 1748,
+  "year": 2021,
+  "special": 0,
+  "title": "2021 Regular Session",
+  "size": 6074816,
+  "access_key": "5uPGUquSU50x5JuDayfiSy"
+ },
+ {
+  "state": "MT",
+  "session": 1616,
+  "year": 2019,
+  "special": 0,
+  "title": "2019 Regular Session",
+  "size": 5617521,
+  "access_key": "7mDShl8ZYZni4Uvb96gy8r"
+ },
+ {
+  "state": "MT",
+  "session": 1224,
+  "year": 2017,
+  "special": 0,
+  "title": "2017 Regular Session",
+  "size": 5132347,
+  "access_key": "2G54ELg3Ko1sNSfxY5jn3f"
+ },
+ {
+  "state": "MT",
+  "session": 1515,
+  "year": 2017,
+  "special": 1,
+  "title": "2017 1st Special Session",
+  "size": 159109,
+  "access_key": "7WnHAhb6NE4TcVpKam4yEm"
+ },
+ {
+  "state": "MT",
+  "session": 1138,
+  "year": 2015,
+  "special": 0,
+  "title": "2015 Regular Session",
+  "size": 5069664,
+  "access_key": "5grigKswLgoqnZ7h7hhJYI"
+ },
+ {
+  "state": "MT",
+  "session": 977,
+  "year": 2013,
+  "special": 0,
+  "title": "2013 Regular Session",
+  "size": 4301530,
+  "access_key": "3WsKdVqBHtAw8MApVb45uB"
+ },
+ {
+  "state": "MT",
+  "session": 85,
+  "year": 2011,
+  "special": 0,
+  "title": "2011 Regular Session",
+  "size": 4352754,
+  "access_key": "1plZwpxWQFP03XpBRrJ7JX"
+ },
+ {
+  "state": "MT",
+  "session": 56,
+  "year": 2009,
+  "special": 0,
+  "title": "2009 Regular Session",
+  "size": 2165076,
+  "access_key": "PJk7WLy6qbSxhfLRlE8TK"
+ },
+ {
+  "state": "NC",
+  "session": 2189,
+  "year": 2025,
+  "special": 0,
+  "title": "2025-2026 Regular Session",
+  "size": 9363673,
+  "access_key": "1UHTu0nKx6jRDGfyQHsNby"
+ },
+ {
+  "state": "NC",
+  "session": 2032,
+  "year": 2023,
+  "special": 0,
+  "title": "2023-2024 Regular Session",
+  "size": 6036826,
+  "access_key": "5eXfvuRrL74ONlFmXse8WX"
+ },
+ {
+  "state": "NC",
+  "session": 1814,
+  "year": 2021,
+  "special": 0,
+  "title": "2021-2022 Regular Session",
+  "size": 6300872,
+  "access_key": "3nB3SASe3pam8mxpX7u7y0"
+ },
+ {
+  "state": "NC",
+  "session": 1645,
+  "year": 2019,
+  "special": 0,
+  "title": "2019-2020 Regular Session",
+  "size": 5834966,
+  "access_key": "kwkWdkblGEP2bxYFsdUj2"
+ },
+ {
+  "state": "NC",
+  "session": 1609,
+  "year": 2018,
+  "special": 1,
+  "title": "2018 3rd Special Session",
+  "size": 122899,
+  "access_key": "5Uu4ASMZfMX48Jck7IiJar"
+ },
+ {
+  "state": "NC",
+  "session": 1606,
+  "year": 2018,
+  "special": 1,
+  "title": "2018 2nd Special Session",
+  "size": 104931,
+  "access_key": "1sFMrlGOncLoWGycJBWN7H"
+ },
+ {
+  "state": "NC",
+  "session": 1603,
+  "year": 2018,
+  "special": 1,
+  "title": "2018 1st Special Session",
+  "size": 104410,
+  "access_key": "35DLdszPbtnEYyaZZsUsvp"
+ },
+ {
+  "state": "NC",
+  "session": 1421,
+  "year": 2017,
+  "special": 0,
+  "title": "2017-2018 Regular Session",
+  "size": 5326851,
+  "access_key": "2lTiKhMwXFf66DmEzv5D7g"
+ },
+ {
+  "state": "NC",
+  "session": 1446,
+  "year": 2016,
+  "special": 1,
+  "title": "2016 5th Special Session",
+  "size": 93823,
+  "access_key": "2j9Jvq58WmedYM0stbCZ7b"
+ },
+ {
+  "state": "NC",
+  "session": 1445,
+  "year": 2016,
+  "special": 1,
+  "title": "2016 4th Special Session",
+  "size": 149114,
+  "access_key": "1quHuUbP5j78vQsEDjezco"
+ },
+ {
+  "state": "NC",
+  "session": 1444,
+  "year": 2016,
+  "special": 1,
+  "title": "2016 3rd Special Session",
+  "size": 97458,
+  "access_key": "2nrdYhgSYVWyTiu0sFYpNg"
+ },
+ {
+  "state": "NC",
+  "session": 1223,
+  "year": 2016,
+  "special": 1,
+  "title": "2016 2nd Special Session",
+  "size": 96702,
+  "access_key": "69LPjCKPksmoeySgBFLAtN"
+ },
+ {
+  "state": "NC",
+  "session": 1221,
+  "year": 2016,
+  "special": 1,
+  "title": "2016 1st Special Session",
+  "size": 95552,
+  "access_key": "2801PbJ6VD38JF9RyEWU9E"
+ },
+ {
+  "state": "NC",
+  "session": 1144,
+  "year": 2015,
+  "special": 0,
+  "title": "2015-2016 Regular Session",
+  "size": 5765565,
+  "access_key": "1NRvZu2uO0JL84DntUPJwE"
+ },
+ {
+  "state": "NC",
+  "session": 1014,
+  "year": 2013,
+  "special": 0,
+  "title": "2013-2014 Regular Session",
+  "size": 6411869,
+  "access_key": "4CECWMt34r79IUNgB7boDP"
+ },
+ {
+  "state": "NC",
+  "session": 126,
+  "year": 2011,
+  "special": 0,
+  "title": "2011-2012 Regular Session",
+  "size": 6111328,
+  "access_key": "1Y1mTa9CDJSm8nOOzl0pgz"
+ },
+ {
+  "state": "NC",
+  "session": 40,
+  "year": 2010,
+  "special": 0,
+  "title": "2010 Regular Session",
+  "size": 1995801,
+  "access_key": "4Mo7fnK9L36kqLIH6fqURd"
+ },
+ {
+  "state": "NC",
+  "session": 41,
+  "year": 2009,
+  "special": 0,
+  "title": "2009 Regular Session",
+  "size": 4328587,
+  "access_key": "16HtAYhcGEfAujOGaKnbhl"
+ },
+ {
+  "state": "ND",
+  "session": 2255,
+  "year": 2026,
+  "special": 1,
+  "title": "2026 1st Special Session",
+  "size": 168935,
+  "access_key": "1MUs45ZcRjQWHwpAr02sby"
+ },
+ {
+  "state": "ND",
+  "session": 2140,
+  "year": 2025,
+  "special": 0,
+  "title": "2025-2026 Regular Session",
+  "size": 4697133,
+  "access_key": "51U8VzRlc2Uavv8v4GLHKY"
+ },
+ {
+  "state": "ND",
+  "session": 1848,
+  "year": 2023,
+  "special": 0,
+  "title": "2023-2024 Regular Session",
+  "size": 3649854,
+  "access_key": "3yUso3BwN9ltlBSOY4UWtt"
+ },
+ {
+  "state": "ND",
+  "session": 2104,
+  "year": 2023,
+  "special": 1,
+  "title": "2023 1st Special Session",
+  "size": 123901,
+  "access_key": "7BdgVTo18fvgjbPhjdn4dl"
+ },
+ {
+  "state": "ND",
+  "session": 1665,
+  "year": 2021,
+  "special": 0,
+  "title": "2021-2022 Regular Session",
+  "size": 3103913,
+  "access_key": "5VKNOpyWzffMFFUsFOK02y"
+ },
+ {
+  "state": "ND",
+  "session": 1938,
+  "year": 2021,
+  "special": 1,
+  "title": "2021 1st Special Session",
+  "size": 147160,
+  "access_key": "5Ez9nBPt5MBcabU9Bbrdb8"
+ },
+ {
+  "state": "ND",
+  "session": 1544,
+  "year": 2019,
+  "special": 0,
+  "title": "2019-2020 Regular Session",
+  "size": 3363881,
+  "access_key": "4hVsBKIQ0kmwPMAvLBJcc4"
+ },
+ {
+  "state": "ND",
+  "session": 1170,
+  "year": 2017,
+  "special": 0,
+  "title": "2017-2018 Regular Session",
+  "size": 2815085,
+  "access_key": "1Y6BDgG9ScmJCJr7I0rmLO"
+ },
+ {
+  "state": "ND",
+  "session": 1039,
+  "year": 2015,
+  "special": 0,
+  "title": "2015-2016 Regular Session",
+  "size": 3190545,
+  "access_key": "LJ4OZB2qOyj8cU9BlcngW"
+ },
+ {
+  "state": "ND",
+  "session": 624,
+  "year": 2013,
+  "special": 0,
+  "title": "2013-2014 Regular Session",
+  "size": 1782023,
+  "access_key": "1OPzj75nCmUHbzky3SMfVo"
+ },
+ {
+  "state": "ND",
+  "session": 88,
+  "year": 2011,
+  "special": 0,
+  "title": "2011-2012 Regular Session",
+  "size": 1629414,
+  "access_key": "h58B2OGIyZ6KwKNJZRNjE"
+ },
+ {
+  "state": "ND",
+  "session": 61,
+  "year": 2009,
+  "special": 0,
+  "title": "2009-2010 Regular Session",
+  "size": 1725398,
+  "access_key": "2BbZpR2ElpM1y88EUaKEDi"
+ },
+ {
+  "state": "NE",
+  "session": 2185,
+  "year": 2025,
+  "special": 0,
+  "title": "2025-2026 Regular Session",
+  "size": 4829689,
+  "access_key": "FsFfCKkQylZXZPoCDYTlW"
+ },
+ {
+  "state": "NE",
+  "session": 2152,
+  "year": 2024,
+  "special": 1,
+  "title": "2024 1st Special Session",
+  "size": 267993,
+  "access_key": "RJf2ZK5bEL2rM7hhnRCrs"
+ },
+ {
+  "state": "NE",
+  "session": 2028,
+  "year": 2023,
+  "special": 0,
+  "title": "2023-2024 Regular Session",
+  "size": 4179863,
+  "access_key": "74xEDyVOYiptWHfQMRdov2"
+ },
+ {
+  "state": "NE",
+  "session": 1810,
+  "year": 2021,
+  "special": 0,
+  "title": "2021-2022 Regular Session",
+  "size": 3714430,
+  "access_key": "1iWg1C8CN4AUIuwn7kUY8D"
+ },
+ {
+  "state": "NE",
+  "session": 1851,
+  "year": 2021,
+  "special": 1,
+  "title": "2021 1st Special Session",
+  "size": 76192,
+  "access_key": "2iPAI0kBdYBx9wXQivhYKq"
+ },
+ {
+  "state": "NE",
+  "session": 1641,
+  "year": 2019,
+  "special": 0,
+  "title": "2019-2020 Regular Session",
+  "size": 3288379,
+  "access_key": "41qbWU2xR5dxS8ESzdawy9"
+ },
+ {
+  "state": "NE",
+  "session": 1417,
+  "year": 2017,
+  "special": 0,
+  "title": "2017-2018 Regular Session",
+  "size": 2523147,
+  "access_key": "2LwMY5qTlX03Dri4B2LB4i"
+ },
+ {
+  "state": "NE",
+  "session": 1139,
+  "year": 2015,
+  "special": 0,
+  "title": "2015-2016 Regular Session",
+  "size": 2757938,
+  "access_key": "3ZJPd1xKxmhZScoFC6OSAO"
+ },
+ {
+  "state": "NE",
+  "session": 1010,
+  "year": 2013,
+  "special": 0,
+  "title": "2013-2014 Regular Session",
+  "size": 2349552,
+  "access_key": "68uD6kKhRDYLOzrs6laYbB"
+ },
+ {
+  "state": "NE",
+  "session": 91,
+  "year": 2011,
+  "special": 0,
+  "title": "2011-2012 Regular Session",
+  "size": 2443947,
+  "access_key": "5OAXTD2MP0NVbi077E4qN5"
+ },
+ {
+  "state": "NE",
+  "session": 69,
+  "year": 2009,
+  "special": 0,
+  "title": "2009-2010 Regular Session",
+  "size": 806434,
+  "access_key": "1THI89tCz47afax9GxdkjX"
+ },
+ {
+  "state": "NH",
+  "session": 2236,
+  "year": 2026,
+  "special": 0,
+  "title": "2026 Regular Session",
+  "size": 4774151,
+  "access_key": "5nM1KhvyvLsNwB68wT9xJl"
+ },
+ {
+  "state": "NH",
+  "session": 2186,
+  "year": 2025,
+  "special": 0,
+  "title": "2025 Regular Session",
+  "size": 3985724,
+  "access_key": "4FRNOoRA1OZcf6fr0TiSE7"
+ },
+ {
+  "state": "NH",
+  "session": 2124,
+  "year": 2024,
+  "special": 0,
+  "title": "2024 Regular Session",
+  "size": 3533496,
+  "access_key": "40QzEpcOajZVhOnugS7ks4"
+ },
+ {
+  "state": "NH",
+  "session": 2029,
+  "year": 2023,
+  "special": 0,
+  "title": "2023 Regular Session",
+  "size": 2689391,
+  "access_key": "2pTLGLHv1uObXKHD0koorH"
+ },
+ {
+  "state": "NH",
+  "session": 1959,
+  "year": 2022,
+  "special": 0,
+  "title": "2022 Regular Session",
+  "size": 3103680,
+  "access_key": "57AP0w5xEiSFvr9lEdJ3Z6"
+ },
+ {
+  "state": "NH",
+  "session": 1811,
+  "year": 2021,
+  "special": 0,
+  "title": "2021 Regular Session",
+  "size": 2292458,
+  "access_key": "2YQ8syZ03mCYw3yp7uZFxD"
+ },
+ {
+  "state": "NH",
+  "session": 1729,
+  "year": 2020,
+  "special": 0,
+  "title": "2020 Regular Session",
+  "size": 2847847,
+  "access_key": "3unU2u2POWQQAhZERbZnqB"
+ },
+ {
+  "state": "NH",
+  "session": 1642,
+  "year": 2019,
+  "special": 0,
+  "title": "2019 Regular Session",
+  "size": 2730116,
+  "access_key": "17eQ7gnK3TMxKOIhcNXFOk"
+ },
+ {
+  "state": "NH",
+  "session": 1516,
+  "year": 2018,
+  "special": 0,
+  "title": "2018 Regular Session",
+  "size": 2960300,
+  "access_key": "45tcL2k04qHRpbyn3XO8Wh"
+ },
+ {
+  "state": "NH",
+  "session": 1418,
+  "year": 2017,
+  "special": 0,
+  "title": "2017 Regular Session",
+  "size": 2136362,
+  "access_key": "XRuUl9VvmB2u3kj9FriI0"
+ },
+ {
+  "state": "NH",
+  "session": 1201,
+  "year": 2016,
+  "special": 0,
+  "title": "2016 Regular Session",
+  "size": 2779966,
+  "access_key": "7Qy811GJDEdr9FOhDF5fXY"
+ },
+ {
+  "state": "NH",
+  "session": 1141,
+  "year": 2015,
+  "special": 0,
+  "title": "2015 Regular Session",
+  "size": 2275477,
+  "access_key": "5ZjCjmlU5ZvN3HJWE4iIam"
+ },
+ {
+  "state": "NH",
+  "session": 1074,
+  "year": 2014,
+  "special": 0,
+  "title": "2014 Regular Session",
+  "size": 2356717,
+  "access_key": "7eRgiT3JaSdOlfa24NXPpC"
+ },
+ {
+  "state": "NH",
+  "session": 1011,
+  "year": 2013,
+  "special": 0,
+  "title": "2013 Regular Session",
+  "size": 2005413,
+  "access_key": "6y7vOZbF9Lo6YaDHELTBjO"
+ },
+ {
+  "state": "NH",
+  "session": 546,
+  "year": 2012,
+  "special": 0,
+  "title": "2012 Regular Session",
+  "size": 2640902,
+  "access_key": "I97ac4JXkWRbLehscXea5"
+ },
+ {
+  "state": "NH",
+  "session": 92,
+  "year": 2011,
+  "special": 0,
+  "title": "2011 Regular Session",
+  "size": 2112555,
+  "access_key": "7WntiCK63XKFpvFT2WqVvm"
+ },
+ {
+  "state": "NH",
+  "session": 54,
+  "year": 2010,
+  "special": 0,
+  "title": "2010 Regular Session",
+  "size": 1801656,
+  "access_key": "1vs6G65glfrY2xUQnrFWgE"
+ },
+ {
+  "state": "NV",
+  "session": 2144,
+  "year": 2025,
+  "special": 0,
+  "title": "2025 Regular Session",
+  "size": 3608458,
+  "access_key": "4pzHJkTmdn4trdq8gEKJkd"
+ },
+ {
+  "state": "NV",
+  "session": 2233,
+  "year": 2025,
+  "special": 1,
+  "title": "2025 1st Special Session",
+  "size": 130252,
+  "access_key": "2eGCoRxZUZVq2hsSSz4h3o"
+ },
+ {
+  "state": "NV",
+  "session": 1981,
+  "year": 2023,
+  "special": 0,
+  "title": "2023 Regular Session",
+  "size": 3182932,
+  "access_key": "3nBLfRQQUwbu1VXzt7Di3Q"
+ },
+ {
+  "state": "NV",
+  "session": 2054,
+  "year": 2023,
+  "special": 1,
+  "title": "2023 2nd Special Session",
+  "size": 43654,
+  "access_key": "3VXdwh6U1PZRDeuX24hvzQ"
+ },
+ {
+  "state": "NV",
+  "session": 2053,
+  "year": 2023,
+  "special": 1,
+  "title": "2023 1st Special Session",
+  "size": 42161,
+  "access_key": "2CTwzFSSeXt2LF8J4YGIdt"
+ },
+ {
+  "state": "NV",
+  "session": 1754,
+  "year": 2021,
+  "special": 0,
+  "title": "2021 Regular Session",
+  "size": 2699838,
+  "access_key": "2lC3bDUC62AZli9uzynV4c"
+ },
+ {
+  "state": "NV",
+  "session": 1946,
+  "year": 2021,
+  "special": 1,
+  "title": "2021 1st Special Session",
+  "size": 68993,
+  "access_key": "2aT5vkgQi0UHekYL8iktak"
+ },
+ {
+  "state": "NV",
+  "session": 1761,
+  "year": 2020,
+  "special": 1,
+  "title": "2020 2nd Special Session",
+  "size": 84984,
+  "access_key": "1weo8m3ZikNH8eIalWq99O"
+ },
+ {
+  "state": "NV",
+  "session": 1755,
+  "year": 2020,
+  "special": 1,
+  "title": "2020 1st Special Session",
+  "size": 82089,
+  "access_key": "M8L45oiN0EcJaqywcm09D"
+ },
+ {
+  "state": "NV",
+  "session": 1599,
+  "year": 2019,
+  "special": 0,
+  "title": "2019 Regular Session",
+  "size": 2939653,
+  "access_key": "4TIyuuPf7f2rWRpVHS0BzD"
+ },
+ {
+  "state": "NV",
+  "session": 1437,
+  "year": 2017,
+  "special": 0,
+  "title": "2017 Regular Session",
+  "size": 2937736,
+  "access_key": "50SKcaAktOBsfQwFPHfYTy"
+ },
+ {
+  "state": "NV",
+  "session": 1266,
+  "year": 2016,
+  "special": 1,
+  "title": "2016 1st Special Session",
+  "size": 49781,
+  "access_key": "5PV0Sob1TjFLEdzOtMt6S0"
+ },
+ {
+  "state": "NV",
+  "session": 1140,
+  "year": 2015,
+  "special": 0,
+  "title": "2015 Regular Session",
+  "size": 2624159,
+  "access_key": "1KZKFUu4vAHhSlBGd8zaiH"
+ },
+ {
+  "state": "NV",
+  "session": 1190,
+  "year": 2015,
+  "special": 1,
+  "title": "2015 1st Special Session",
+  "size": 54126,
+  "access_key": "4z7gyY8xRjoHKnMEkOUs6i"
+ },
+ {
+  "state": "NV",
+  "session": 1112,
+  "year": 2014,
+  "special": 1,
+  "title": "2014 1st Special Session",
+  "size": 52709,
+  "access_key": "1iW2isyCQu2lgsbqF2csEs"
+ },
+ {
+  "state": "NV",
+  "session": 978,
+  "year": 2013,
+  "special": 0,
+  "title": "2013 Regular Session",
+  "size": 2725243,
+  "access_key": "2FrlWTP8Fc9GZMdMIrLeHR"
+ },
+ {
+  "state": "NV",
+  "session": 1040,
+  "year": 2013,
+  "special": 1,
+  "title": "2013 1st Special Session",
+  "size": 54929,
+  "access_key": "3kyZZXBrpOr5g2wAnKhwMo"
+ },
+ {
+  "state": "NV",
+  "session": 127,
+  "year": 2011,
+  "special": 0,
+  "title": "2011 Regular Session",
+  "size": 2444038,
+  "access_key": "44o3B6DzCQHwA78r9yHp8L"
+ },
+ {
+  "state": "NV",
+  "session": 524,
+  "year": 2010,
+  "special": 1,
+  "title": "2010 2nd Special Session",
+  "size": 18833,
+  "access_key": "3CFLA8i2jy4hFTttqdW3ae"
+ },
+ {
+  "state": "NV",
+  "session": 64,
+  "year": 2009,
+  "special": 0,
+  "title": "2009 Regular Session",
+  "size": 1443749,
+  "access_key": "5ucthnJUZn2DgdguDzKL77"
+ },
+ {
+  "state": "OH",
+  "session": 2190,
+  "year": 2025,
+  "special": 0,
+  "title": "2025-2026 Regular Session",
+  "size": 7901229,
+  "access_key": "4ksVvGr3JAuiw29rHpvFop"
+ },
+ {
+  "state": "OH",
+  "session": 2142,
+  "year": 2024,
+  "special": 1,
+  "title": "2024 1st Special Session",
+  "size": 86216,
+  "access_key": "24CEpH6P6lGuu7jMBfGXxc"
+ },
+ {
+  "state": "OH",
+  "session": 2033,
+  "year": 2023,
+  "special": 0,
+  "title": "2023-2024 Regular Session",
+  "size": 5280434,
+  "access_key": "F7bxbblZ77ftHDLyfADAX"
+ },
+ {
+  "state": "OH",
+  "session": 1815,
+  "year": 2021,
+  "special": 0,
+  "title": "2021-2022 Regular Session",
+  "size": 5899606,
+  "access_key": "Ke5iaULxCbXAB1kU4Sdjc"
+ },
+ {
+  "state": "OH",
+  "session": 1646,
+  "year": 2019,
+  "special": 0,
+  "title": "2019-2020 Regular Session",
+  "size": 5230174,
+  "access_key": "5OdLkoPkMFWn9A0lYqMVJc"
+ },
+ {
+  "state": "OH",
+  "session": 1422,
+  "year": 2017,
+  "special": 0,
+  "title": "2017-2018 Regular Session",
+  "size": 6093760,
+  "access_key": "1c21JhOAhmJNitXDRopMZm"
+ },
+ {
+  "state": "OH",
+  "session": 1145,
+  "year": 2015,
+  "special": 0,
+  "title": "2015-2016 Regular Session",
+  "size": 4251421,
+  "access_key": "1Jqk1kl5JSWYIMSrCcO1Lu"
+ },
+ {
+  "state": "OH",
+  "session": 1015,
+  "year": 2013,
+  "special": 0,
+  "title": "2013-2014 Regular Session",
+  "size": 5295084,
+  "access_key": "FFOulfWBw58zljpmcAhGM"
+ },
+ {
+  "state": "OH",
+  "session": 95,
+  "year": 2011,
+  "special": 0,
+  "title": "2011-2012 Regular Session",
+  "size": 5059959,
+  "access_key": "1wfRMFYU6E4FFrYvsjbjva"
+ },
+ {
+  "state": "OH",
+  "session": 13,
+  "year": 2009,
+  "special": 0,
+  "title": "2009-2010 Regular Session",
+  "size": 3231532,
+  "access_key": "1JAztnhJmqs33EgrZlaKYf"
+ },
+ {
+  "state": "OH",
+  "session": 11,
+  "year": 2007,
+  "special": 0,
+  "title": "2007-2008 Regular Session",
+  "size": 1750805,
+  "access_key": "QPZXVU8u3yI2IMsh1n1Aa"
+ },
+ {
+  "state": "OK",
+  "session": 2219,
+  "year": 2026,
+  "special": 0,
+  "title": "2026 Regular Session",
+  "size": 18838055,
+  "access_key": "2yIcW7Svm2ER7ZnsL6leFg"
+ },
+ {
+  "state": "OK",
+  "session": 2165,
+  "year": 2025,
+  "special": 0,
+  "title": "2025 Regular Session",
+  "size": 10476752,
+  "access_key": "8comesmeomdZQbPbopPLA"
+ },
+ {
+  "state": "OK",
+  "session": 2055,
+  "year": 2024,
+  "special": 0,
+  "title": "2024 Regular Session",
+  "size": 14051095,
+  "access_key": "4Dl569YzopPZEnq8g2CA6X"
+ },
+ {
+  "state": "OK",
+  "session": 2145,
+  "year": 2024,
+  "special": 1,
+  "title": "2024 4th Special Session",
+  "size": 20406,
+  "access_key": "4xKjFJDFE6xA72c8QgTLKp"
+ },
+ {
+  "state": "OK",
+  "session": 2131,
+  "year": 2024,
+  "special": 1,
+  "title": "2024 3rd Special Session",
+  "size": 57301,
+  "access_key": "6WfV3a0wHFpAmI62lZuMnn"
+ },
+ {
+  "state": "OK",
+  "session": 1983,
+  "year": 2023,
+  "special": 0,
+  "title": "2023 Regular Session",
+  "size": 9489676,
+  "access_key": "57X6XBWEO4AUsNkJBe3NIV"
+ },
+ {
+  "state": "OK",
+  "session": 2100,
+  "year": 2023,
+  "special": 1,
+  "title": "2023 2nd Special Session",
+  "size": 46127,
+  "access_key": "7A7lOPoMauRPRW4bw6a8D8"
+ },
+ {
+  "state": "OK",
+  "session": 2051,
+  "year": 2023,
+  "special": 1,
+  "title": "2023 1st Special Session",
+  "size": 426239,
+  "access_key": "2DHLwnZ6AKsdZBqinloJjY"
+ },
+ {
+  "state": "OK",
+  "session": 1837,
+  "year": 2022,
+  "special": 0,
+  "title": "2022 Regular Session",
+  "size": 14132888,
+  "access_key": "3k1rDmOGMSwRc8BLZ4M6Tp"
+ },
+ {
+  "state": "OK",
+  "session": 1984,
+  "year": 2022,
+  "special": 1,
+  "title": "2022 3rd Special Session",
+  "size": 95755,
+  "access_key": "16S5zwRVWQuqD9llNt9Oz0"
+ },
+ {
+  "state": "OK",
+  "session": 1982,
+  "year": 2022,
+  "special": 1,
+  "title": "2022 2nd Special Session",
+  "size": 442047,
+  "access_key": "385HUQ3rmH249tCQ39spKv"
+ },
+ {
+  "state": "OK",
+  "session": 1753,
+  "year": 2021,
+  "special": 0,
+  "title": "2021 Regular Session",
+  "size": 7889063,
+  "access_key": "4evYeq2ZNIIE2wbXOTSd69"
+ },
+ {
+  "state": "OK",
+  "session": 1855,
+  "year": 2021,
+  "special": 1,
+  "title": "2021 1st Special Session",
+  "size": 91797,
+  "access_key": "4uvrvQ2xLxIeCnvXTviuCr"
+ },
+ {
+  "state": "OK",
+  "session": 1712,
+  "year": 2020,
+  "special": 0,
+  "title": "2020 Regular Session",
+  "size": 11628503,
+  "access_key": "6qNeAWb0qed49O97UutWqi"
+ },
+ {
+  "state": "OK",
+  "session": 1740,
+  "year": 2020,
+  "special": 1,
+  "title": "2020 1st Special Session",
+  "size": 16085,
+  "access_key": "37BndfLQpZIhabbl8GCfwk"
+ },
+ {
+  "state": "OK",
+  "session": 1580,
+  "year": 2019,
+  "special": 0,
+  "title": "2019 Regular Session",
+  "size": 6253757,
+  "access_key": "4COsV4btwgupbHhh8QEAMl"
+ },
+ {
+  "state": "OK",
+  "session": 1471,
+  "year": 2018,
+  "special": 0,
+  "title": "2018 Regular Session",
+  "size": 9880411,
+  "access_key": "5F7HbwVhHTstiPTaPpE8Ha"
+ },
+ {
+  "state": "OK",
+  "session": 1538,
+  "year": 2018,
+  "special": 1,
+  "title": "2018 2nd Special Session",
+  "size": 201599,
+  "access_key": "3GoS52X4zltUWnTtVHuqAP"
+ },
+ {
+  "state": "OK",
+  "session": 1260,
+  "year": 2017,
+  "special": 0,
+  "title": "2017 Regular Session",
+  "size": 5570324,
+  "access_key": "29CQezvW5iWA92rPEhPq6C"
+ },
+ {
+  "state": "OK",
+  "session": 1476,
+  "year": 2017,
+  "special": 1,
+  "title": "2017 1st Special Session",
+  "size": 440861,
+  "access_key": "4qoNOzsI0Iyts73W0CFlKV"
+ },
+ {
+  "state": "OK",
+  "session": 1171,
+  "year": 2016,
+  "special": 0,
+  "title": "2016 Regular Session",
+  "size": 9760202,
+  "access_key": "6bI7kzh6DtSmIs1TF0yioM"
+ },
+ {
+  "state": "OK",
+  "session": 1109,
+  "year": 2015,
+  "special": 0,
+  "title": "2015 Regular Session",
+  "size": 5241200,
+  "access_key": "nDs7EeJOzLMuvp3PGRrB3"
+ },
+ {
+  "state": "OK",
+  "session": 1043,
+  "year": 2014,
+  "special": 0,
+  "title": "2014 Regular Session",
+  "size": 10741138,
+  "access_key": "3o9MY9bIjGCvlYYpsIZc3r"
+ },
+ {
+  "state": "OK",
+  "session": 980,
+  "year": 2013,
+  "special": 0,
+  "title": "2013 Regular Session",
+  "size": 6007074,
+  "access_key": "75yQxc29koa6VcvWoka78L"
+ },
+ {
+  "state": "OK",
+  "session": 1048,
+  "year": 2013,
+  "special": 1,
+  "title": "2013 1st Special Session",
+  "size": 181508,
+  "access_key": "3z4Qfqimw6p9IZfUC7TVZd"
+ },
+ {
+  "state": "OK",
+  "session": 653,
+  "year": 2012,
+  "special": 0,
+  "title": "2012 Regular Session",
+  "size": 10322616,
+  "access_key": "14LF4JnXzAk0iDwexINNh6"
+ },
+ {
+  "state": "OK",
+  "session": 128,
+  "year": 2011,
+  "special": 0,
+  "title": "2011 Regular Session",
+  "size": 5350677,
+  "access_key": "5WNALRgP0hbSJrliFEtfdU"
+ },
+ {
+  "state": "OK",
+  "session": 49,
+  "year": 2010,
+  "special": 0,
+  "title": "2010 Regular Session",
+  "size": 9261284,
+  "access_key": "amgIUlA2MymX8bOA6L3UY"
+ },
+ {
+  "state": "OR",
+  "session": 2252,
+  "year": 2026,
+  "special": 0,
+  "title": "2026 Regular Session",
+  "size": 1832649,
+  "access_key": "5NZ0WBJX0NQymSzSRjlw85"
+ },
+ {
+  "state": "OR",
+  "session": 2191,
+  "year": 2025,
+  "special": 0,
+  "title": "2025 Regular Session",
+  "size": 11734020,
+  "access_key": "1mw4capvGEmjSVUkbWxkl"
+ },
+ {
+  "state": "OR",
+  "session": 2225,
+  "year": 2025,
+  "special": 1,
+  "title": "2025 1st Special Session",
+  "size": 96194,
+  "access_key": "21VfsS9XNuwzCszNTap1Eg"
+ },
+ {
+  "state": "OR",
+  "session": 2127,
+  "year": 2024,
+  "special": 0,
+  "title": "2024 Regular Session",
+  "size": 1399393,
+  "access_key": "u6xqWP9aGiBCOGHjylLww"
+ },
+ {
+  "state": "OR",
+  "session": 2200,
+  "year": 2024,
+  "special": 1,
+  "title": "2024 1st Special Session",
+  "size": 52450,
+  "access_key": "2s05O3ykGIM8AFiDbwufRT"
+ },
+ {
+  "state": "OR",
+  "session": 2034,
+  "year": 2023,
+  "special": 0,
+  "title": "2023 Regular Session",
+  "size": 8760396,
+  "access_key": "58BLcRAMbaRtLoIobybRW9"
+ },
+ {
+  "state": "OR",
+  "session": 1962,
+  "year": 2022,
+  "special": 0,
+  "title": "2022 Regular Session",
+  "size": 1027207,
+  "access_key": "6f5utXC8dbxdwDPz5FrTZq"
+ },
+ {
+  "state": "OR",
+  "session": 1816,
+  "year": 2021,
+  "special": 0,
+  "title": "2021 Regular Session",
+  "size": 6345800,
+  "access_key": "3N4u3C8bqESEopRJfj9d4r"
+ },
+ {
+  "state": "OR",
+  "session": 1968,
+  "year": 2021,
+  "special": 1,
+  "title": "2021 2nd Special Session",
+  "size": 61682,
+  "access_key": "5MQg4cu5ATkxEQwWV90tFS"
+ },
+ {
+  "state": "OR",
+  "session": 1852,
+  "year": 2021,
+  "special": 1,
+  "title": "2021 1st Special Session",
+  "size": 57819,
+  "access_key": "LX0Q7QjEBnDNcQlc50j5u"
+ },
+ {
+  "state": "OR",
+  "session": 1732,
+  "year": 2020,
+  "special": 0,
+  "title": "2020 Regular Session",
+  "size": 898820,
+  "access_key": "6BOZ4dbkHW9WhZ3MEXo4V7"
+ },
+ {
+  "state": "OR",
+  "session": 1795,
+  "year": 2020,
+  "special": 1,
+  "title": "2020 3rd Special Session",
+  "size": 65400,
+  "access_key": "3KzseH2hZaf0UNBqmCPon7"
+ },
+ {
+  "state": "OR",
+  "session": 1763,
+  "year": 2020,
+  "special": 1,
+  "title": "2020 2nd Special Session",
+  "size": 90113,
+  "access_key": "5H7YZfVNEZ6vN4goOnXBJi"
+ },
+ {
+  "state": "OR",
+  "session": 1752,
+  "year": 2020,
+  "special": 1,
+  "title": "2020 1st Special Session",
+  "size": 161697,
+  "access_key": "5uea2Ajdq6tQFftWNAig2M"
+ },
+ {
+  "state": "OR",
+  "session": 1647,
+  "year": 2019,
+  "special": 0,
+  "title": "2019 Regular Session",
+  "size": 6949558,
+  "access_key": "4s07Io3Jj8iBU8CGRXFtgZ"
+ },
+ {
+  "state": "OR",
+  "session": 1533,
+  "year": 2018,
+  "special": 0,
+  "title": "2018 Regular Session",
+  "size": 1008094,
+  "access_key": "3aUciCV0JCy8v0GqHiu0Pb"
+ },
+ {
+  "state": "OR",
+  "session": 1581,
+  "year": 2018,
+  "special": 1,
+  "title": "2018 1st Special Session",
+  "size": 50961,
+  "access_key": "3h5o0dlzUiXXZVEIAQ3hn7"
+ },
+ {
+  "state": "OR",
+  "session": 1423,
+  "year": 2017,
+  "special": 0,
+  "title": "2017 Regular Session",
+  "size": 6812423,
+  "access_key": "5KwjGwUOxZkBmtiMcv4KKy"
+ },
+ {
+  "state": "OR",
+  "session": 1203,
+  "year": 2016,
+  "special": 0,
+  "title": "2016 Regular Session",
+  "size": 1003576,
+  "access_key": "2xwU7Qq9JwhxggljIooN50"
+ },
+ {
+  "state": "OR",
+  "session": 1146,
+  "year": 2015,
+  "special": 0,
+  "title": "2015 Regular Session",
+  "size": 7047057,
+  "access_key": "7IXzrDHa6ijoIzO2L8OILB"
+ },
+ {
+  "state": "OR",
+  "session": 1085,
+  "year": 2014,
+  "special": 0,
+  "title": "2014 Regular Session",
+  "size": 942077,
+  "access_key": "5Sou7Xmo8f1aCfu3nnuwQr"
+ },
+ {
+  "state": "OR",
+  "session": 1016,
+  "year": 2013,
+  "special": 0,
+  "title": "2013 Regular Session",
+  "size": 4670541,
+  "access_key": "4KTuIDOtJOGOXqwbjbLGlm"
+ },
+ {
+  "state": "OR",
+  "session": 1051,
+  "year": 2013,
+  "special": 1,
+  "title": "2013 1st Special Session",
+  "size": 66021,
+  "access_key": "5KgvnArTnFltsu63NwH96z"
+ },
+ {
+  "state": "OR",
+  "session": 954,
+  "year": 2012,
+  "special": 0,
+  "title": "2012 Regular Session",
+  "size": 573434,
+  "access_key": "5ZglhSLg0GBvAXoJ8QxVwJ"
+ },
+ {
+  "state": "OR",
+  "session": 102,
+  "year": 2011,
+  "special": 0,
+  "title": "2011 Regular Session",
+  "size": 4281608,
+  "access_key": "tA6jmaDmP6zn5ffZWTf7q"
+ },
+ {
+  "state": "OR",
+  "session": 38,
+  "year": 2010,
+  "special": 1,
+  "title": "2010 1st Special Session",
+  "size": 407302,
+  "access_key": "6O4ulfXKcwpRnsVH2U9riR"
+ },
+ {
+  "state": "OR",
+  "session": 39,
+  "year": 2009,
+  "special": 0,
+  "title": "2009 Regular Session",
+  "size": 7309,
+  "access_key": "1SrzM6vs3KltKcClssP1iM"
+ },
+ {
+  "state": "PA",
+  "session": 2192,
+  "year": 2025,
+  "special": 0,
+  "title": "2025-2026 Regular Session",
+  "size": 22532869,
+  "access_key": "6gUTWIQemfqg5FcxxHXauU"
+ },
+ {
+  "state": "PA",
+  "session": 2035,
+  "year": 2023,
+  "special": 0,
+  "title": "2023-2024 Regular Session",
+  "size": 15383751,
+  "access_key": "1azDqyvrC1OCAeYHjbEKax"
+ },
+ {
+  "state": "PA",
+  "session": 2045,
+  "year": 2023,
+  "special": 1,
+  "title": "2023 1st Special Session",
+  "size": 120092,
+  "access_key": "61sjq6IdvKq2NDTCJ6ploD"
+ },
+ {
+  "state": "PA",
+  "session": 1817,
+  "year": 2021,
+  "special": 0,
+  "title": "2021-2022 Regular Session",
+  "size": 14389058,
+  "access_key": "8hd7izOoBotRBbxBsIJqP"
+ },
+ {
+  "state": "PA",
+  "session": 1648,
+  "year": 2019,
+  "special": 0,
+  "title": "2019-2020 Regular Session",
+  "size": 18851153,
+  "access_key": "3EZq242nlMZYqZo5PSXfPX"
+ },
+ {
+  "state": "PA",
+  "session": 1424,
+  "year": 2017,
+  "special": 0,
+  "title": "2017-2018 Regular Session",
+  "size": 18535558,
+  "access_key": "1Jp0dc7FLYnX0RgIWLImWS"
+ },
+ {
+  "state": "PA",
+  "session": 1147,
+  "year": 2015,
+  "special": 0,
+  "title": "2015-2016 Regular Session",
+  "size": 20000287,
+  "access_key": "1gxdXedFYWEtqUTvC5Xuyv"
+ },
+ {
+  "state": "PA",
+  "session": 1017,
+  "year": 2013,
+  "special": 0,
+  "title": "2013-2014 Regular Session",
+  "size": 17662369,
+  "access_key": "1U5Fx5E41ilE7d46xHlrUX"
+ },
+ {
+  "state": "PA",
+  "session": 89,
+  "year": 2011,
+  "special": 0,
+  "title": "2011-2012 Regular Session",
+  "size": 19168253,
+  "access_key": "5nBBPcziCIy65skJn1iHma"
+ },
+ {
+  "state": "PA",
+  "session": 15,
+  "year": 2009,
+  "special": 0,
+  "title": "2009-2010 Regular Session",
+  "size": 18670401,
+  "access_key": "1GFQYViNfdoVTsvJ5oZgkg"
+ },
+ {
+  "state": "PA",
+  "session": 669,
+  "year": 2009,
+  "special": 1,
+  "title": "2009-2010 1st Special Session",
+  "size": 158355,
+  "access_key": "1oHpqT7e0fijPCyK85kpm4"
+ },
+ {
+  "state": "PA",
+  "session": 14,
+  "year": 2007,
+  "special": 0,
+  "title": "2007-2008 Regular Session",
+  "size": 16830451,
+  "access_key": "3LDqAxAWLtlp9keXfukdAI"
+ },
+ {
+  "state": "RI",
+  "session": 2253,
+  "year": 2026,
+  "special": 0,
+  "title": "2026 Regular Session",
+  "size": 9573600,
+  "access_key": "2FdvswTeS8BvnVWYHrBdcR"
+ },
+ {
+  "state": "RI",
+  "session": 2193,
+  "year": 2025,
+  "special": 0,
+  "title": "2025 Regular Session",
+  "size": 7738415,
+  "access_key": "6ZDE4plr11xuo7ks8YU6lf"
+ },
+ {
+  "state": "RI",
+  "session": 2128,
+  "year": 2024,
+  "special": 0,
+  "title": "2024 Regular Session",
+  "size": 5530170,
+  "access_key": "sQxihNCwMevEQvRpU707U"
+ },
+ {
+  "state": "RI",
+  "session": 2036,
+  "year": 2023,
+  "special": 0,
+  "title": "2023 Regular Session",
+  "size": 5428698,
+  "access_key": "6KkXvMP5pb4kPiSJ3v3gY2"
+ },
+ {
+  "state": "RI",
+  "session": 1963,
+  "year": 2022,
+  "special": 0,
+  "title": "2022 Regular Session",
+  "size": 5028483,
+  "access_key": "7iQUTZSvHt9aDBi31jvMzq"
+ },
+ {
+  "state": "RI",
+  "session": 1818,
+  "year": 2021,
+  "special": 0,
+  "title": "2021 Regular Session",
+  "size": 4826741,
+  "access_key": "57848QHFpojqwKPmgTZiPH"
+ },
+ {
+  "state": "RI",
+  "session": 1733,
+  "year": 2020,
+  "special": 0,
+  "title": "2020 Regular Session",
+  "size": 3323083,
+  "access_key": "58oIMOTieuCoUTffbhDE5y"
+ },
+ {
+  "state": "RI",
+  "session": 1649,
+  "year": 2019,
+  "special": 0,
+  "title": "2019 Regular Session",
+  "size": 4177666,
+  "access_key": "7Umd5FlzAsgre3M5nRzuta"
+ },
+ {
+  "state": "RI",
+  "session": 1534,
+  "year": 2018,
+  "special": 0,
+  "title": "2018 Regular Session",
+  "size": 4397863,
+  "access_key": "3b3zDffV6t3NwvHv5Nnb2d"
+ },
+ {
+  "state": "RI",
+  "session": 1425,
+  "year": 2017,
+  "special": 0,
+  "title": "2017 Regular Session",
+  "size": 4601111,
+  "access_key": "7D60DLm9UkEN3OMY1AiudU"
+ },
+ {
+  "state": "RI",
+  "session": 1204,
+  "year": 2016,
+  "special": 0,
+  "title": "2016 Regular Session",
+  "size": 4764006,
+  "access_key": "1lI0bnFEXDCcytHdgavhMA"
+ },
+ {
+  "state": "RI",
+  "session": 1148,
+  "year": 2015,
+  "special": 0,
+  "title": "2015 Regular Session",
+  "size": 4230059,
+  "access_key": "2t9JbjZnU4J0T1tvFr6N2Q"
+ },
+ {
+  "state": "RI",
+  "session": 1086,
+  "year": 2014,
+  "special": 0,
+  "title": "2014 Regular Session",
+  "size": 4720495,
+  "access_key": "6hQy1YqRQp59VKd1XifAVn"
+ },
+ {
+  "state": "RI",
+  "session": 1018,
+  "year": 2013,
+  "special": 0,
+  "title": "2013 Regular Session",
+  "size": 3544987,
+  "access_key": "6g6I1AdmDxbjDELlQ7ge49"
+ },
+ {
+  "state": "RI",
+  "session": 673,
+  "year": 2012,
+  "special": 0,
+  "title": "2012 Regular Session",
+  "size": 2051303,
+  "access_key": "32vTc4psSV0FUceglbNbC6"
+ },
+ {
+  "state": "RI",
+  "session": 121,
+  "year": 2011,
+  "special": 0,
+  "title": "2011 Regular Session",
+  "size": 3470523,
+  "access_key": "2zpk2JCWM1SH8XEVr1zVTQ"
+ },
+ {
+  "state": "RI",
+  "session": 47,
+  "year": 2010,
+  "special": 0,
+  "title": "2010 Regular Session",
+  "size": 3040755,
+  "access_key": "3PsGCYH6U6gad2cjDfqkch"
+ },
+ {
+  "state": "SC",
+  "session": 2194,
+  "year": 2025,
+  "special": 0,
+  "title": "2025-2026 Regular Session",
+  "size": 26985124,
+  "access_key": "4qP9xqolBSMM7pADzvMElB"
+ },
+ {
+  "state": "SC",
+  "session": 2007,
+  "year": 2023,
+  "special": 0,
+  "title": "2023-2024 Regular Session",
+  "size": 15088249,
+  "access_key": "3wKV0ijHF3ryPMcyZUh157"
+ },
+ {
+  "state": "SC",
+  "session": 1784,
+  "year": 2021,
+  "special": 0,
+  "title": "2021-2022 Regular Session",
+  "size": 14161577,
+  "access_key": "1GjM6yo9suixcihSZvwYKg"
+ },
+ {
+  "state": "SC",
+  "session": 1650,
+  "year": 2019,
+  "special": 0,
+  "title": "2019-2020 Regular Session",
+  "size": 13750447,
+  "access_key": "49dsmenY1FFClqhmVES8Gx"
+ },
+ {
+  "state": "SC",
+  "session": 1426,
+  "year": 2017,
+  "special": 0,
+  "title": "2017-2018 Regular Session",
+  "size": 13430591,
+  "access_key": "2vP4FRh6uVYdYvBZTUDB8l"
+ },
+ {
+  "state": "SC",
+  "session": 1149,
+  "year": 2015,
+  "special": 0,
+  "title": "2015-2016 Regular Session",
+  "size": 13264126,
+  "access_key": "4BwUIBv1dw48Ml7xJzP8mZ"
+ },
+ {
+  "state": "SC",
+  "session": 983,
+  "year": 2013,
+  "special": 0,
+  "title": "2013-2014 Regular Session",
+  "size": 12365248,
+  "access_key": "Cqpi5OTErLhFJNt11hjgh"
+ },
+ {
+  "state": "SC",
+  "session": 106,
+  "year": 2011,
+  "special": 0,
+  "title": "2011-2012 Regular Session",
+  "size": 11554267,
+  "access_key": "2MGu6W7X4LMtF4RslD3RKT"
+ },
+ {
+  "state": "SC",
+  "session": 43,
+  "year": 2009,
+  "special": 0,
+  "title": "2009-2010 Regular Session",
+  "size": 7084634,
+  "access_key": "4iw7oMapTYuqiYKkZsThG8"
+ },
+ {
+  "state": "SD",
+  "session": 2231,
+  "year": 2026,
+  "special": 0,
+  "title": "2026 Regular Session",
+  "size": 2732884,
+  "access_key": "1gW6fYgxTiUEy08RB9RFZB"
+ },
+ {
+  "state": "SD",
+  "session": 2170,
+  "year": 2025,
+  "special": 0,
+  "title": "2025 Regular Session",
+  "size": 2501485,
+  "access_key": "5tbWSTcoHsM6SAIV4VKQft"
+ },
+ {
+  "state": "SD",
+  "session": 2222,
+  "year": 2025,
+  "special": 1,
+  "title": "2025 1st Special Session",
+  "size": 96546,
+  "access_key": "5hphQXTurdhzBxdev7al5H"
+ },
+ {
+  "state": "SD",
+  "session": 2107,
+  "year": 2024,
+  "special": 0,
+  "title": "2024 Regular Session",
+  "size": 2021128,
+  "access_key": "7XRqapB5XH8taMDU5HW5H1"
+ },
+ {
+  "state": "SD",
+  "session": 2001,
+  "year": 2023,
+  "special": 0,
+  "title": "2023 Regular Session",
+  "size": 1857688,
+  "access_key": "i5WE4RdeIIf6fLhCitnZP"
+ },
+ {
+  "state": "SD",
+  "session": 1969,
+  "year": 2022,
+  "special": 0,
+  "title": "2022 Regular Session",
+  "size": 2318028,
+  "access_key": "7ASvAimdMo2myxiuEqfpo6"
+ },
+ {
+  "state": "SD",
+  "session": 1785,
+  "year": 2021,
+  "special": 0,
+  "title": "2021 Regular Session",
+  "size": 1978695,
+  "access_key": "1LjwKV7AVkFVixvBJSgqiv"
+ },
+ {
+  "state": "SD",
+  "session": 1941,
+  "year": 2021,
+  "special": 1,
+  "title": "2021 2nd Special Session",
+  "size": 57900,
+  "access_key": "d91xfpDvP9Q162OwakSoe"
+ },
+ {
+  "state": "SD",
+  "session": 1939,
+  "year": 2021,
+  "special": 1,
+  "title": "2021 1st Special Session",
+  "size": 59766,
+  "access_key": "58GlmvuHMk1aTOwtSJUkWC"
+ },
+ {
+  "state": "SD",
+  "session": 1734,
+  "year": 2020,
+  "special": 0,
+  "title": "2020 Regular Session",
+  "size": 2201956,
+  "access_key": "3ZZi52tcen2yHaOJ7keVp5"
+ },
+ {
+  "state": "SD",
+  "session": 1772,
+  "year": 2020,
+  "special": 1,
+  "title": "2020 1st Special Session",
+  "size": 56445,
+  "access_key": "1yLt1heGl0L8wJ3SKU2xzF"
+ },
+ {
+  "state": "SD",
+  "session": 1651,
+  "year": 2019,
+  "special": 0,
+  "title": "2019 Regular Session",
+  "size": 2111634,
+  "access_key": "7DtknMiSaZy4z3lwxyWbGR"
+ },
+ {
+  "state": "SD",
+  "session": 1535,
+  "year": 2018,
+  "special": 0,
+  "title": "2018 Regular Session",
+  "size": 2844346,
+  "access_key": "3qi3XtruaE18v21tOZeMwj"
+ },
+ {
+  "state": "SD",
+  "session": 1604,
+  "year": 2018,
+  "special": 1,
+  "title": "2018 1st Special Session",
+  "size": 61203,
+  "access_key": "3b7adOjDKMsaDqfrU8OW66"
+ },
+ {
+  "state": "SD",
+  "session": 1427,
+  "year": 2017,
+  "special": 0,
+  "title": "2017 Regular Session",
+  "size": 1869376,
+  "access_key": "4hkihD6NJOB9EcByJczwBr"
+ },
+ {
+  "state": "SD",
+  "session": 1464,
+  "year": 2017,
+  "special": 1,
+  "title": "2017 1st Special Session",
+  "size": 58439,
+  "access_key": "7SUUfHT71acQPjKskSm6nU"
+ },
+ {
+  "state": "SD",
+  "session": 1164,
+  "year": 2016,
+  "special": 0,
+  "title": "2016 Regular Session",
+  "size": 1935084,
+  "access_key": "1rvUVewd6H5ng8RvJZfTXY"
+ },
+ {
+  "state": "SD",
+  "session": 1108,
+  "year": 2015,
+  "special": 0,
+  "title": "2015 Regular Session",
+  "size": 1988243,
+  "access_key": "8kja0nhGS5mKjOnHHnAhS"
+ },
+ {
+  "state": "SD",
+  "session": 1087,
+  "year": 2014,
+  "special": 0,
+  "title": "2014 Regular Session",
+  "size": 2180367,
+  "access_key": "2aJacFRjx8XnITDhoBBlKx"
+ },
+ {
+  "state": "SD",
+  "session": 1019,
+  "year": 2013,
+  "special": 0,
+  "title": "2013 Regular Session",
+  "size": 2310355,
+  "access_key": "5zjmOSymTuabHG2ix87E8y"
+ },
+ {
+  "state": "SD",
+  "session": 710,
+  "year": 2012,
+  "special": 0,
+  "title": "2012 Regular Session",
+  "size": 2182016,
+  "access_key": "bOqM8nqxQH6PRpd7wfjEf"
+ },
+ {
+  "state": "SD",
+  "session": 110,
+  "year": 2011,
+  "special": 0,
+  "title": "2011 Regular Session",
+  "size": 2060150,
+  "access_key": "Q15n5IgZgqio2PTUpwdye"
+ },
+ {
+  "state": "SD",
+  "session": 709,
+  "year": 2011,
+  "special": 1,
+  "title": "2011 1st Special Session",
+  "size": 55716,
+  "access_key": "3ieFazwnT8FLJw2ljNSmo9"
+ },
+ {
+  "state": "SD",
+  "session": 62,
+  "year": 2010,
+  "special": 0,
+  "title": "2010 Regular Session",
+  "size": 2104395,
+  "access_key": "28j4lQmgc3yy6SVb1Js6Pk"
+ },
+ {
+  "state": "TN",
+  "session": 2161,
+  "year": 2025,
+  "special": 0,
+  "title": "2025-2026 Regular Session",
+  "size": 32791686,
+  "access_key": "1Ufw75Hz5spx72HfYTPAWb"
+ },
+ {
+  "state": "TN",
+  "session": 2002,
+  "year": 2023,
+  "special": 0,
+  "title": "2023-2024 Regular Session",
+  "size": 27274153,
+  "access_key": "1byxg9kFbHnHT2m4qTkM3f"
+ },
+ {
+  "state": "TN",
+  "session": 1777,
+  "year": 2021,
+  "special": 0,
+  "title": "2021-2022 Regular Session",
+  "size": 26312180,
+  "access_key": "2f7rbJq0dOkbKj6q8dVf3t"
+ },
+ {
+  "state": "TN",
+  "session": 1610,
+  "year": 2019,
+  "special": 0,
+  "title": "2019-2020 Regular Session",
+  "size": 23119481,
+  "access_key": "29G6JdOjFiHLya4E9sEF5X"
+ },
+ {
+  "state": "TN",
+  "session": 1428,
+  "year": 2017,
+  "special": 0,
+  "title": "2017-2018 Regular Session",
+  "size": 21637116,
+  "access_key": "1gO34i37czrgk87ReCYYv7"
+ },
+ {
+  "state": "TN",
+  "session": 1113,
+  "year": 2015,
+  "special": 0,
+  "title": "2015-2016 Regular Session",
+  "size": 19231835,
+  "access_key": "1R1CpkjY05BiRSc8efQq06"
+ },
+ {
+  "state": "TN",
+  "session": 984,
+  "year": 2013,
+  "special": 0,
+  "title": "2013-2014 Regular Session",
+  "size": 19486784,
+  "access_key": "3BsVVgWgv871TJ5klOKsGw"
+ },
+ {
+  "state": "TN",
+  "session": 107,
+  "year": 2011,
+  "special": 0,
+  "title": "2011-2012 Regular Session",
+  "size": 23522129,
+  "access_key": "1VVKxcCmS8A8IE6Adw7t3Y"
+ },
+ {
+  "state": "TN",
+  "session": 55,
+  "year": 2009,
+  "special": 0,
+  "title": "2009-2010 Regular Session",
+  "size": 19845621,
+  "access_key": "mXA2L6ZB4zkI00frl00SY"
+ },
+ {
+  "state": "TX",
+  "session": 2160,
+  "year": 2025,
+  "special": 0,
+  "title": "2025 Regular Session",
+  "size": 32965048,
+  "access_key": "2fPXWFtEb7BUVuqdLTNugx"
+ },
+ {
+  "state": "TX",
+  "session": 2223,
+  "year": 2025,
+  "special": 1,
+  "title": "2025 2nd Special Session",
+  "size": 2039036,
+  "access_key": "1lJirnqkAJXjOkW4DBZv7G"
+ },
+ {
+  "state": "TX",
+  "session": 2221,
+  "year": 2025,
+  "special": 1,
+  "title": "2025 1st Special Session",
+  "size": 1356440,
+  "access_key": "6ERFfFoq5WLlFDnmIxmZAv"
+ },
+ {
+  "state": "TX",
+  "session": 2003,
+  "year": 2023,
+  "special": 0,
+  "title": "2023 Regular Session",
+  "size": 25843398,
+  "access_key": "4TeHUXb0c0n7BRHSNmW1jn"
+ },
+ {
+  "state": "TX",
+  "session": 2108,
+  "year": 2023,
+  "special": 1,
+  "title": "2023 4th Special Session",
+  "size": 726940,
+  "access_key": "4oyUUMkp1T6ZBJP4y2lp1A"
+ },
+ {
+  "state": "TX",
+  "session": 2102,
+  "year": 2023,
+  "special": 1,
+  "title": "2023 3rd Special Session",
+  "size": 1043688,
+  "access_key": "3fL27UjBnwt4Cx9Q3albKn"
+ },
+ {
+  "state": "TX",
+  "session": 2058,
+  "year": 2023,
+  "special": 1,
+  "title": "2023 2nd Special Session",
+  "size": 410419,
+  "access_key": "tnRiASZSQ8cTj3lNS60cM"
+ },
+ {
+  "state": "TX",
+  "session": 2052,
+  "year": 2023,
+  "special": 1,
+  "title": "2023 1st Special Session",
+  "size": 297738,
+  "access_key": "6B6ui34ZMgaCR8rilks92Y"
+ },
+ {
+  "state": "TX",
+  "session": 1776,
+  "year": 2021,
+  "special": 0,
+  "title": "2021 Regular Session",
+  "size": 21311671,
+  "access_key": "10pM6f2TKL3fNZF3jOCVR5"
+ },
+ {
+  "state": "TX",
+  "session": 1850,
+  "year": 2021,
+  "special": 1,
+  "title": "2021 3rd Special Session",
+  "size": 1285377,
+  "access_key": "5aQXrFgcLf4Q8LW2Trh71"
+ },
+ {
+  "state": "TX",
+  "session": 1847,
+  "year": 2021,
+  "special": 1,
+  "title": "2021 2nd Special Session",
+  "size": 1393067,
+  "access_key": "5JU80hgDysW1dU5bkhf9ng"
+ },
+ {
+  "state": "TX",
+  "session": 1844,
+  "year": 2021,
+  "special": 1,
+  "title": "2021 1st Special Session",
+  "size": 887900,
+  "access_key": "GMlf1kKo6pJIlhTkls0EC"
+ },
+ {
+  "state": "TX",
+  "session": 1611,
+  "year": 2019,
+  "special": 0,
+  "title": "2019 Regular Session",
+  "size": 22153670,
+  "access_key": "znS2U2P6mtgrSjUGUeNNh"
+ },
+ {
+  "state": "TX",
+  "session": 1429,
+  "year": 2017,
+  "special": 0,
+  "title": "2017 Regular Session",
+  "size": 21198619,
+  "access_key": "6qMPeBogVbN3wzsAwAz3sr"
+ },
+ {
+  "state": "TX",
+  "session": 1466,
+  "year": 2017,
+  "special": 1,
+  "title": "2017 1st Special Session",
+  "size": 2241046,
+  "access_key": "4T2a8a3Wv4g5vVLsls83Tr"
+ },
+ {
+  "state": "TX",
+  "session": 1115,
+  "year": 2015,
+  "special": 0,
+  "title": "2015 Regular Session",
+  "size": 19974138,
+  "access_key": "5rf99IINYUhfEGUjYErDh9"
+ },
+ {
+  "state": "TX",
+  "session": 985,
+  "year": 2013,
+  "special": 0,
+  "title": "2013 Regular Session",
+  "size": 18383772,
+  "access_key": "KHGbnBTE9gvY23myXndlT"
+ },
+ {
+  "state": "TX",
+  "session": 1047,
+  "year": 2013,
+  "special": 1,
+  "title": "2013 3rd Special Session",
+  "size": 207596,
+  "access_key": "6dTthj7mq5lfON02Zhiddj"
+ },
+ {
+  "state": "TX",
+  "session": 1044,
+  "year": 2013,
+  "special": 1,
+  "title": "2013 2nd Special Session",
+  "size": 721652,
+  "access_key": "6LnVFwvJhkyu3g5uWta3vE"
+ },
+ {
+  "state": "TX",
+  "session": 1041,
+  "year": 2013,
+  "special": 1,
+  "title": "2013 1st Special Session",
+  "size": 887258,
+  "access_key": "75WpOMEU8I8RWuZcSy5S5k"
+ },
+ {
+  "state": "TX",
+  "session": 108,
+  "year": 2011,
+  "special": 0,
+  "title": "2011 Regular Session",
+  "size": 16031243,
+  "access_key": "7mUQKAjs0M4XpIQPxuAh6M"
+ },
+ {
+  "state": "TX",
+  "session": 133,
+  "year": 2011,
+  "special": 1,
+  "title": "2011 1st Special Session",
+  "size": 868721,
+  "access_key": "3g2QNkAUia0kMIP5jvtCH1"
+ },
+ {
+  "state": "TX",
+  "session": 75,
+  "year": 2009,
+  "special": 0,
+  "title": "2009 Regular Session",
+  "size": 17028474,
+  "access_key": "1S836OEHFnAZ3ehLTFeqfg"
+ },
+ {
+  "state": "UT",
+  "session": 2214,
+  "year": 2026,
+  "special": 0,
+  "title": "2026 Regular Session",
+  "size": 5465571,
+  "access_key": "3FRl0CwhT9l2001Y6syT6A"
+ },
+ {
+  "state": "UT",
+  "session": 2137,
+  "year": 2025,
+  "special": 0,
+  "title": "2025 Regular Session",
+  "size": 5232121,
+  "access_key": "785ZmG8LQmpp2emMkOXqW2"
+ },
+ {
+  "state": "UT",
+  "session": 2238,
+  "year": 2025,
+  "special": 1,
+  "title": "2025 2nd Special Session",
+  "size": 109032,
+  "access_key": "iAO8kSAu8G0r4p4euKp0Z"
+ },
+ {
+  "state": "UT",
+  "session": 2228,
+  "year": 2025,
+  "special": 1,
+  "title": "2025 1st Special Session",
+  "size": 158883,
+  "access_key": "5ltSne5C44axNyZRsaMtJd"
+ },
+ {
+  "state": "UT",
+  "session": 2050,
+  "year": 2024,
+  "special": 0,
+  "title": "2024 Regular Session",
+  "size": 4393796,
+  "access_key": "1niGZQAz4oFUt3UXcseA4B"
+ },
+ {
+  "state": "UT",
+  "session": 2153,
+  "year": 2024,
+  "special": 1,
+  "title": "2024 4th Special Session",
+  "size": 65346,
+  "access_key": "2NoYusfRH2NznsO57Sw1ik"
+ },
+ {
+  "state": "UT",
+  "session": 2138,
+  "year": 2024,
+  "special": 1,
+  "title": "2024 3rd Special Session",
+  "size": 74922,
+  "access_key": "3YIioJT2c2HwOytdEKaV0s"
+ },
+ {
+  "state": "UT",
+  "session": 1978,
+  "year": 2023,
+  "special": 0,
+  "title": "2023 Regular Session",
+  "size": 4235231,
+  "access_key": "2jybBWVSWhFOINFpgLoqyC"
+ },
+ {
+  "state": "UT",
+  "session": 2109,
+  "year": 2023,
+  "special": 1,
+  "title": "2023 1st House Special Session",
+  "size": 43564,
+  "access_key": "6aC01V3ztASJmyDY8AI7vJ"
+ },
+ {
+  "state": "UT",
+  "session": 2056,
+  "year": 2023,
+  "special": 1,
+  "title": "2023 2nd Special Session",
+  "size": 54459,
+  "access_key": "39CBGKK2qA00dRorVR6hx"
+ },
+ {
+  "state": "UT",
+  "session": 2049,
+  "year": 2023,
+  "special": 1,
+  "title": "2023 1st Special Session",
+  "size": 64542,
+  "access_key": "4R9CWgNvIqaMPDWr7FTVU1"
+ },
+ {
+  "state": "UT",
+  "session": 1831,
+  "year": 2022,
+  "special": 0,
+  "title": "2022 Regular Session",
+  "size": 3659285,
+  "access_key": "33hSQ8fXrXbgShByM6Recs"
+ },
+ {
+  "state": "UT",
+  "session": 1974,
+  "year": 2022,
+  "special": 1,
+  "title": "2022 3rd Special Session",
+  "size": 56474,
+  "access_key": "1pwsWb25ZfDBJ5k9jSOWmB"
+ },
+ {
+  "state": "UT",
+  "session": 1743,
+  "year": 2021,
+  "special": 0,
+  "title": "2021 Regular Session",
+  "size": 3513488,
+  "access_key": "3IaMMi9hEsq83LLCNNxBjM"
+ },
+ {
+  "state": "UT",
+  "session": 1940,
+  "year": 2021,
+  "special": 1,
+  "title": "2021 2nd Special Session",
+  "size": 98653,
+  "access_key": "5hqYLRZ1jvFiUPSuJ38Sop"
+ },
+ {
+  "state": "UT",
+  "session": 1833,
+  "year": 2021,
+  "special": 1,
+  "title": "2021 1st Special Session",
+  "size": 116225,
+  "access_key": "5wXgF6DdlWmWGztUtKIp0n"
+ },
+ {
+  "state": "UT",
+  "session": 1834,
+  "year": 2021,
+  "special": 1,
+  "title": "2021 1st House Special Session",
+  "size": 45468,
+  "access_key": "4uWxcaa6gDc9hiAhfAYeWD"
+ },
+ {
+  "state": "UT",
+  "session": 1835,
+  "year": 2021,
+  "special": 1,
+  "title": "2021 1st Senate Special Session",
+  "size": 24778,
+  "access_key": "4FSqlZx6piGTbpoWv4avjc"
+ },
+ {
+  "state": "UT",
+  "session": 1663,
+  "year": 2020,
+  "special": 0,
+  "title": "2020 Regular Session",
+  "size": 3539713,
+  "access_key": "1KXnfQ7pwsocpEKLlFTmMm"
+ },
+ {
+  "state": "UT",
+  "session": 1765,
+  "year": 2020,
+  "special": 1,
+  "title": "2020 6th Special Session",
+  "size": 122621,
+  "access_key": "6lE8Io2USY5BnyoqjNxK1"
+ },
+ {
+  "state": "UT",
+  "session": 1751,
+  "year": 2020,
+  "special": 1,
+  "title": "2020 5th Special Session",
+  "size": 145174,
+  "access_key": "73bnabcl3xYaILDzJNheAd"
+ },
+ {
+  "state": "UT",
+  "session": 1742,
+  "year": 2020,
+  "special": 1,
+  "title": "2020 4th Special Session",
+  "size": 65412,
+  "access_key": "5sYMwRoFDVgOVMemCgeyrZ"
+ },
+ {
+  "state": "UT",
+  "session": 1741,
+  "year": 2020,
+  "special": 1,
+  "title": "2020 3rd Special Session",
+  "size": 119876,
+  "access_key": "4TnlNMBXJ43pfBqwcOq9eF"
+ },
+ {
+  "state": "UT",
+  "session": 1558,
+  "year": 2019,
+  "special": 0,
+  "title": "2019 Regular Session",
+  "size": 3731272,
+  "access_key": "15inrlEaY6xsyK6geSTi3w"
+ },
+ {
+  "state": "UT",
+  "session": 1736,
+  "year": 2019,
+  "special": 1,
+  "title": "2019 2nd Special Session",
+  "size": 59732,
+  "access_key": "3ABPYD0cRfYGOv69XtYCTL"
+ },
+ {
+  "state": "UT",
+  "session": 1713,
+  "year": 2019,
+  "special": 1,
+  "title": "2019 1st Special Session",
+  "size": 69840,
+  "access_key": "7W3LAn002UkWiFBWHWjFrX"
+ },
+ {
+  "state": "UT",
+  "session": 1455,
+  "year": 2018,
+  "special": 0,
+  "title": "2018 Regular Session",
+  "size": 3629199,
+  "access_key": "6lma0uIg62VneVYKQpZR1e"
+ },
+ {
+  "state": "UT",
+  "session": 1619,
+  "year": 2018,
+  "special": 1,
+  "title": "2018 3rd Special Session",
+  "size": 62567,
+  "access_key": "ByPQSyHYa3kLIpQqLK9rb"
+ },
+ {
+  "state": "UT",
+  "session": 1600,
+  "year": 2018,
+  "special": 1,
+  "title": "2018 2nd Special Session",
+  "size": 81802,
+  "access_key": "5t9yMoEvep8T1I3xjhsMBI"
+ },
+ {
+  "state": "UT",
+  "session": 1225,
+  "year": 2017,
+  "special": 0,
+  "title": "2017 Regular Session",
+  "size": 3655013,
+  "access_key": "5u2D59czsqUQ0wfGHk7VwH"
+ },
+ {
+  "state": "UT",
+  "session": 1475,
+  "year": 2017,
+  "special": 1,
+  "title": "2017 1st Special Session",
+  "size": 63257,
+  "access_key": "1C6QS9thHYhpwRIHKQZG4D"
+ },
+ {
+  "state": "UT",
+  "session": 1180,
+  "year": 2016,
+  "special": 0,
+  "title": "2016 Regular Session",
+  "size": 3234579,
+  "access_key": "5onzr2UJRqHi6eXAhl6gyB"
+ },
+ {
+  "state": "UT",
+  "session": 1436,
+  "year": 2016,
+  "special": 1,
+  "title": "2016 4th Special Session",
+  "size": 56559,
+  "access_key": "3ctlSCnaeIaWHHD2kabnvj"
+ },
+ {
+  "state": "UT",
+  "session": 1251,
+  "year": 2016,
+  "special": 1,
+  "title": "2016 3rd Special Session",
+  "size": 77363,
+  "access_key": "2cDd9EfXYjv4aiWJFtY1W8"
+ },
+ {
+  "state": "UT",
+  "session": 1226,
+  "year": 2016,
+  "special": 1,
+  "title": "2016 2nd Special Session",
+  "size": 56633,
+  "access_key": "3dUkFaTmFDGLcyYDuYSWeb"
+ },
+ {
+  "state": "UT",
+  "session": 1150,
+  "year": 2015,
+  "special": 0,
+  "title": "2015 Regular Session",
+  "size": 3185862,
+  "access_key": "7SNpbMZnZ0mJG5O9BzhgvH"
+ },
+ {
+  "state": "UT",
+  "session": 1181,
+  "year": 2015,
+  "special": 1,
+  "title": "2015 1st Special Session",
+  "size": 68010,
+  "access_key": "I6ZIU1F2OamAUCfb1XwY6"
+ },
+ {
+  "state": "UT",
+  "session": 1072,
+  "year": 2014,
+  "special": 0,
+  "title": "2014 Regular Session",
+  "size": 4143093,
+  "access_key": "4GBNpSDMJwERFqK33h4rb2"
+ },
+ {
+  "state": "UT",
+  "session": 1020,
+  "year": 2013,
+  "special": 0,
+  "title": "2013 Regular Session",
+  "size": 3920836,
+  "access_key": "14eWZMMf5GybuOL47DIz0P"
+ },
+ {
+  "state": "UT",
+  "session": 781,
+  "year": 2012,
+  "special": 0,
+  "title": "2012 Regular Session",
+  "size": 2636811,
+  "access_key": "5MWqKPXaFApkVmZhSK0sjk"
+ },
+ {
+  "state": "UT",
+  "session": 125,
+  "year": 2011,
+  "special": 0,
+  "title": "2011 Regular Session",
+  "size": 2321262,
+  "access_key": "7mWJU4CycGWCGlZHRMqKgE"
+ },
+ {
+  "state": "UT",
+  "session": 780,
+  "year": 2011,
+  "special": 1,
+  "title": "2011 3rd Special Session",
+  "size": 33224,
+  "access_key": "5RdxntzJQsHLDKyFx9ZHZJ"
+ },
+ {
+  "state": "UT",
+  "session": 779,
+  "year": 2011,
+  "special": 1,
+  "title": "2011 2nd Special Session",
+  "size": 22300,
+  "access_key": "6bmt8LeoN4ybHU00UglAXl"
+ },
+ {
+  "state": "UT",
+  "session": 778,
+  "year": 2011,
+  "special": 1,
+  "title": "2011 1st Special Session",
+  "size": 9297,
+  "access_key": "6lYzSNKFzjSpKKhZI0KKsx"
+ },
+ {
+  "state": "UT",
+  "session": 53,
+  "year": 2010,
+  "special": 0,
+  "title": "2010 Regular Session",
+  "size": 1835612,
+  "access_key": "3ZOjWgvmjOAZHj6awSLt3f"
+ },
+ {
+  "state": "UT",
+  "session": 777,
+  "year": 2010,
+  "special": 1,
+  "title": "2010 2nd Special Session",
+  "size": 11846,
+  "access_key": "1LuQg3jvGhsKYeVBjZBWfa"
+ },
+ {
+  "state": "VA",
+  "session": 2237,
+  "year": 2026,
+  "special": 0,
+  "title": "2026 Regular Session",
+  "size": 17526419,
+  "access_key": "6IUV2SkoxUEE9GoF8NCwPC"
+ },
+ {
+  "state": "VA",
+  "session": 2257,
+  "year": 2026,
+  "special": 1,
+  "title": "2026 1st Special Session",
+  "size": 370182,
+  "access_key": "4999dtBYhnR2yskQiLGcsh"
+ },
+ {
+  "state": "VA",
+  "session": 2149,
+  "year": 2025,
+  "special": 0,
+  "title": "2025 Regular Session",
+  "size": 15776646,
+  "access_key": "36kg5RgDtttBvKuxLJRJX7"
+ },
+ {
+  "state": "VA",
+  "session": 2113,
+  "year": 2024,
+  "special": 0,
+  "title": "2024 Regular Session",
+  "size": 13861911,
+  "access_key": "6alukvMCBht7FPfKIEqXMX"
+ },
+ {
+  "state": "VA",
+  "session": 2139,
+  "year": 2024,
+  "special": 1,
+  "title": "2024 1st Special Session",
+  "size": 498848,
+  "access_key": "5gmLQToKFK2f2L1W0tz01z"
+ },
+ {
+  "state": "VA",
+  "session": 1988,
+  "year": 2023,
+  "special": 0,
+  "title": "2023 Regular Session",
+  "size": 11857311,
+  "access_key": "4yufY6DnHNPbO7Kyx8ZpTl"
+ },
+ {
+  "state": "VA",
+  "session": 2098,
+  "year": 2023,
+  "special": 1,
+  "title": "2023 1st Special Session",
+  "size": 173084,
+  "access_key": "24o0JZtw94QN1OugPMaCmY"
+ },
+ {
+  "state": "VA",
+  "session": 1918,
+  "year": 2022,
+  "special": 0,
+  "title": "2022 Regular Session",
+  "size": 11824067,
+  "access_key": "1VBJ6Ynr6dUyaUGKBhOIhH"
+ },
+ {
+  "state": "VA",
+  "session": 1975,
+  "year": 2022,
+  "special": 1,
+  "title": "2022 1st Special Session",
+  "size": 1049886,
+  "access_key": "qWZXRceJazK1nV34o9sCf"
+ },
+ {
+  "state": "VA",
+  "session": 1759,
+  "year": 2021,
+  "special": 0,
+  "title": "2021 Regular Session",
+  "size": 5881581,
+  "access_key": "5it1vbrhrnYYH9huyoE8zF"
+ },
+ {
+  "state": "VA",
+  "session": 1845,
+  "year": 2021,
+  "special": 1,
+  "title": "2021 2nd Special Session",
+  "size": 526862,
+  "access_key": "7jORoMk9b2wu0MUBqiDM4B"
+ },
+ {
+  "state": "VA",
+  "session": 1828,
+  "year": 2021,
+  "special": 1,
+  "title": "2021 1st Special Session",
+  "size": 5799132,
+  "access_key": "1bFE5wsRQBU69FvCRNlZg9"
+ },
+ {
+  "state": "VA",
+  "session": 1718,
+  "year": 2020,
+  "special": 0,
+  "title": "2020 Regular Session",
+  "size": 14851860,
+  "access_key": "3IbKfrKdlfdVYpey4KLZ8g"
+ },
+ {
+  "state": "VA",
+  "session": 1760,
+  "year": 2020,
+  "special": 1,
+  "title": "2020 1st Special Session",
+  "size": 1472279,
+  "access_key": "1BtgGNe0EjZYMRTafDzZjJ"
+ },
+ {
+  "state": "VA",
+  "session": 1601,
+  "year": 2019,
+  "special": 0,
+  "title": "2019 Regular Session",
+  "size": 11355420,
+  "access_key": "4lGqOsiMd6TXpL0vL2AcLe"
+ },
+ {
+  "state": "VA",
+  "session": 1707,
+  "year": 2019,
+  "special": 1,
+  "title": "2019 1st Special Session",
+  "size": 389320,
+  "access_key": "Qsc7djaqnQdHnvE1IuEPM"
+ },
+ {
+  "state": "VA",
+  "session": 1519,
+  "year": 2018,
+  "special": 0,
+  "title": "2018 Regular Session",
+  "size": 11952282,
+  "access_key": "1tWkJgovhBQZerKbV3l3iX"
+ },
+ {
+  "state": "VA",
+  "session": 1607,
+  "year": 2018,
+  "special": 1,
+  "title": "2018 2nd Special Session",
+  "size": 95990,
+  "access_key": "GOM6Poc7zGe2TEJKvlQXi"
+ },
+ {
+  "state": "VA",
+  "session": 1557,
+  "year": 2018,
+  "special": 1,
+  "title": "2018 1st Special Session",
+  "size": 400089,
+  "access_key": "5vAZfxwfnoj1plvdlDFs9B"
+ },
+ {
+  "state": "VA",
+  "session": 1261,
+  "year": 2017,
+  "special": 0,
+  "title": "2017 Regular Session",
+  "size": 10729977,
+  "access_key": "5daIn0MTlFxk8UfHZxU4if"
+ },
+ {
+  "state": "VA",
+  "session": 1187,
+  "year": 2016,
+  "special": 0,
+  "title": "2016 Regular Session",
+  "size": 10107357,
+  "access_key": "2g9xMXdLowQgDWKuiad8mj"
+ },
+ {
+  "state": "VA",
+  "session": 1107,
+  "year": 2015,
+  "special": 0,
+  "title": "2015 Regular Session",
+  "size": 9574774,
+  "access_key": "1b39nBhrSS6ggNFOAuYjZ3"
+ },
+ {
+  "state": "VA",
+  "session": 1177,
+  "year": 2015,
+  "special": 1,
+  "title": "2015 1st Special Session",
+  "size": 206147,
+  "access_key": "5mxdWZ2ueKKKX0cr8QOCTY"
+ },
+ {
+  "state": "VA",
+  "session": 1068,
+  "year": 2014,
+  "special": 0,
+  "title": "2014 Regular Session",
+  "size": 9005716,
+  "access_key": "6yGXMbRAeFI6LNWcWMZpeE"
+ },
+ {
+  "state": "VA",
+  "session": 1097,
+  "year": 2014,
+  "special": 1,
+  "title": "2014 1st Special Session",
+  "size": 937660,
+  "access_key": "14RpK4qMQTy72ftptHUh1l"
+ },
+ {
+  "state": "VA",
+  "session": 966,
+  "year": 2013,
+  "special": 0,
+  "title": "2013 Regular Session",
+  "size": 9178020,
+  "access_key": "TuG9qyyS0kSekaT1BuKFi"
+ },
+ {
+  "state": "VA",
+  "session": 1035,
+  "year": 2013,
+  "special": 1,
+  "title": "2013 1st Special Session",
+  "size": 226338,
+  "access_key": "6oacDUV5G8ut7093ijsojA"
+ },
+ {
+  "state": "VA",
+  "session": 817,
+  "year": 2012,
+  "special": 0,
+  "title": "2012 Regular Session",
+  "size": 9384288,
+  "access_key": "3z88cRllPc78QKrEK0QjAZ"
+ },
+ {
+  "state": "VA",
+  "session": 115,
+  "year": 2011,
+  "special": 0,
+  "title": "2011 Regular Session",
+  "size": 9726227,
+  "access_key": "3fUAWSFgA6xDU6ReABiJGm"
+ },
+ {
+  "state": "VA",
+  "session": 23,
+  "year": 2010,
+  "special": 0,
+  "title": "2010 Regular Session",
+  "size": 9455650,
+  "access_key": "5yp3e4Hed1OLGGNOnNANo6"
+ },
+ {
+  "state": "VA",
+  "session": 16,
+  "year": 2008,
+  "special": 0,
+  "title": "2008 Regular Session",
+  "size": 5216994,
+  "access_key": "4pWnHwaaO8yA4fKFpnyQ9l"
+ },
+ {
+  "state": "VT",
+  "session": 2195,
+  "year": 2025,
+  "special": 0,
+  "title": "2025-2026 Regular Session",
+  "size": 5103940,
+  "access_key": "40uJ0LYgT0EvKuo1L0gFY9"
+ },
+ {
+  "state": "VT",
+  "session": 2009,
+  "year": 2023,
+  "special": 0,
+  "title": "2023-2024 Regular Session",
+  "size": 3413714,
+  "access_key": "1OPLmH3BTUfwE5I7wxT3xo"
+ },
+ {
+  "state": "VT",
+  "session": 1819,
+  "year": 2021,
+  "special": 0,
+  "title": "2021-2022 Regular Session",
+  "size": 2672493,
+  "access_key": "4xYFn2ZIYTUhqB29hxSKBb"
+ },
+ {
+  "state": "VT",
+  "session": 1948,
+  "year": 2021,
+  "special": 1,
+  "title": "2021 1st Special Session",
+  "size": 98226,
+  "access_key": "4aTU3UvaqjV6cApxRT9FiO"
+ },
+ {
+  "state": "VT",
+  "session": 1652,
+  "year": 2019,
+  "special": 0,
+  "title": "2019-2020 Regular Session",
+  "size": 3403223,
+  "access_key": "F2DO7N1Gk5wxUDtbkJ5TE"
+ },
+ {
+  "state": "VT",
+  "session": 1582,
+  "year": 2018,
+  "special": 1,
+  "title": "2018 1st Special Session",
+  "size": 175632,
+  "access_key": "612c5gDfo9Uhdk5Wd9qBWX"
+ },
+ {
+  "state": "VT",
+  "session": 1264,
+  "year": 2017,
+  "special": 0,
+  "title": "2017-2018 Regular Session",
+  "size": 3742611,
+  "access_key": "1cU6isAfdbhkjhupSzqxZl"
+ },
+ {
+  "state": "VT",
+  "session": 1151,
+  "year": 2015,
+  "special": 0,
+  "title": "2015-2016 Regular Session",
+  "size": 3702120,
+  "access_key": "57WVm0PongZtPCZBqbNJfq"
+ },
+ {
+  "state": "VT",
+  "session": 1021,
+  "year": 2013,
+  "special": 0,
+  "title": "2013-2014 Regular Session",
+  "size": 3610984,
+  "access_key": "6SOIqHfoFVrqVB4I7tb4Zw"
+ },
+ {
+  "state": "VT",
+  "session": 94,
+  "year": 2011,
+  "special": 0,
+  "title": "2011-2012 Regular Session",
+  "size": 3191326,
+  "access_key": "779bcyeChI3Lc5I9YMYHHb"
+ },
+ {
+  "state": "VT",
+  "session": 46,
+  "year": 2009,
+  "special": 0,
+  "title": "2009-2010 Regular Session",
+  "size": 2111832,
+  "access_key": "3VoCVykafOgAPszxRpynae"
+ },
+ {
+  "state": "WA",
+  "session": 2166,
+  "year": 2025,
+  "special": 0,
+  "title": "2025-2026 Regular Session",
+  "size": 15041096,
+  "access_key": "4gBARxlg1ELldQojD7IazP"
+ },
+ {
+  "state": "WA",
+  "session": 2037,
+  "year": 2023,
+  "special": 0,
+  "title": "2023-2024 Regular Session",
+  "size": 11989080,
+  "access_key": "3gzEmvMjpJpHCrWgm68FTR"
+ },
+ {
+  "state": "WA",
+  "session": 1792,
+  "year": 2021,
+  "special": 0,
+  "title": "2021-2022 Regular Session",
+  "size": 8668932,
+  "access_key": "3qqNZkrXrs6iyqBKQqOKlN"
+ },
+ {
+  "state": "WA",
+  "session": 1653,
+  "year": 2019,
+  "special": 0,
+  "title": "2019-2020 Regular Session",
+  "size": 9824323,
+  "access_key": "3xWWkVp8Wugq54PLWvPjVf"
+ },
+ {
+  "state": "WA",
+  "session": 1430,
+  "year": 2017,
+  "special": 0,
+  "title": "2017-2018 Regular Session",
+  "size": 9296782,
+  "access_key": "7bqkar79i95kgs9U2FbB0Y"
+ },
+ {
+  "state": "WA",
+  "session": 1152,
+  "year": 2015,
+  "special": 0,
+  "title": "2015-2016 Regular Session",
+  "size": 9295526,
+  "access_key": "2jPOPAUaOhAz8JA1Hdjtuc"
+ },
+ {
+  "state": "WA",
+  "session": 1022,
+  "year": 2013,
+  "special": 0,
+  "title": "2013-2014 Regular Session",
+  "size": 7921416,
+  "access_key": "6yEMnC00EwtzGfJ86flJDd"
+ },
+ {
+  "state": "WA",
+  "session": 103,
+  "year": 2011,
+  "special": 0,
+  "title": "2011-2012 Regular Session",
+  "size": 8094084,
+  "access_key": "2OWHqvuNhsMbxQJeO7Dff"
+ },
+ {
+  "state": "WA",
+  "session": 59,
+  "year": 2009,
+  "special": 0,
+  "title": "2009-2010 Regular Session",
+  "size": 7659691,
+  "access_key": "uKOF8yXGlf7woWDzm2ztZ"
+ },
+ {
+  "state": "WI",
+  "session": 2264,
+  "year": 2026,
+  "special": 1,
+  "title": "2026 1st Special Session",
+  "size": 117742,
+  "access_key": "4NTnCeer0NguEmx53bCdMb"
+ },
+ {
+  "state": "WI",
+  "session": 2197,
+  "year": 2025,
+  "special": 0,
+  "title": "2025-2026 Regular Session",
+  "size": 14299517,
+  "access_key": "1YUa1zigsV1mZfS71NuIOj"
+ },
+ {
+  "state": "WI",
+  "session": 2039,
+  "year": 2023,
+  "special": 0,
+  "title": "2023-2024 Regular Session",
+  "size": 8431529,
+  "access_key": "6eyDs2Sf3ZO7YkP5OJKSDU"
+ },
+ {
+  "state": "WI",
+  "session": 2101,
+  "year": 2023,
+  "special": 1,
+  "title": "2023 1st Special Session",
+  "size": 71699,
+  "access_key": "6tFMlzim8D6XSaG026ZvP4"
+ },
+ {
+  "state": "WI",
+  "session": 1821,
+  "year": 2021,
+  "special": 0,
+  "title": "2021-2022 Regular Session",
+  "size": 8324763,
+  "access_key": "6V13dmD8H21AQtaIHctUvJ"
+ },
+ {
+  "state": "WI",
+  "session": 1829,
+  "year": 2021,
+  "special": 1,
+  "title": "2021 1st Special Session",
+  "size": 74453,
+  "access_key": "1nP5zDzmiwOVbVAT9Kwr9B"
+ },
+ {
+  "state": "WI",
+  "session": 1737,
+  "year": 2020,
+  "special": 1,
+  "title": "2020 1st Special Session",
+  "size": 71908,
+  "access_key": "6pimYa68oQkKhqB0E9Z53Q"
+ },
+ {
+  "state": "WI",
+  "session": 1655,
+  "year": 2019,
+  "special": 0,
+  "title": "2019-2020 Regular Session",
+  "size": 6556220,
+  "access_key": "ivCUtx63nbyddiBYBsOn8"
+ },
+ {
+  "state": "WI",
+  "session": 1556,
+  "year": 2018,
+  "special": 1,
+  "title": "2018 2nd Special Session",
+  "size": 18384,
+  "access_key": "S82mQlqCkNVzFgDkBvttO"
+ },
+ {
+  "state": "WI",
+  "session": 1546,
+  "year": 2018,
+  "special": 1,
+  "title": "2018 1st Special Session",
+  "size": 157755,
+  "access_key": "3B72nQsmnmGjorfha1eHWv"
+ },
+ {
+  "state": "WI",
+  "session": 1432,
+  "year": 2017,
+  "special": 0,
+  "title": "2017-2018 Regular Session",
+  "size": 6495788,
+  "access_key": "QXgKOhIF6WUUciy2j3gza"
+ },
+ {
+  "state": "WI",
+  "session": 1467,
+  "year": 2017,
+  "special": 1,
+  "title": "2017 2nd Special Session",
+  "size": 84546,
+  "access_key": "3SyO84CLNdfnT43eGw8qQk"
+ },
+ {
+  "state": "WI",
+  "session": 1453,
+  "year": 2017,
+  "special": 1,
+  "title": "2017 1st Special Session",
+  "size": 194998,
+  "access_key": "6aiRwaxuiiWpnAzi43PSkC"
+ },
+ {
+  "state": "WI",
+  "session": 1153,
+  "year": 2015,
+  "special": 0,
+  "title": "2015-2016 Regular Session",
+  "size": 6111167,
+  "access_key": "HHQRQKmopb5z0NWAhn8S2"
+ },
+ {
+  "state": "WI",
+  "session": 1095,
+  "year": 2014,
+  "special": 1,
+  "title": "2014 3rd Special Session",
+  "size": 86749,
+  "access_key": "23cLKT8iQzYQj1M7V1kYUL"
+ },
+ {
+  "state": "WI",
+  "session": 1023,
+  "year": 2013,
+  "special": 0,
+  "title": "2013-2014 Regular Session",
+  "size": 5224768,
+  "access_key": "5o4NBtl2Hx5aEtgQqZDKxa"
+ },
+ {
+  "state": "WI",
+  "session": 1069,
+  "year": 2013,
+  "special": 1,
+  "title": "2013 2nd Special Session",
+  "size": 72711,
+  "access_key": "Otvt1FfoISjf0b7PmQY3f"
+ },
+ {
+  "state": "WI",
+  "session": 1052,
+  "year": 2013,
+  "special": 1,
+  "title": "2013 1st Special Session",
+  "size": 80299,
+  "access_key": "2QFQFVo33ss4LtwwnnMEUi"
+ },
+ {
+  "state": "WI",
+  "session": 129,
+  "year": 2011,
+  "special": 0,
+  "title": "2011-2012 Regular Session",
+  "size": 4367551,
+  "access_key": "R5uxfhXbeSWrpbM1dGDSx"
+ },
+ {
+  "state": "WI",
+  "session": 895,
+  "year": 2011,
+  "special": 1,
+  "title": "2011 2nd Special Session",
+  "size": 147402,
+  "access_key": "38GjhBsaCcdlrqq8rkA89u"
+ },
+ {
+  "state": "WI",
+  "session": 894,
+  "year": 2011,
+  "special": 1,
+  "title": "2011 1st Special Session",
+  "size": 290452,
+  "access_key": "65Jw5O2wkaE02QJvIViECC"
+ },
+ {
+  "state": "WI",
+  "session": 72,
+  "year": 2009,
+  "special": 0,
+  "title": "2009-2010 Regular Session",
+  "size": 4221328,
+  "access_key": "4icCwkXqNwy0oiTgbX84xO"
+ },
+ {
+  "state": "WI",
+  "session": 893,
+  "year": 2009,
+  "special": 1,
+  "title": "2009 1st Special Session",
+  "size": 8084,
+  "access_key": "57778Wetk7gI2KKM2XpCNZ"
+ },
+ {
+  "state": "WI",
+  "session": 892,
+  "year": 2009,
+  "special": 1,
+  "title": "2009 2nd Special Session",
+  "size": 9540,
+  "access_key": "4LHynYV6u2FDiAbaDXOGm"
+ },
+ {
+  "state": "WV",
+  "session": 2254,
+  "year": 2026,
+  "special": 0,
+  "title": "2026 Regular Session",
+  "size": 7831238,
+  "access_key": "3cKjvzIt0NVkmDVWEVoq3T"
+ },
+ {
+  "state": "WV",
+  "session": 2196,
+  "year": 2025,
+  "special": 0,
+  "title": "2025 Regular Session",
+  "size": 7259400,
+  "access_key": "70OoxQO1MjGUFK07ImbYyL"
+ },
+ {
+  "state": "WV",
+  "session": 2129,
+  "year": 2024,
+  "special": 0,
+  "title": "2024 Regular Session",
+  "size": 5942113,
+  "access_key": "4GWwutLnRDByV5NFFCsnZY"
+ },
+ {
+  "state": "WV",
+  "session": 2156,
+  "year": 2024,
+  "special": 1,
+  "title": "2024 2nd Special Session",
+  "size": 427956,
+  "access_key": "2dzf0YqopecLA5XOKQbol0"
+ },
+ {
+  "state": "WV",
+  "session": 2141,
+  "year": 2024,
+  "special": 1,
+  "title": "2024 1st Special Session",
+  "size": 193185,
+  "access_key": "3MQPq6GrfG4eJVAl354iNv"
+ },
+ {
+  "state": "WV",
+  "session": 2038,
+  "year": 2023,
+  "special": 0,
+  "title": "2023 Regular Session",
+  "size": 5628639,
+  "access_key": "25s7FuuMgHvxbHw1ZRyrG6"
+ },
+ {
+  "state": "WV",
+  "session": 2061,
+  "year": 2023,
+  "special": 1,
+  "title": "2023 1st Special Session",
+  "size": 383547,
+  "access_key": "4wck51SyZtEXSepWH81pmx"
+ },
+ {
+  "state": "WV",
+  "session": 1964,
+  "year": 2022,
+  "special": 0,
+  "title": "2022 Regular Session",
+  "size": 5164239,
+  "access_key": "5P4erQIRaaskHl3ffECBBF"
+ },
+ {
+  "state": "WV",
+  "session": 1996,
+  "year": 2022,
+  "special": 1,
+  "title": "2022 4th Special Session",
+  "size": 88854,
+  "access_key": "75NPYMAx6llNHAJVqz1ZhK"
+ },
+ {
+  "state": "WV",
+  "session": 1989,
+  "year": 2022,
+  "special": 1,
+  "title": "2022 3rd Special Session",
+  "size": 125506,
+  "access_key": "Mf0TpbnAYGp39Cyor0pGw"
+ },
+ {
+  "state": "WV",
+  "session": 1979,
+  "year": 2022,
+  "special": 1,
+  "title": "2022 2nd Special Session",
+  "size": 168469,
+  "access_key": "4ficWUD9t6NoLuTvwSKGuq"
+ },
+ {
+  "state": "WV",
+  "session": 1971,
+  "year": 2022,
+  "special": 1,
+  "title": "2022 1st Special Session",
+  "size": 111663,
+  "access_key": "6jMDGwd89Wij4WND6WFRaU"
+ },
+ {
+  "state": "WV",
+  "session": 1820,
+  "year": 2021,
+  "special": 0,
+  "title": "2021 Regular Session",
+  "size": 4751246,
+  "access_key": "13MKm8csBrJUbMgFyoi5ZT"
+ },
+ {
+  "state": "WV",
+  "session": 1856,
+  "year": 2021,
+  "special": 1,
+  "title": "2021 3rd Special Session",
+  "size": 348834,
+  "access_key": "4f5xuxyeIA2kY74KELJtWa"
+ },
+ {
+  "state": "WV",
+  "session": 1843,
+  "year": 2021,
+  "special": 1,
+  "title": "2021 2nd Special Session",
+  "size": 225289,
+  "access_key": "lQZwsYmdqwmKWoqgc9yIt"
+ },
+ {
+  "state": "WV",
+  "session": 1838,
+  "year": 2021,
+  "special": 1,
+  "title": "2021 1st Special Session",
+  "size": 104575,
+  "access_key": "3aWuxsNuew58jgvtLxbwfn"
+ },
+ {
+  "state": "WV",
+  "session": 1705,
+  "year": 2020,
+  "special": 0,
+  "title": "2020 Regular Session",
+  "size": 5605062,
+  "access_key": "ZdRtsy9kFSCYNoLHNBaU5"
+ },
+ {
+  "state": "WV",
+  "session": 1654,
+  "year": 2019,
+  "special": 0,
+  "title": "2019 Regular Session",
+  "size": 4645245,
+  "access_key": "6v2tbfrkZHc93GZeImhcyc"
+ },
+ {
+  "state": "WV",
+  "session": 1716,
+  "year": 2019,
+  "special": 1,
+  "title": "2019 2nd Special Session",
+  "size": 91362,
+  "access_key": "4JlRXhokYZ71gEpOuNenup"
+ },
+ {
+  "state": "WV",
+  "session": 1662,
+  "year": 2019,
+  "special": 1,
+  "title": "2019 1st Special Session",
+  "size": 549970,
+  "access_key": "BgI9uiUHl0746OjdKVuk2"
+ },
+ {
+  "state": "WV",
+  "session": 1536,
+  "year": 2018,
+  "special": 0,
+  "title": "2018 Regular Session",
+  "size": 4397434,
+  "access_key": "3cu1c0qDiCUkEXVMuWasLn"
+ },
+ {
+  "state": "WV",
+  "session": 1587,
+  "year": 2018,
+  "special": 1,
+  "title": "2018 2nd Special Session",
+  "size": 102628,
+  "access_key": "6tQaErLWn6hxwjQ6N9F717"
+ },
+ {
+  "state": "WV",
+  "session": 1583,
+  "year": 2018,
+  "special": 1,
+  "title": "2018 1st Special Session",
+  "size": 128375,
+  "access_key": "3vKx0T1QZCfcHiFWnwJB3o"
+ },
+ {
+  "state": "WV",
+  "session": 1431,
+  "year": 2017,
+  "special": 0,
+  "title": "2017 Regular Session",
+  "size": 4537546,
+  "access_key": "1JWmg0vM4Yr1Wg9UCs7pvM"
+ },
+ {
+  "state": "WV",
+  "session": 1520,
+  "year": 2017,
+  "special": 1,
+  "title": "2017 3rd Special Session",
+  "size": 75520,
+  "access_key": "6sgBJ0uUd0pM9zrqJ1LNw2"
+ },
+ {
+  "state": "WV",
+  "session": 1479,
+  "year": 2017,
+  "special": 1,
+  "title": "2017 2nd Special Session",
+  "size": 112688,
+  "access_key": "2irOFUAZJWHDdpt8FELUrj"
+ },
+ {
+  "state": "WV",
+  "session": 1457,
+  "year": 2017,
+  "special": 1,
+  "title": "2017 1st Special Session",
+  "size": 230533,
+  "access_key": "4HJE60Rp76aLBpI58N1QPA"
+ },
+ {
+  "state": "WV",
+  "session": 1168,
+  "year": 2016,
+  "special": 0,
+  "title": "2016 Regular Session",
+  "size": 4768601,
+  "access_key": "7BEOuJhXXG5FoWA5erWR0t"
+ },
+ {
+  "state": "WV",
+  "session": 1262,
+  "year": 2016,
+  "special": 1,
+  "title": "2016 2nd Special Session",
+  "size": 73207,
+  "access_key": "Xblxv4D4uW2AtQbgDCJHa"
+ },
+ {
+  "state": "WV",
+  "session": 1227,
+  "year": 2016,
+  "special": 1,
+  "title": "2016 1st Special Session",
+  "size": 217487,
+  "access_key": "5tJRSjqFsU9OuNZRwhkUzW"
+ },
+ {
+  "state": "WV",
+  "session": 1096,
+  "year": 2015,
+  "special": 0,
+  "title": "2015 Regular Session",
+  "size": 4297398,
+  "access_key": "7aUtErgOTeWZ6piv4ObILB"
+ },
+ {
+  "state": "WV",
+  "session": 1071,
+  "year": 2014,
+  "special": 0,
+  "title": "2014 Regular Session",
+  "size": 4481928,
+  "access_key": "1ZfgutENgzGoXbfljzvutM"
+ },
+ {
+  "state": "WV",
+  "session": 1101,
+  "year": 2014,
+  "special": 1,
+  "title": "2014 2nd Special Session",
+  "size": 108840,
+  "access_key": "4L8jO2JvVRzI02fPcBpACz"
+ },
+ {
+  "state": "WV",
+  "session": 1098,
+  "year": 2014,
+  "special": 1,
+  "title": "2014 1st Special Session",
+  "size": 121869,
+  "access_key": "e11Od3EerDkp6dcDPCW4k"
+ },
+ {
+  "state": "WV",
+  "session": 990,
+  "year": 2013,
+  "special": 0,
+  "title": "2013 Regular Session",
+  "size": 4635442,
+  "access_key": "5Z4xuGuebhTbPdBDttskVB"
+ },
+ {
+  "state": "WV",
+  "session": 1036,
+  "year": 2013,
+  "special": 1,
+  "title": "2013 1st Special Session",
+  "size": 79469,
+  "access_key": "736pC9zNhqKBBae7mpILpp"
+ },
+ {
+  "state": "WV",
+  "session": 926,
+  "year": 2012,
+  "special": 0,
+  "title": "2012 Regular Session",
+  "size": 4637719,
+  "access_key": "LFGgBhY1PnahBmBer8D6s"
+ },
+ {
+  "state": "WV",
+  "session": 967,
+  "year": 2012,
+  "special": 1,
+  "title": "2012 1st Special Session",
+  "size": 79412,
+  "access_key": "3yL2zpoBe9muxBiXfpQCQN"
+ },
+ {
+  "state": "WV",
+  "session": 116,
+  "year": 2011,
+  "special": 0,
+  "title": "2011 Regular Session",
+  "size": 3894052,
+  "access_key": "1dLNaY9hSWMf2nJkkTKxZ"
+ },
+ {
+  "state": "WV",
+  "session": 876,
+  "year": 2011,
+  "special": 1,
+  "title": "2011 4th Special Session",
+  "size": 31820,
+  "access_key": "3uKA3hf8XL4td5ilJ8UNMe"
+ },
+ {
+  "state": "WV",
+  "session": 875,
+  "year": 2011,
+  "special": 1,
+  "title": "2011 3rd Special Session",
+  "size": 10509,
+  "access_key": "4yc56ilHS3Dz4IB8TUi5l9"
+ },
+ {
+  "state": "WV",
+  "session": 874,
+  "year": 2011,
+  "special": 1,
+  "title": "2011 2nd Special Session",
+  "size": 93178,
+  "access_key": "3eX4RuwxVaTDka7Ou0VDlX"
+ },
+ {
+  "state": "WV",
+  "session": 873,
+  "year": 2011,
+  "special": 1,
+  "title": "2011 1st Special Session",
+  "size": 133695,
+  "access_key": "6AhMvAXWqTifuEkkjJfHNt"
+ },
+ {
+  "state": "WV",
+  "session": 22,
+  "year": 2010,
+  "special": 0,
+  "title": "2010 Regular Session",
+  "size": 3448296,
+  "access_key": "3da97clXDCskhfOFwEbRhh"
+ },
+ {
+  "state": "WV",
+  "session": 872,
+  "year": 2010,
+  "special": 1,
+  "title": "2010 2nd Special Session",
+  "size": 138146,
+  "access_key": "31ktZs4pc3GeUjuIqWnCgZ"
+ },
+ {
+  "state": "WV",
+  "session": 871,
+  "year": 2010,
+  "special": 1,
+  "title": "2010 1st Special Session",
+  "size": 193302,
+  "access_key": "1quCixvK9dRN3lAkm8nWPX"
+ },
+ {
+  "state": "WV",
+  "session": 20,
+  "year": 2009,
+  "special": 0,
+  "title": "2009 Regular Session",
+  "size": 1630253,
+  "access_key": "2rkgSwgoQEf3VWYBmp44JB"
+ },
+ {
+  "state": "WV",
+  "session": 1,
+  "year": 2008,
+  "special": 0,
+  "title": "2008 Regular Session",
+  "size": 3758251,
+  "access_key": "Xx3Trdlp82KdqjFvURiBQ"
+ },
+ {
+  "state": "WY",
+  "session": 2213,
+  "year": 2026,
+  "special": 0,
+  "title": "2026 Regular Session",
+  "size": 1667916,
+  "access_key": "D2gAPeYMpAzOXV2Tngc30"
+ },
+ {
+  "state": "WY",
+  "session": 2157,
+  "year": 2025,
+  "special": 0,
+  "title": "2025 Regular Session",
+  "size": 2528760,
+  "access_key": "5Q1C44PEuIT84HFMWNZDQZ"
+ },
+ {
+  "state": "WY",
+  "session": 2096,
+  "year": 2024,
+  "special": 0,
+  "title": "2024 Regular Session",
+  "size": 1509453,
+  "access_key": "6XnZ8gUBCKYRnnJA0VzkW9"
+ },
+ {
+  "state": "WY",
+  "session": 1999,
+  "year": 2023,
+  "special": 0,
+  "title": "2023 Regular Session",
+  "size": 1939726,
+  "access_key": "1gB7TFme96IjlocZkcgzBJ"
+ },
+ {
+  "state": "WY",
+  "session": 1965,
+  "year": 2022,
+  "special": 0,
+  "title": "2022 Regular Session",
+  "size": 1170305,
+  "access_key": "DLiwIJ9V4T8cXrqFd6OHk"
+ },
+ {
+  "state": "WY",
+  "session": 1793,
+  "year": 2021,
+  "special": 0,
+  "title": "2021 Regular Session",
+  "size": 1646836,
+  "access_key": "WFLyh4P4fFLuX3yzJhKLn"
+ },
+ {
+  "state": "WY",
+  "session": 1858,
+  "year": 2021,
+  "special": 1,
+  "title": "2021 1st Special Session",
+  "size": 143867,
+  "access_key": "6x6gwmUphkgZMfbkO0FtYK"
+ },
+ {
+  "state": "WY",
+  "session": 1735,
+  "year": 2020,
+  "special": 0,
+  "title": "2020 Regular Session",
+  "size": 1600083,
+  "access_key": "6wv5aLRo6taZ1Y4T49qNk4"
+ },
+ {
+  "state": "WY",
+  "session": 1744,
+  "year": 2020,
+  "special": 1,
+  "title": "2020 1st Special Session",
+  "size": 78470,
+  "access_key": "1EVuaV3VD0jyeFmJg54zxg"
+ },
+ {
+  "state": "WY",
+  "session": 1656,
+  "year": 2019,
+  "special": 0,
+  "title": "2019 Regular Session",
+  "size": 1864314,
+  "access_key": "RUrTjFTiG9dhNzEImNQP8"
+ },
+ {
+  "state": "WY",
+  "session": 1537,
+  "year": 2018,
+  "special": 0,
+  "title": "2018 Regular Session",
+  "size": 1418801,
+  "access_key": "2tMDQgBxOz6tiBQGylaGBH"
+ },
+ {
+  "state": "WY",
+  "session": 1433,
+  "year": 2017,
+  "special": 0,
+  "title": "2017 Regular Session",
+  "size": 2346952,
+  "access_key": "5QVokdJHcxsWEwcydWHwc9"
+ },
+ {
+  "state": "WY",
+  "session": 1205,
+  "year": 2016,
+  "special": 0,
+  "title": "2016 Regular Session",
+  "size": 1351617,
+  "access_key": "2XxnlcBwcSOJwwkMvRRAy"
+ },
+ {
+  "state": "WY",
+  "session": 1154,
+  "year": 2015,
+  "special": 0,
+  "title": "2015 Regular Session",
+  "size": 2077662,
+  "access_key": "210DOe4z2sM3lH3Ona2A0J"
+ },
+ {
+  "state": "WY",
+  "session": 1088,
+  "year": 2014,
+  "special": 0,
+  "title": "2014 Regular Session",
+  "size": 1218629,
+  "access_key": "459OI7Lp2EdjBwoSWmFRfz"
+ },
+ {
+  "state": "WY",
+  "session": 1024,
+  "year": 2013,
+  "special": 0,
+  "title": "2013 Regular Session",
+  "size": 1531116,
+  "access_key": "4UDJikdaBFW2qXQoLu4Vd5"
+ },
+ {
+  "state": "WY",
+  "session": 956,
+  "year": 2012,
+  "special": 0,
+  "title": "2012 Regular Session",
+  "size": 1001317,
+  "access_key": "54oKUFEm9ZxVsLku8dZ6v0"
+ },
+ {
+  "state": "WY",
+  "session": 83,
+  "year": 2011,
+  "special": 0,
+  "title": "2011 Regular Session",
+  "size": 1328102,
+  "access_key": "4ri6hyVeZ0J4pHCwv5B2z9"
+ },
+ {
+  "state": "WY",
+  "session": 67,
+  "year": 2010,
+  "special": 0,
+  "title": "2010 Regular Session",
+  "size": 687872,
+  "access_key": "4wDf70lhPdcXsQfotTQqMH"
+ }
+]

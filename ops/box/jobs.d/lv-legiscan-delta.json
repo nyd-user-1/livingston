@@ -1,0 +1,15 @@
+{
+  "job": "lv-legiscan-delta",
+  "repo": "livingston",
+  "cadence": "nightly",
+  "enabled": true,
+  "steps": [
+    "scripts/box/run-handler.mjs api/legiscan-sync.ts mode=delta state=NY",
+    "scripts/box/run-handler.mjs api/legiscan-sync.ts mode=delta state=NJ",
+    "scripts/box/run-handler.mjs api/legiscan-sync.ts mode=delta state=US"
+  ],
+  "_why": "The three nightly LegiScan deltas — NY, NJ and Congress — that used to be three separate Vercel crons at 10:30, 10:40 and 10:50 UTC. One job with three steps instead of three jobs, because run-due aborts at the first non-zero step and a delta that could not reach LegiScan should not be followed by two more attempts against the same outage. Each step is one getMasterListRaw call plus a getBill only for the bills whose change_hash moved, so a quiet night is a handful of requests.",
+  "_sessions": "No `session=` on any step: the handler holds the current session per state (NY 2188/2025, NJ 2250/2026, US 2199/2025) and refuses with a 400 rather than guess for a state it does not know. When a legislature turns over, that constant is the single place to change it — not this manifest.",
+  "_caps": "The handler's own ceilings still apply: 300 changed bills and 100 new roll calls an invocation. A day that blows through those leaves the remainder for tomorrow rather than running for an hour, and `rollCallsLeft` in the answer says so out loud in the job log.",
+  "_order": "run-due globs ~/jobs.d/*.json in FILENAME order, so the five livingston manifests land lv-bills-sync, lv-fec-refresh, lv-lda-delta, lv-legiscan-delta, lv-national-sweep. Two things follow. Good: this runs after lv-bills-sync, which is what the data wants — the NY Senate is the authority on a current-session New York bill's status, this importer is explicitly written never to move a status backwards, and the two only agree if the Senate's number is already in the row. Known gap: lv-lda-delta sorts BEFORE this one ('lda' < 'legiscan'), and it resolves the bill numbers it finds in lobbying prose against \"Bills\" WHERE state='US' — so a Congress bill introduced today and cited in a filing posted today is looked up before tonight's US delta has banked it. It costs at most one day: lda-sync's delta window is `dt_posted` over two days, so the same filing is ingested again tomorrow and its UPDATE re-runs against `bill_id IS NULL`, resolving it then. Renaming this file to sort first would fix the ordering and break the correspondence with the lane brief's table, so the mechanism is left as it is and written down here instead. If the gap ever matters, the fix is a filename, not code."
+}
