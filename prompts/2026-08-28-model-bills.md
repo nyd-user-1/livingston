@@ -182,3 +182,42 @@ Same title, same length band, six years, two chambers. That is the copycat pheno
 **Every one of the 548 CPI matches is `session_id < 2023`** — 2003 to 2019, mostly 2015–2019 — **and BT's walker is scoped to `session_id >= 2023`.** So of 545 resolved matches we hold the *text* of **8**, and under the present scope that will not change. **The labels and the text are in different halves of the corpus.** Making these pairs usable is a small, targeted job — **~545 specific documents, not 483,000** — driven from `"ModelBillMatches"` rather than a change to the nightly walk. I have not built it: widening BT's scope is the lead's call and this brief does not cover it.
 
 Alongside that: **ALEC is 1,127 model texts with no matches at all**, because ALEC does not publish which state bills copied them. CPI's tool was the thing that computed those links, and it is gone. So the two halves of "find this bill in other states" are now: **1,127 models with text and no labels (ALEC)**, and **545 labels with almost no text (CPI)**. The obvious next move — and it is a real one, not a consolation — is to *recompute* CPI's analysis ourselves: we hold 2.2 M bills, we are building their text, and the one surviving API response shows their output was `{bill, n_matches, n_states}` keyed on the same LegiScan `bill_id` we use.
+
+---
+
+# CLOSING REPORT — lane MB, 19:47 ET
+
+## What landed, final
+
+| | rows | with text | characters |
+|---|---|---|---|
+| `"ModelBills"` — **alec** | **1,128** | 1,127 | **7,030,594** |
+| `"ModelBills"` — **cpi** | 9 | 0 | — (the nine Project Blitz clusters; the playbook is not in the spreadsheet and is not ours to publish, so `text` is honestly NULL) |
+| `"ModelBillMatches"` — **cpi** | **548** | — | **545 resolved to a `bill_id` (99.5%)**, 9 clusters, 51 jurisdictions |
+
+Nothing of this lane is still running. ALEC finished `EXIT=0` — 1,128 requests, zero strikes, 23.5 minutes at 1 req/s. Raw HTML for every policy is cached at `~/cache/model-bills/alec/`, and the CPI spreadsheet plus the single surviving API response at `~/cache/model-bills/cpi/`.
+
+## 🚩 The gap this lane named is now largely closed
+
+The closing finding of the main report was that **every CPI match is `session_id < 2023` while BT's walker is scoped to `>= 2023`**, so the labels and the text sat in different halves of the corpus: **545 resolved matches, 8 with text.**
+
+Brendan approved a targeted fix, and it ran as `lv-text-mb` using the new `--bill-ids <file>` mode (an explicit list of `bill_id`s, **no session filter**): **755 documents considered, 755 stored, 330 skipped, 27.4 minutes.**
+
+> **Curated matches whose bill text we now hold: 8 → 299 of 545.** The rest are old links that have rotted — the first five checked were `HTTP 404` from `www.ilga.gov`, which is what a decade-old Illinois URL looks like, and is recorded as an error row rather than a silence.
+
+The id list is at `~/cache/model-bills/cpi-bill-ids.txt` and is regenerable in one query from `"ModelBillMatches"`.
+
+## What is owed
+
+1. **Nothing is running and nothing is half-done.** Both tables are complete against their sources.
+2. **The ~246 matches still without text are rotted links, not scope.** If they matter, the route is LegiScan's `getBillText` for those specific documents — metered, one query each, ~246 against a 30,000/month key, well inside the 25,000 stop.
+3. **Re-running `--source cpi` is safe and converges**: the loader marks what it writes and sweeps what it did not, so a corrected parse no longer orphans rows.
+4. **NCSL remains out** and should stay out unless someone opens an institutional conversation. Both refusals are quoted in §5 of the report above.
+
+## The two things worth carrying forward
+
+**A curated label can be confidently wrong, and only a proof catches it.** `US HR897` resolved cleanly to H.RES. 897 — *"Expressing the sense of the House… emergency economic stimulus"* — because the spreadsheet's column says `HR897` while **in our schema `HR` is H.Res. and `HB` is H.R.** No error, no null, just the wrong bill in a table whose entire value is that a human said these two are the same. Its own link said `/bill/HB897/`, and **26 of 549 rows disagree that way**. It surfaced only because the spot check put eight texts side by side and seven of them were the same act.
+
+**An upsert keyed on a value a bug fix can change is not idempotent.** Twice a correction changed a row's key — the state column, then the bill number — and each time the upsert wrote a new row and orphaned the old one, so the table *grew* instead of converging (549→557, 549→574). Mark-and-sweep on `fetched_at` fixed it. Any loader keyed on parsed values has this shape.
+
+**And the lane's own headline, which is not a number:** two of the three sources were at risk and the lead said fetch first. **One of them was already gone.** The Center for Public Integrity's tracker — ~10,000 human-labelled copycat bills — is unrecoverable: host dead, article 404, and of 603 archived URLs exactly one API response was ever captured. What survives is the 549-row spreadsheet on GitHub. The margin on "go get them now" was five years, and we missed it. ALEC's 1,128 policies are cached against the same eventual outcome.
