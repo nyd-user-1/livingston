@@ -1,0 +1,221 @@
+// api/_lib/polite-fetch.ts — the crawler's manners, in one place.
+//
+// Lane BT walks ~730,000 documents across 61 legislature websites. None of them
+// asked us to. So the politeness lives HERE, in the fetcher, not in the driver
+// that calls it — a driver can be rewritten by someone in a hurry; a fetcher
+// that physically cannot issue two concurrent requests to the same host cannot.
+//
+// What it guarantees, per host:
+//   - one connection at a time (requests to a host are chained, never raced)
+//   - at least `minDelayMs` between the END of one request and the START of the
+//     next (1,000 ms default; robots.txt Crawl-delay raises it, never lowers it)
+//   - robots.txt fetched once, cached, and obeyed for `User-agent: *` and for us
+//   - Retry-After honoured on 429/503, up to a ceiling
+//   - five consecutive 403/429 and the host is DROPPED for the rest of the run.
+//     A site that is refusing us is a site we do another way another day, not a
+//     site we keep knocking on.
+//   - a body cap, so one 300 MB budget bill cannot take the process down
+//
+// The User-Agent names the project and a contact address, because a legislature
+// webmaster who wants us to stop should be able to find out who to tell.
+
+export type PoliteSkip = "robots" | "host-dropped" | "too-large" | "bad-url";
+
+export type PoliteResult = {
+  ok: boolean;
+  status: number;
+  mime: string;
+  body: Uint8Array | null;
+  bytes: number;
+  error?: string;
+  skipped?: PoliteSkip;
+};
+
+type HostState = {
+  chain: Promise<unknown>;      // serialises every request to this host
+  nextAt: number;               // epoch ms before which we may not start
+  delayMs: number;
+  strikes: number;              // consecutive 403/429
+  dropped: boolean;
+  robots: { disallow: string[]; crawlDelayMs: number } | null;
+  robotsLoaded: boolean;
+  requests: number;
+};
+
+export type PoliteStats = { host: string; requests: number; strikes: number; dropped: boolean; delayMs: number };
+
+const DEFAULT_UA =
+  "livingston-bill-text/1.0 (legislative full-text archive; +https://github.com/nyd-user-1/livingston; contact: brendan@nysgpt.com)";
+
+export class PoliteFetcher {
+  private hosts = new Map<string, HostState>();
+  readonly ua: string;
+  readonly minDelayMs: number;
+  readonly maxBytes: number;
+  readonly timeoutMs: number;
+  readonly maxStrikes: number;
+
+  constructor(opts: { ua?: string; minDelayMs?: number; maxBytes?: number; timeoutMs?: number; maxStrikes?: number } = {}) {
+    this.ua = opts.ua ?? DEFAULT_UA;
+    this.minDelayMs = opts.minDelayMs ?? 1000;
+    this.maxBytes = opts.maxBytes ?? 20 * 1024 * 1024;
+    this.timeoutMs = opts.timeoutMs ?? 60_000;
+    this.maxStrikes = opts.maxStrikes ?? 5;
+  }
+
+  stats(): PoliteStats[] {
+    return [...this.hosts.entries()]
+      .map(([host, s]) => ({ host, requests: s.requests, strikes: s.strikes, dropped: s.dropped, delayMs: s.delayMs }))
+      .sort((a, b) => b.requests - a.requests);
+  }
+
+  isDropped(host: string) { return this.hosts.get(host)?.dropped ?? false; }
+
+  private state(host: string): HostState {
+    let s = this.hosts.get(host);
+    if (!s) {
+      s = { chain: Promise.resolve(), nextAt: 0, delayMs: this.minDelayMs, strikes: 0, dropped: false, robots: null, robotsLoaded: false, requests: 0 };
+      this.hosts.set(host, s);
+    }
+    return s;
+  }
+
+  /** Chain onto this host's queue: the returned promise runs after everything already queued for it. */
+  private queue<T>(host: string, fn: () => Promise<T>): Promise<T> {
+    const s = this.state(host);
+    const run = s.chain.then(fn, fn);
+    // Keep the chain alive even when a link rejects, or one failure would wedge the host.
+    s.chain = run.then(() => undefined, () => undefined);
+    return run;
+  }
+
+  private async pace(s: HostState) {
+    const wait = s.nextAt - Date.now();
+    if (wait > 0) await new Promise((ok) => setTimeout(ok, wait));
+  }
+
+  /**
+   * robots.txt, once per host. A host that answers 4xx for it is allow-all,
+   * which is the standard reading. A host we cannot reach at all is also
+   * treated as allow-all — but only after a real attempt, and the attempt is
+   * paced like any other request.
+   */
+  private async loadRobots(host: string, scheme: string) {
+    const s = this.state(host);
+    if (s.robotsLoaded) return;
+    await this.pace(s);
+    try {
+      const r = await fetch(`${scheme}//${host}/robots.txt`, { headers: { "User-Agent": this.ua }, signal: AbortSignal.timeout(20_000) });
+      s.requests += 1;
+      s.nextAt = Date.now() + s.delayMs;
+      s.robots = r.ok ? parseRobots((await r.text()).slice(0, 200_000), this.ua) : { disallow: [], crawlDelayMs: 0 };
+      if (s.robots.crawlDelayMs > s.delayMs) s.delayMs = s.robots.crawlDelayMs;   // raise only, never lower
+    } catch {
+      s.nextAt = Date.now() + s.delayMs;
+      s.robots = { disallow: [], crawlDelayMs: 0 };
+    }
+    s.robotsLoaded = true;
+  }
+
+  async get(url: string): Promise<PoliteResult> {
+    let u: URL;
+    try { u = new URL(url); } catch { return { ok: false, status: 0, mime: "", body: null, bytes: 0, skipped: "bad-url", error: "unparseable url" }; }
+    if (u.protocol !== "http:" && u.protocol !== "https:") return { ok: false, status: 0, mime: "", body: null, bytes: 0, skipped: "bad-url", error: u.protocol };
+    const host = u.host;
+
+    return this.queue(host, async () => {
+      const s = this.state(host);
+      if (s.dropped) return { ok: false, status: 0, mime: "", body: null, bytes: 0, skipped: "host-dropped" as PoliteSkip, error: `${host} dropped after ${this.maxStrikes} consecutive 403/429` };
+
+      await this.loadRobots(host, u.protocol);
+      if (s.robots && isDisallowed(s.robots.disallow, u.pathname + u.search)) {
+        return { ok: false, status: 0, mime: "", body: null, bytes: 0, skipped: "robots" as PoliteSkip, error: `robots.txt disallows ${u.pathname}` };
+      }
+
+      for (let attempt = 0; attempt < 3; attempt += 1) {
+        await this.pace(s);
+        let r: Response;
+        try {
+          r = await fetch(u.href, { headers: { "User-Agent": this.ua, Accept: "*/*" }, redirect: "follow", signal: AbortSignal.timeout(this.timeoutMs) });
+        } catch (e) {
+          s.nextAt = Date.now() + s.delayMs;
+          if (attempt === 2) return { ok: false, status: 0, mime: "", body: null, bytes: 0, error: String((e as Error).message) };
+          continue;
+        }
+        s.requests += 1;
+        s.nextAt = Date.now() + s.delayMs;
+
+        if (r.status === 403 || r.status === 429) {
+          s.strikes += 1;
+          if (s.strikes >= this.maxStrikes) {
+            s.dropped = true;
+            return { ok: false, status: r.status, mime: "", body: null, bytes: 0, skipped: "host-dropped" as PoliteSkip, error: `${host} dropped after ${s.strikes} consecutive ${r.status}` };
+          }
+          // Retry-After is the site stating its terms. Capped so one hostile
+          // header cannot park a run for an hour.
+          const ra = Number(r.headers.get("retry-after") ?? 0);
+          s.nextAt = Date.now() + Math.min(120_000, (Number.isFinite(ra) && ra > 0 ? ra : 30) * 1000);
+          continue;
+        }
+        if (r.status === 503) {
+          const ra = Number(r.headers.get("retry-after") ?? 0);
+          s.nextAt = Date.now() + Math.min(120_000, (Number.isFinite(ra) && ra > 0 ? ra : 15) * 1000);
+          continue;
+        }
+        if (!r.ok) { s.strikes = 0; return { ok: false, status: r.status, mime: (r.headers.get("content-type") ?? "").split(";")[0].trim(), body: null, bytes: 0, error: `HTTP ${r.status}` }; }
+
+        s.strikes = 0;
+        const mime = (r.headers.get("content-type") ?? "").split(";")[0].trim();
+        const declared = Number(r.headers.get("content-length") ?? 0);
+        if (declared && declared > this.maxBytes) {
+          try { await r.body?.cancel(); } catch { /* already consumed */ }
+          return { ok: false, status: r.status, mime, body: null, bytes: declared, skipped: "too-large" as PoliteSkip, error: `${declared} bytes over the cap` };
+        }
+        const buf = new Uint8Array(await r.arrayBuffer());
+        if (buf.byteLength > this.maxBytes) {
+          return { ok: false, status: r.status, mime, body: null, bytes: buf.byteLength, skipped: "too-large" as PoliteSkip, error: `${buf.byteLength} bytes over the cap` };
+        }
+        return { ok: true, status: r.status, mime, body: buf, bytes: buf.byteLength };
+      }
+      return { ok: false, status: 429, mime: "", body: null, bytes: 0, error: "retried three times without a usable answer" };
+    });
+  }
+}
+
+/** The `User-agent: *` group, plus any group naming us. */
+function parseRobots(txt: string, ua: string): { disallow: string[]; crawlDelayMs: number } {
+  const me = ua.split("/")[0].toLowerCase();
+  const disallow: string[] = [];
+  let crawlDelayMs = 0;
+  let applies = false;
+  for (const raw of txt.split(/\r?\n/)) {
+    const line = raw.replace(/#.*$/, "").trim();
+    if (!line) continue;
+    const i = line.indexOf(":");
+    if (i < 1) continue;
+    const field = line.slice(0, i).trim().toLowerCase();
+    const value = line.slice(i + 1).trim();
+    if (field === "user-agent") { applies = value === "*" || value.toLowerCase() === me; continue; }
+    if (!applies) continue;
+    if (field === "disallow" && value) disallow.push(value);
+    if (field === "crawl-delay") { const n = Number(value); if (Number.isFinite(n) && n > 0) crawlDelayMs = Math.min(30_000, n * 1000); }
+  }
+  return { disallow, crawlDelayMs };
+}
+
+/**
+ * Prefix match, with `*` supported as `prefix*suffix`. Anything more exotic is
+ * treated as its literal prefix — which errs toward NOT fetching, the right way
+ * to be wrong about someone else's robots.txt.
+ */
+function isDisallowed(rules: string[], path: string): boolean {
+  for (const rule of rules) {
+    if (rule === "/") return true;
+    if (!rule.includes("*")) { if (path.startsWith(rule)) return true; continue; }
+    const parts = rule.split("*");
+    const pre = parts[0];
+    const post = parts.slice(1).join("*").replace(/\$$/, "");
+    if (path.startsWith(pre) && (!post || path.includes(post))) return true;
+  }
+  return false;
+}

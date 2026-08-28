@@ -1,0 +1,15 @@
+{
+  "job": "lv-text-delta",
+  "repo": "livingston",
+  "cadence": "nightly",
+  "enabled": true,
+  "heap_mb": 2048,
+  "steps": [
+    "scripts/box/run-handler.mjs api/bill-text.ts mode=delta days=7 limit=1500"
+  ],
+  "_why": "The text of whatever changed. lv-legiscan-delta learns every night which bills moved and writes their new text[] entries into \"Documents\" as links; this is the job that turns those links into text. Without it the corpus is a snapshot that ages from the day the backfill ended, and a bill amended on the floor this morning would show yesterday's language until someone re-ran a walk over the whole state. Seven days of `last_action_date`, not one, so a night that is missed or dies costs nothing — the window covers it again tomorrow and the upsert is keyed on document_id.",
+  "_order": "Filename order puts it after lv-legiscan-delta and lv-lda-delta, and after is where it belongs: it can only fetch documents that legiscan-delta has already discovered, so on any night the two run together it wants to go second. If it goes first it simply finds less and picks the rest up the following night — the seven-day window is what makes that a delay rather than a hole.",
+  "_metering": "Two sources, in this order, per document. First the legislature's own state_link, which is free and uncapped and is where all but a handful of these come from. Only if that yields nothing does it fall back to LegiScan getBillText, which is ONE API QUERY PER DOCUMENT against a key that allows 30,000 a month for everything livingston does — the same key legiscan-sync's deltas and the Sunday national sweep spend from. So the route hard-stops LegiScan at 25,000 for the calendar month, checked per document rather than per run because a run that starts under the line can still cross it, and it counts month-to-date straight from \"BillTexts\" (source='legiscan', fetched_at >= date_trunc('month', now())) rather than from a counter that could drift away from the truth.",
+  "_politeness": "The same api/_lib/polite-fetch.ts the backfill uses: one connection per host, >=1 s between requests to a host, robots.txt read once and obeyed, Crawl-delay raises the interval and never lowers it, Retry-After honoured, and a host is dropped for the rest of the run after five consecutive 403/429. A nightly delta touches a few dozen hosts for a few documents each, so it is nowhere near anyone's limits — but the politeness lives in the fetcher precisely so that stays true without anyone checking.",
+  "_limit": "1,500 documents a night. A normal night across 52 jurisdictions is a few hundred; the ceiling is there so that the first night after a long outage, or a day when a big state dumps a session's worth of amendments, cannot turn into an eight-hour job that collides with the morning. Anything left over is still inside the seven-day window tomorrow."
+}

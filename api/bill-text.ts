@@ -1,0 +1,631 @@
+// /api/bill-text — the text of the bills.
+//
+// We hold 2.2M bills and, until this route, not one word of what any of them
+// actually says. "Documents" holds 3.4M LINKS; this fetches what is behind them
+// and puts it in "BillTexts", joined to "Bills" by bill_id, with a tsvector for
+// the search lane.
+//
+// Four sources, in the order they are worth having:
+//
+//   ?source=nysenate&session=2025[&limit=]    NY Senate Open Legislation API.
+//        One request per bill returns EVERY amendment version's fullText.
+//   ?source=govinfo&congress=119[&type=hr]    govinfo bulk data, no key.
+//        One zip per congress/session/type; filenames carry congress, type,
+//        number and version. ~1.8 GB for the 111th-119th, downloaded once.
+//   ?source=state_link&state=TX[&since=2023]  the legislature's own site, for
+//        everyone else. Politeness lives in api/_lib/polite-fetch.ts.
+//   ?mode=delta[&days=7]                      nightly. state_link first (free);
+//        LegiScan getBillText only as the fallback, because that one is metered:
+//        30,000 queries a month for the whole key, and this route stops at 25,000.
+//
+//   ?census=1[&since=2023]                    counts only. Fetches nothing.
+//
+// PDF -> text needs `pdftotext` (poppler-utils) on PATH. That is true on the
+// worker box and false on Vercel, which is deliberate: the backfill is a box
+// job. The nightly delta is mostly text/html and degrades to "mime recorded,
+// text skipped" rather than failing.
+//
+//   Auth: Authorization: Bearer $CRON_SECRET, or ?secret=
+//   Env:  POLICY_DATABASE_URL, NYS_LEGISLATION_API_KEY, LEGISCAN_API_KEY, CRON_SECRET
+
+import { neon, type NeonQueryFunction } from "@neondatabase/serverless";
+import { Unzip, UnzipInflate } from "fflate";
+import { createHash } from "node:crypto";
+import { spawn } from "node:child_process";
+import { PoliteFetcher, type PoliteStats } from "./_lib/polite-fetch.js";
+
+export const config = { maxDuration: 300 };
+
+type Sql = NeonQueryFunction<false, false>;
+type Counts = Record<string, number>;
+
+const NY_API = "https://legislation.nysenate.gov/api/3";
+const GOVINFO = "https://www.govinfo.gov/bulkdata/BILLS";
+const LEGISCAN = "https://api.legiscan.com/";
+const MAX_TEXT_BYTES = 20 * 1024 * 1024;
+const LEGISCAN_MONTHLY_STOP = 25_000;
+
+/* ---- schema -------------------------------------------------------------- */
+
+async function prepareSchema(sql: Sql) {
+  await sql.query(`CREATE TABLE IF NOT EXISTS "BillTexts" (
+    document_id bigint PRIMARY KEY,
+    bill_id bigint NOT NULL,
+    state text NOT NULL,
+    session_id int,
+    version text,
+    source text NOT NULL,
+    mime text,
+    chars int,
+    text text,
+    text_hash text,
+    fetched_at timestamptz NOT NULL DEFAULT now(),
+    error text)`);
+  // The search lane's raw material. GENERATED ... STORED needs an IMMUTABLE
+  // expression, so the two-argument to_tsvector with an explicit regconfig —
+  // the one-argument form is only STABLE and Postgres refuses it here. left()
+  // guards to_tsvector's own 1 MB input ceiling; a bill longer than a million
+  // characters is indexed on its first million and stored whole.
+  await sql.query(`ALTER TABLE "BillTexts" ADD COLUMN IF NOT EXISTS search_tsv tsvector
+    GENERATED ALWAYS AS (to_tsvector('english'::regconfig, left(coalesce(text, ''), 1000000))) STORED`);
+  await sql.query(`CREATE INDEX IF NOT EXISTS billtexts_bill_idx ON "BillTexts" (bill_id)`);
+  await sql.query(`CREATE INDEX IF NOT EXISTS billtexts_state_session_idx ON "BillTexts" (state, session_id)`);
+  await sql.query(`CREATE INDEX IF NOT EXISTS billtexts_source_idx ON "BillTexts" (source)`);
+  await sql.query(`CREATE INDEX IF NOT EXISTS billtexts_search_idx ON "BillTexts" USING GIN (search_tsv)`);
+  // On "Bills" so a list page can say "text available" without touching a 90 GB
+  // table, and so the nightly delta knows what it still owes.
+  await sql.query(`ALTER TABLE "Bills" ADD COLUMN IF NOT EXISTS text_fetched_at timestamptz`);
+  await sql.query(`ALTER TABLE "Bills" ADD COLUMN IF NOT EXISTS text_chars int`);
+  await sql.query(`CREATE INDEX IF NOT EXISTS bills_text_fetched_idx ON "Bills" (state, session_id) WHERE text_fetched_at IS NULL`);
+}
+
+/* ---- text extraction ----------------------------------------------------- */
+
+const sha = (s: string) => createHash("sha256").update(s).digest("hex");
+
+const ENTITIES: Record<string, string> = {
+  amp: "&", lt: "<", gt: ">", quot: '"', apos: "'", nbsp: " ", ndash: "–", mdash: "—",
+  lsquo: "‘", rsquo: "’", ldquo: "“", rdquo: "”", sect: "§", para: "¶", deg: "°",
+};
+function decodeEntities(s: string): string {
+  return s.replace(/&(#x?[0-9a-fA-F]+|[a-zA-Z]+);/g, (m, e: string) => {
+    if (e[0] === "#") {
+      const n = e[1] === "x" || e[1] === "X" ? parseInt(e.slice(2), 16) : parseInt(e.slice(1), 10);
+      return Number.isFinite(n) && n > 0 && n < 0x110000 ? String.fromCodePoint(n) : m;
+    }
+    return ENTITIES[e.toLowerCase()] ?? m;
+  });
+}
+
+/** Tidy without destroying: legislative text is meaningful line by line. */
+function tidy(s: string): string {
+  return s
+    .replace(/\r\n?/g, "\n")
+    .replace(/[ \t]+\n/g, "\n")
+    .replace(/\n{3,}/g, "\n\n")
+    .replace(/[ \t]{2,}/g, (m) => (m.length > 8 ? "  " : m))   // keep small indents, collapse runaway padding
+    .trim();
+}
+
+function htmlToText(html: string): string {
+  const stripped = html
+    .replace(/<!--[\s\S]*?-->/g, "")
+    .replace(/<(script|style|head|nav|footer)\b[^>]*>[\s\S]*?<\/\1>/gi, "")
+    .replace(/<br\s*\/?>/gi, "\n")
+    .replace(/<\/(p|div|tr|li|h[1-6]|section|article|blockquote)\s*>/gi, "\n")
+    .replace(/<(p|div|tr|li|h[1-6]|section|article|blockquote)\b[^>]*>/gi, "\n")
+    .replace(/<\/t[dh]\s*>/gi, "\t")
+    .replace(/<[^>]+>/g, "");
+  return tidy(decodeEntities(stripped));
+}
+
+/** govinfo BILLS XML. Sections and paragraphs become newlines; everything else goes. */
+function xmlToText(xml: string): string {
+  const stripped = xml
+    .replace(/<!--[\s\S]*?-->/g, "")
+    .replace(/<\?[\s\S]*?\?>/g, "")
+    .replace(/<!DOCTYPE[\s\S]*?>/gi, "")
+    .replace(/<\/(section|subsection|paragraph|subparagraph|clause|text|header|enum|toc-entry|title|official-title)\s*>/gi, "\n")
+    .replace(/<(section|subsection|paragraph|subparagraph|clause|text|header|enum|toc-entry|title|official-title)\b[^>]*>/gi, "\n")
+    .replace(/<[^>]+>/g, " ");
+  return tidy(decodeEntities(stripped));
+}
+
+/** poppler's pdftotext, over stdin/stdout — no temp files, no cleanup to forget. */
+function pdfToText(buf: Uint8Array): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const p = spawn("pdftotext", ["-layout", "-q", "-", "-"], { stdio: ["pipe", "pipe", "pipe"] });
+    const out: Buffer[] = [];
+    let err = "";
+    p.stdout.on("data", (b: Buffer) => out.push(b));
+    p.stderr.on("data", (b: Buffer) => { err += String(b); });
+    p.on("error", (e) => reject(new Error(`pdftotext: ${e.message}`)));
+    p.on("close", (code) => {
+      if (code !== 0 && out.length === 0) return reject(new Error(`pdftotext exited ${code}: ${err.slice(0, 200)}`));
+      resolve(tidy(Buffer.concat(out).toString("utf8")));
+    });
+    p.stdin.on("error", () => undefined);   // a pdftotext that dies early closes stdin under us
+    p.stdin.end(Buffer.from(buf));
+  });
+}
+
+async function bodyToText(mime: string, buf: Uint8Array): Promise<{ text: string; how: string }> {
+  const m = (mime || "").toLowerCase();
+  const looksPdf = buf.length > 4 && buf[0] === 0x25 && buf[1] === 0x50 && buf[2] === 0x44 && buf[3] === 0x46;
+  if (looksPdf || m.includes("pdf")) return { text: await pdfToText(buf), how: "pdftotext" };
+  const s = new TextDecoder("utf-8", { fatal: false }).decode(buf);
+  if (m.includes("xml") || /^\s*<\?xml/.test(s)) return { text: xmlToText(s), how: "xml" };
+  if (m.includes("html") || /<html[\s>]/i.test(s)) return { text: htmlToText(s), how: "html" };
+  if (m.includes("text/") || !m) return { text: tidy(s), how: "plain" };
+  return { text: "", how: `unsupported:${m}` };
+}
+
+/* ---- storage ------------------------------------------------------------- */
+
+type TextRow = {
+  document_id: number; bill_id: number; state: string; session_id: number | null;
+  version: string | null; source: string; mime: string | null; text: string | null; error: string | null;
+};
+
+/**
+ * Idempotent by hash: a document whose text has not changed is NOT rewritten,
+ * so a re-run costs a comparison and nothing else — and `fetched_at` keeps
+ * meaning "when this text last changed", which is the more useful of the two
+ * things it could mean.
+ */
+/**
+ * One row, one statement, one commit — which is exactly the checkpoint this lane
+ * wants: a job killed mid-state loses at most one document, and there is no
+ * checkpoint file anywhere to go stale. Idempotent by hash: a document whose
+ * text has not changed is NOT rewritten, so a re-run costs a comparison, and
+ * `fetched_at` keeps meaning "when this text last changed" rather than "when we
+ * last looked", which is the more useful of the two things it could mean.
+ */
+async function putText(sql: Sql, r: TextRow, counts: Counts): Promise<"inserted" | "updated" | "unchanged"> {
+  const hash = r.text ? sha(r.text) : null;
+  const chars = r.text ? r.text.length : 0;
+  const out = (await sql.query(
+    `INSERT INTO "BillTexts" (document_id, bill_id, state, session_id, version, source, mime, chars, text, text_hash, fetched_at, error)
+     VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10, now(), $11)
+     ON CONFLICT (document_id) DO UPDATE
+        SET bill_id = EXCLUDED.bill_id, state = EXCLUDED.state, session_id = EXCLUDED.session_id,
+            version = EXCLUDED.version, source = EXCLUDED.source, mime = EXCLUDED.mime,
+            chars = EXCLUDED.chars, text = EXCLUDED.text, text_hash = EXCLUDED.text_hash,
+            fetched_at = now(), error = EXCLUDED.error
+      WHERE "BillTexts".text_hash IS DISTINCT FROM EXCLUDED.text_hash
+         OR "BillTexts".error IS DISTINCT FROM EXCLUDED.error
+     RETURNING (xmax = 0) AS inserted`,
+    [r.document_id, r.bill_id, r.state, r.session_id, r.version, r.source, r.mime, chars, r.text, hash, r.error],
+  )) as { inserted: boolean }[];
+  if (!out.length) { counts.unchanged = (counts.unchanged ?? 0) + 1; return "unchanged"; }
+  if (out[0].inserted) { counts.inserted = (counts.inserted ?? 0) + 1; counts.chars = (counts.chars ?? 0) + chars; return "inserted"; }
+  counts.updated = (counts.updated ?? 0) + 1; counts.chars = (counts.chars ?? 0) + chars;
+  return "updated";
+}
+
+async function stampBill(sql: Sql, billId: number, chars: number) {
+  await sql.query(`UPDATE "Bills" SET text_fetched_at = now(), text_chars = $2 WHERE bill_id = $1`, [billId, chars]);
+}
+
+/* ---- source 1: the New York Senate --------------------------------------- */
+
+/** LegiScan stores NY print numbers zero-padded ("S00143"); Open Legislation wants "S143". */
+export function nyPrintNo(billNumber: string): string {
+  const m = /^([A-Z]+)0*(\d+)([A-Z]?)$/.exec(String(billNumber).trim().toUpperCase());
+  return m ? `${m[1]}${m[2]}` : String(billNumber).trim().toUpperCase();
+}
+
+/** Base amendment is 0, "A" is 1, "B" is 2 — stable whatever else the bill has. */
+const nyVersionIndex = (key: string) => (key ? key.toUpperCase().charCodeAt(0) - 64 : 0);
+
+async function runNySenate(sql: Sql, key: string, session: number, limit: number, retryErrors: boolean, counts: Counts) {
+  const bills = (await sql.query(
+    `SELECT bill_id, bill_number, session_id FROM "Bills"
+      WHERE state = 'NY' AND ($1 = 0 OR session_id = $1)
+        AND (${retryErrors ? "text_chars = 0" : "text_fetched_at IS NULL"})
+      ORDER BY session_id DESC, bill_id
+      LIMIT $2`,
+    [session, limit],
+  )) as { bill_id: number; bill_number: string; session_id: number }[];
+  counts.considered = bills.length;
+
+  for (const b of bills) {
+    const printNo = nyPrintNo(b.bill_number);
+    const url = `${NY_API}/bills/${b.session_id}/${printNo}?key=${key}`;
+    let best = 0;
+    try {
+      const r = await fetch(url, { signal: AbortSignal.timeout(60_000) });
+      counts.queries = (counts.queries ?? 0) + 1;
+      if (r.status === 429) { await new Promise((ok) => setTimeout(ok, 30_000)); throw new Error("NY Open Legislation throttled"); }
+      const j = (await r.json()) as { success?: boolean; message?: string; result?: { amendments?: { items?: Record<string, { fullText?: string }> } } };
+      if (!r.ok || j.success === false) throw new Error(`NY ${r.status} ${String(j.message ?? "").slice(0, 120)}`);
+      const items = j.result?.amendments?.items ?? {};
+      const keys = Object.keys(items);
+      if (!keys.length) throw new Error("no amendments in the response");
+      for (const k of keys) {
+        const text = String(items[k]?.fullText ?? "");
+        if (!text.trim()) { counts.emptyVersions = (counts.emptyVersions ?? 0) + 1; continue; }
+        best = Math.max(best, text.length);
+        await putText(sql, {
+          document_id: -(b.bill_id * 100 + nyVersionIndex(k)),
+          bill_id: b.bill_id, state: "NY", session_id: b.session_id,
+          version: k ? `Amendment ${k.toUpperCase()}` : "Original",
+          source: "nysenate", mime: "text/plain", text, error: null,
+        }, counts);
+      }
+      await stampBill(sql, b.bill_id, best);
+      counts.bills = (counts.bills ?? 0) + 1;
+    } catch (e) {
+      const msg = String((e as Error).message).slice(0, 300);
+      await putText(sql, {
+        document_id: -(b.bill_id * 100 + 99), bill_id: b.bill_id, state: "NY", session_id: b.session_id,
+        version: "(fetch failed)", source: "nysenate", mime: null, text: null, error: msg,
+      }, counts);
+      // Stamped even on failure, with 0 chars: "we tried and resolved it". The
+      // driver moves on; --retry-errors is the way back to it. Without this a
+      // permanently 404ing bill would be the head of the queue forever.
+      await stampBill(sql, b.bill_id, 0);
+      counts.failed = (counts.failed ?? 0) + 1;
+    }
+    // ~5 requests/s is the stated ceiling; 210 ms keeps us under it with one in flight.
+    await new Promise((ok) => setTimeout(ok, 210));
+  }
+}
+
+/* ---- source 2: govinfo bulk data ----------------------------------------- */
+
+const GOVINFO_TYPES = ["hr", "s", "hjres", "sjres", "hconres", "sconres", "hres", "sres"] as const;
+/** our bill_number prefix -> govinfo type, and back */
+const TYPE_BY_PREFIX: Record<string, string> = { HB: "hr", SB: "s", HJR: "hjres", SJR: "sjres", HCR: "hconres", SCR: "sconres", HR: "hres", SR: "sres" };
+const PREFIX_BY_TYPE: Record<string, string> = Object.fromEntries(Object.entries(TYPE_BY_PREFIX).map(([k, v]) => [v, k]));
+/** Every govinfo bill-version code, in the order govinfo documents them. Index+1 is the synthetic-id slot. */
+const VERSION_CODES = ["as", "ash", "ath", "ats", "cdh", "cds", "cph", "cps", "eah", "eas", "ech", "eh", "enr", "eph", "es", "fah", "fph", "fps", "hdh", "hds", "ih", "iph", "ips", "is", "lth", "lts", "oph", "ops", "pap", "pcs", "pp", "pwah", "rah", "ras", "rch", "rcs", "rdh", "rds", "reah", "renr", "res", "rfh", "rfs", "rh", "rih", "ris", "rs", "rth", "rts", "sas", "sc"];
+const VERSION_LABEL: Record<string, string> = {
+  ih: "Introduced in House", is: "Introduced in Senate", rh: "Reported in House", rs: "Reported in Senate",
+  eh: "Engrossed in House", es: "Engrossed in Senate", enr: "Enrolled", eas: "Engrossed Amendment Senate",
+  eah: "Engrossed Amendment House", pcs: "Placed on Calendar Senate", rfh: "Referred in House", rfs: "Referred in Senate",
+  ats: "Agreed to Senate", ath: "Agreed to House", cps: "Considered and Passed Senate", cph: "Considered and Passed House",
+};
+export const congressOf = (sessionYear: number) => Math.floor((sessionYear - 1789) / 2) + 1;
+export const yearOfCongress = (congress: number) => (congress - 1) * 2 + 1789;
+
+/** BILLS-119hr23ih.xml -> { congress, type, number, version } */
+export function parseGovinfoName(name: string): { congress: number; type: string; number: number; version: string } | null {
+  const m = /BILLS-(\d+)([a-z]+?)(\d+)([a-z]+)\.xml$/i.exec(name);
+  if (!m) return null;
+  return { congress: Number(m[1]), type: m[2].toLowerCase(), number: Number(m[3]), version: m[4].toLowerCase() };
+}
+
+async function runGovinfo(sql: Sql, congress: number, onlyType: string, counts: Counts) {
+  const year = yearOfCongress(congress);
+  const bills = (await sql.query(
+    `SELECT bill_id, bill_number FROM "Bills" WHERE state = 'US' AND session_id = $1`,
+    [year],
+  )) as { bill_id: number; bill_number: string }[];
+  const byNumber = new Map<string, number>();
+  for (const b of bills) byNumber.set(String(b.bill_number).toUpperCase(), Number(b.bill_id));
+  counts.billsKnown = bills.length;
+
+  const types = onlyType ? [onlyType] : [...GOVINFO_TYPES];
+  const best = new Map<number, number>();
+
+  for (const session of [1, 2]) {
+    for (const type of types) {
+      const url = `${GOVINFO}/${congress}/${session}/${type}/BILLS-${congress}-${session}-${type}.zip`;
+      let zip: Uint8Array;
+      try {
+        const r = await fetch(url, { headers: { "User-Agent": "livingston-bill-text/1.0 (contact: brendan@nysgpt.com)" }, signal: AbortSignal.timeout(300_000) });
+        counts.queries = (counts.queries ?? 0) + 1;
+        if (r.status === 404) { counts.absentZips = (counts.absentZips ?? 0) + 1; continue; }
+        if (!r.ok) throw new Error(`govinfo ${r.status} for ${congress}/${session}/${type}`);
+        zip = new Uint8Array(await r.arrayBuffer());
+      } catch (e) {
+        counts.zipErrors = (counts.zipErrors ?? 0) + 1;
+        counts[`err_${congress}_${session}_${type}`] = 1;
+        void e;
+        continue;
+      }
+      counts.zipBytes = (counts.zipBytes ?? 0) + zip.byteLength;
+
+      // Stream the archive the way legiscan-sync does: fflate recurses once per
+      // file boundary inside a slice, and thousands of small files in one push
+      // overflows the stack.
+      const pending: Promise<void>[] = [];
+      const unzip = new Unzip();
+      unzip.register(UnzipInflate);
+      unzip.onfile = (file) => {
+        const meta = parseGovinfoName(file.name);
+        if (!meta) { file.ondata = () => undefined; return; }
+        const decoder = new TextDecoder();
+        let xml = "";
+        file.ondata = (err, data, final) => {
+          if (err) { counts.badFiles = (counts.badFiles ?? 0) + 1; return; }
+          xml += decoder.decode(data, { stream: !final });
+          if (!final) return;
+          const body = xml; xml = "";
+          pending.push((async () => {
+            const prefix = PREFIX_BY_TYPE[meta.type];
+            const billId = prefix ? byNumber.get(`${prefix}${meta.number}`) : undefined;
+            if (!billId) { counts.unmatched = (counts.unmatched ?? 0) + 1; return; }
+            const slot = VERSION_CODES.indexOf(meta.version);
+            if (slot < 0) { counts.unknownVersion = (counts.unknownVersion ?? 0) + 1; return; }
+            const text = xmlToText(body);
+            if (!text) { counts.emptyVersions = (counts.emptyVersions ?? 0) + 1; return; }
+            await putText(sql, {
+              document_id: -(billId * 100 + slot + 1), bill_id: billId, state: "US", session_id: year,
+              version: VERSION_LABEL[meta.version] ?? meta.version.toUpperCase(),
+              source: "govinfo", mime: "application/xml", text, error: null,
+            }, counts);
+            best.set(billId, Math.max(best.get(billId) ?? 0, text.length));
+          })());
+        };
+        file.start();
+      };
+      const STEP = 1 << 16;
+      for (let i = 0; i < zip.length; i += STEP) unzip.push(zip.subarray(i, Math.min(i + STEP, zip.length)), i + STEP >= zip.length);
+      // Bounded concurrency would be faster, but the whole point of one row per
+      // commit is that a kill costs one document; settle them as they come.
+      for (let i = 0; i < pending.length; i += 25) await Promise.all(pending.slice(i, i + 25));
+      counts.zips = (counts.zips ?? 0) + 1;
+    }
+  }
+
+  for (const [billId, chars] of best) await stampBill(sql, billId, chars);
+  counts.bills = best.size;
+}
+
+/* ---- source 3/4: the legislature's own site ------------------------------ */
+
+/**
+ * Run `one` over `rows`, one worker per HOST and several hosts at once, each
+ * host drained strictly in order.
+ *
+ * The fetcher already serialises a host, so this is not what makes the crawl
+ * polite — it is what stops the crawl being pointlessly slow. Without it, a
+ * batch that happens to contain one Arizona document (Crawl-delay 30 s) blocks
+ * every other state behind it. Hosts are disjoint by state in our data —
+ * measured, zero hosts serve two states — so grouping by host also groups by
+ * state, and a slow legislature can only ever hold up its own queue.
+ */
+async function byHostPool<T extends { state_link: string }>(rows: T[], concurrency: number, counts: Counts, one: (row: T) => Promise<void>) {
+  const byHost = new Map<string, T[]>();
+  for (const d of rows) {
+    let h = "";
+    try { h = new URL(d.state_link).host; } catch { h = "(unparseable)"; }
+    const list = byHost.get(h);
+    if (list) list.push(d); else byHost.set(h, [d]);
+  }
+  counts.hostsInBatch = byHost.size;
+  const queue = [...byHost.values()];
+  let next = 0;
+  const worker = async () => {
+    for (;;) {
+      const mine = queue[next++];
+      if (!mine) return;
+      for (const d of mine) await one(d);
+    }
+  };
+  await Promise.all(Array.from({ length: Math.max(1, Math.min(concurrency, queue.length)) }, worker));
+}
+
+
+async function runStateLink(sql: Sql, state: string, since: number, limit: number, includeAmendments: boolean, concurrency: number, counts: Counts, fetcher: PoliteFetcher) {
+  const rows = (await sql.query(
+    `SELECT d.document_id, d.bill_id, d.state_link, d.document_mime, d.document_desc, d.document_size, b.state, b.session_id
+       FROM "Documents" d
+       JOIN "Bills" b ON b.bill_id = d.bill_id
+       LEFT JOIN "BillTexts" t ON t.document_id = d.document_id
+      WHERE d.document_type = ANY($4::text[])
+        AND d.state_link <> ''
+        AND ($1 = '' OR b.state = $1)
+        AND b.session_id >= $2
+        AND t.document_id IS NULL
+        AND d.state_link NOT LIKE '%legiscan.com%'
+        AND (d.document_size IS NULL OR d.document_size <= ${MAX_TEXT_BYTES})
+      ORDER BY b.session_id DESC, d.bill_id, d.document_id
+      LIMIT $3`,
+    [state, since, limit, includeAmendments ? ["text", "amendment"] : ["text"]],
+  )) as { document_id: number; bill_id: number; state_link: string; document_mime: string; document_desc: string; state: string; session_id: number }[];
+  counts.considered = rows.length;
+
+  const best = new Map<number, number>();
+  const one = async (d: typeof rows[number]) => {
+    const got = await fetcher.get(d.state_link);
+    if (!got.ok) {
+      counts[`skip_${got.skipped ?? "error"}`] = (counts[`skip_${got.skipped ?? "error"}`] ?? 0) + 1;
+      await putText(sql, {
+        document_id: d.document_id, bill_id: d.bill_id, state: d.state, session_id: d.session_id,
+        version: d.document_desc || null, source: "state_link", mime: d.document_mime || null,
+        text: null, error: `${got.skipped ?? "fetch"}: ${String(got.error ?? got.status).slice(0, 200)}`,
+      }, counts);
+      return;
+    }
+    try {
+      const { text, how } = await bodyToText(got.mime || d.document_mime, got.body as Uint8Array);
+      counts[`via_${how.split(":")[0]}`] = (counts[`via_${how.split(":")[0]}`] ?? 0) + 1;
+      await putText(sql, {
+        document_id: d.document_id, bill_id: d.bill_id, state: d.state, session_id: d.session_id,
+        version: d.document_desc || null, source: "state_link", mime: got.mime || d.document_mime || null,
+        text: text || null, error: text ? null : `no text extracted (${how})`,
+      }, counts);
+      if (text) best.set(d.bill_id, Math.max(best.get(d.bill_id) ?? 0, text.length));
+    } catch (e) {
+      counts.convertErrors = (counts.convertErrors ?? 0) + 1;
+      await putText(sql, {
+        document_id: d.document_id, bill_id: d.bill_id, state: d.state, session_id: d.session_id,
+        version: d.document_desc || null, source: "state_link", mime: got.mime || null,
+        text: null, error: String((e as Error).message).slice(0, 300),
+      }, counts);
+    }
+  };
+
+  await byHostPool(rows, concurrency, counts, one);
+  for (const [billId, chars] of best) await stampBill(sql, billId, chars);
+  counts.bills = best.size;
+}
+
+/* ---- source 5: the nightly delta ----------------------------------------- */
+
+async function legiscanMonthToDate(sql: Sql): Promise<number> {
+  const r = (await sql.query(
+    `SELECT count(*)::int AS n FROM "BillTexts" WHERE source = 'legiscan' AND fetched_at >= date_trunc('month', now())`,
+  )) as { n: number }[];
+  return r[0]?.n ?? 0;
+}
+
+async function runDelta(sql: Sql, legiscanKey: string | undefined, days: number, limit: number, concurrency: number, counts: Counts, fetcher: PoliteFetcher) {
+  const since = new Date(Date.now() - days * 86_400_000).toISOString().slice(0, 10);
+  const rows = (await sql.query(
+    `SELECT d.document_id, d.bill_id, d.state_link, d.document_mime, d.document_desc, b.state, b.session_id
+       FROM "Documents" d
+       JOIN "Bills" b ON b.bill_id = d.bill_id
+       LEFT JOIN "BillTexts" t ON t.document_id = d.document_id
+      WHERE d.document_type = 'text'
+        AND t.document_id IS NULL
+        AND b.last_action_date >= $1
+      ORDER BY b.last_action_date DESC, d.document_id
+      LIMIT $2`,
+    [since, limit],
+  )) as { document_id: number; bill_id: number; state_link: string; document_mime: string; document_desc: string; state: string; session_id: number }[];
+  counts.considered = rows.length;
+  counts.since = Number(since.replace(/-/g, ""));
+
+  let spent = await legiscanMonthToDate(sql);
+  counts.legiscanMonthToDateAtStart = spent;
+  const best = new Map<number, number>();
+
+  const one = async (d: typeof rows[number]) => {
+    let text = "";
+    let mime = d.document_mime || null;
+    let source = "state_link";
+    let error: string | null = null;
+
+    // Free route first, always.
+    if (d.state_link && !d.state_link.includes("legiscan.com")) {
+      const got = await fetcher.get(d.state_link);
+      if (got.ok) {
+        try { const c = await bodyToText(got.mime || d.document_mime, got.body as Uint8Array); text = c.text; mime = got.mime || mime; }
+        catch (e) { error = String((e as Error).message).slice(0, 200); }
+      } else error = `${got.skipped ?? "fetch"}: ${String(got.error ?? got.status).slice(0, 160)}`;
+    }
+
+    // Metered fallback. The stop is hard and it is checked per document, not per
+    // run, because a run that starts under the line can still cross it.
+    if (!text && legiscanKey) {
+      if (spent >= LEGISCAN_MONTHLY_STOP) {
+        counts.legiscanStopped = (counts.legiscanStopped ?? 0) + 1;
+        error = `${error ?? ""} | legiscan skipped: ${spent} queries used this month, stop is ${LEGISCAN_MONTHLY_STOP}`.trim();
+      } else {
+        try {
+          const r = await fetch(`${LEGISCAN}?key=${legiscanKey}&op=getBillText&id=${d.document_id}`, { signal: AbortSignal.timeout(60_000) });
+          spent += 1;
+          counts.legiscanQueries = (counts.legiscanQueries ?? 0) + 1;
+          const j = (await r.json()) as { status?: string; text?: { doc?: string; mime?: string }; alert?: { message?: string } };
+          if (j?.status !== "OK" || !j.text?.doc) throw new Error(String(j?.alert?.message ?? j?.status ?? "no doc").slice(0, 160));
+          const buf = new Uint8Array(Buffer.from(j.text.doc, "base64"));
+          if (buf.byteLength > MAX_TEXT_BYTES) throw new Error(`${buf.byteLength} bytes over the cap`);
+          const c = await bodyToText(j.text.mime ?? d.document_mime, buf);
+          text = c.text; mime = j.text.mime ?? mime; source = "legiscan"; error = null;
+        } catch (e) { error = `${error ?? ""} | legiscan: ${String((e as Error).message).slice(0, 160)}`.trim(); }
+      }
+    }
+
+    await putText(sql, {
+      document_id: d.document_id, bill_id: d.bill_id, state: d.state, session_id: d.session_id,
+      version: d.document_desc || null, source, mime, text: text || null, error: text ? null : (error ?? "no text"),
+    }, counts);
+    if (text) best.set(d.bill_id, Math.max(best.get(d.bill_id) ?? 0, text.length));
+  };
+
+  await byHostPool(rows, concurrency, counts, one);
+  for (const [billId, chars] of best) await stampBill(sql, billId, chars);
+  counts.bills = best.size;
+  counts.legiscanMonthToDateAtEnd = spent;
+}
+
+/* ---- census -------------------------------------------------------------- */
+
+async function census(sql: Sql, since: number, state: string) {
+  const perState = await sql.query(
+    `SELECT b.state,
+            count(*)::int AS docs,
+            count(DISTINCT b.bill_id)::int AS bills,
+            COALESCE(sum(d.document_size), 0)::bigint AS bytes,
+            count(DISTINCT split_part(split_part(d.state_link, '/', 3), ':', 1))::int AS hosts,
+            count(*) FILTER (WHERE t.document_id IS NOT NULL)::int AS have,
+            count(*) FILTER (WHERE d.document_size > ${MAX_TEXT_BYTES})::int AS oversize
+       FROM "Documents" d
+       JOIN "Bills" b ON b.bill_id = d.bill_id
+       LEFT JOIN "BillTexts" t ON t.document_id = d.document_id
+      WHERE d.document_type = 'text' AND d.state_link <> '' AND b.session_id >= $1 AND ($2 = '' OR b.state = $2)
+      GROUP BY 1 ORDER BY 2 DESC`,
+    [since, state],
+  );
+  const stored = await sql.query(
+    `SELECT source, count(*)::int AS rows, count(*) FILTER (WHERE text IS NOT NULL)::int AS with_text,
+            COALESCE(sum(chars), 0)::bigint AS chars
+       FROM "BillTexts" GROUP BY 1 ORDER BY 2 DESC`,
+  );
+  return { since, perState, stored };
+}
+
+/* ---- the handler --------------------------------------------------------- */
+
+export default async function handler(req: { headers?: Record<string, string>; query?: Record<string, string> }, res: { status: (n: number) => { json: (o: unknown) => unknown } }) {
+  const secret = process.env.CRON_SECRET;
+  const given = String(req.headers?.authorization ?? "").replace(/^Bearer\s+/i, "") || String(req.query?.secret ?? "");
+  if (!secret) return res.status(503).json({ error: "CRON_SECRET is not set" });
+  if (given !== secret) return res.status(401).json({ error: "unauthorised" });
+  const dbUrl = process.env.POLICY_DATABASE_URL;
+  if (!dbUrl) return res.status(503).json({ error: "POLICY_DATABASE_URL is required" });
+
+  const sql = neon(dbUrl);
+  const source = String(req.query?.source ?? "");
+  const mode = String(req.query?.mode ?? "");
+  const state = String(req.query?.state ?? "").toUpperCase();
+  const since = Number(req.query?.since ?? 2023) || 2023;
+  const limit = Math.min(20_000, Number(req.query?.limit ?? 200) || 200);
+  const t0 = Date.now();
+  const counts: Counts = {};
+  const concurrency = Math.min(24, Math.max(1, Number(req.query?.concurrency ?? 12) || 12));
+  const fetcher = new PoliteFetcher({
+    minDelayMs: Math.max(1000, Number(req.query?.delay ?? 1000) || 1000),
+    maxBytes: MAX_TEXT_BYTES,
+  });
+
+  try {
+    await prepareSchema(sql);
+
+    if (req.query?.census) {
+      const c = await census(sql, since, state);
+      return res.status(200).json({ ok: true, census: true, ...c, ms: Date.now() - t0 });
+    }
+
+    if (mode === "delta") {
+      await runDelta(sql, process.env.LEGISCAN_API_KEY, Math.max(1, Number(req.query?.days ?? 7) || 7), limit, concurrency, counts, fetcher);
+    } else if (source === "nysenate") {
+      const key = process.env.NYS_LEGISLATION_API_KEY;
+      if (!key) return res.status(503).json({ error: "NYS_LEGISLATION_API_KEY is required for source=nysenate" });
+      await runNySenate(sql, key, Number(req.query?.session ?? 0) || 0, limit, Boolean(req.query?.retryErrors), counts);
+    } else if (source === "govinfo") {
+      const congress = Number(req.query?.congress ?? 0) || (Number(req.query?.session ?? 0) ? congressOf(Number(req.query?.session)) : 0);
+      if (!congress) return res.status(400).json({ error: "source=govinfo needs ?congress= or ?session=" });
+      await runGovinfo(sql, congress, String(req.query?.type ?? "").toLowerCase(), counts);
+      counts.congress = congress;
+    } else if (source === "state_link") {
+      await runStateLink(sql, state, since, limit, Boolean(req.query?.amendments), concurrency, counts, fetcher);
+    } else {
+      return res.status(400).json({ error: "pass ?source=nysenate|govinfo|state_link, or ?mode=delta, or ?census=1" });
+    }
+
+    const hosts: PoliteStats[] = fetcher.stats();
+    return res.status(200).json({
+      ok: true, source: source || mode, state: state || undefined, ...counts,
+      hosts: hosts.length ? hosts : undefined,
+      dropped: hosts.filter((h) => h.dropped).map((h) => h.host),
+      ms: Date.now() - t0,
+    });
+  } catch (err) {
+    return res.status(500).json({ error: String((err as Error).message), source: source || mode, state, ...counts, hosts: fetcher.stats(), ms: Date.now() - t0 });
+  }
+}
