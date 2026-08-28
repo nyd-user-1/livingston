@@ -17,6 +17,13 @@ Read first: `prompts/2026-08-28-worker-box.md` (brief + Report — the box patte
 - If LegiScan vanished tomorrow we would lose **updates**, not data: the weekly bulk archives are in Neon (2.2M bills), the worker box holds the ledger, and lane BT is pulling the text from the legislatures directly. The dependency is the daily delta and the id space (`bill_id`, `people_id`, `roll_call_id`).
 - **Open States** (openstates.org, the project Plural maintains) is the open-source equivalent: `github.com/openstates/openstates-scrapers`, Python, Poetry, Docker, GPL-3.0, ~22k commits and active; one scraper per state; a public API v3 (`X-API-KEY`, free key) and periodic bulk data. It covers the 50 states + DC + PR; it does **not** cover Congress — federal is `github.com/unitedstates/congress` (govinfo/congress.gov, public domain), which lane BT already touches.
 
+
+**Amendment 13:45 (Brendan) — take a copy of Open States while it exists, and learn from it.** Open States is now run by a for-profit (Plural); the code is GPL-3.0 today and may not be tomorrow. Two additions:
+
+**Step 0 (before step 2, ~30 min, laptop is fine):** mirror the whole `github.com/openstates` org into **our** GitHub as private mirrors, one per repo, named `mirror-openstates-<repo>`: `openstates-scrapers`, `people` (curated legislators with external ids — that is the crosswalk we want), `jurisdictions`, `openstates-core` (the scrape framework), `api-v3`, `documentation`, `openstates-geo` (district shapes → "find your legislator"), `openstates.org`. `git clone --mirror` + `gh repo create --private` + `git push --mirror`; record each repo's HEAD sha, size and licence file in the report. Also download Open States' **bulk data** (their data downloads page — all jurisdictions, latest) to the box's `~/cache/openstates-bulk/` and report the size; if it exceeds 20 GB take the current session only and say so. Licence stays GPL-3.0 in every mirror; we are keeping a copy, not relicensing.
+
+**Step 6 (after the memo, ~1 h):** read `openstates-core` and three mature scrapers (NY, TX, CA) for the *engineering* — retry ladders, per-host throttles, caching, how they detect a redesigned site, how they version bill texts, how they dedupe people — and write `~/Code/scripts/SCRAPER-DOCTRINE.md` in the house style of `RIG-DOCTRINE.md`: numbered lessons, each with the evidence (file and line in the mirror) and the rule we adopt. Skip anything that is Open States plumbing rather than a transferable lesson. Commit it in `~/Code/scripts` (no push).
+
 ## Step 1 — the provenance map (no box needed; 1 hour)
 
 From our own `"Documents"` and `"Bills"`: for each of the 52 jurisdictions, the `state_link` **hosts** (distinct hostnames, row counts, share of that state's documents), the mime mix, and the earliest/latest session we hold. That table *is* the answer to "where does LegiScan get it" — one row per jurisdiction, with the official site named. Add, per jurisdiction, whether the legislature publishes a **structured feed or bulk download** of its own (many do: NY Open Legislation API, CA's leginfo downloads, TX TLO FTP, FL's data files, govinfo for Congress…) — a column of URL + format + "verified by fetching one file: yes/no". Do not guess; a row you could not verify says so. Commit as `docs/PROVENANCE.md`.
@@ -58,3 +65,9 @@ Heartbeat before each step with the expected duration; a line when it lands; nev
 ## Report
 
 *(lane writes here)*
+
+### Heartbeat log
+
+**14:12 ET — lane IN opened.** Reading the required context (`prompts/2026-08-28-worker-box.md`, `44b/docs/WORKER-BOX.md`, `ORCHESTRATION-DOCTRINE.md` §1–2/§9, `api/legiscan-sync.ts`) before touching anything. Next: step 1, the provenance map from our own `"Documents"`/`"Bills"` — expected ~1 hour, no box needed.
+
+**14:18 ET — step 1 starting (provenance map).** Context read: WORKER-BOX.md, ORCHESTRATION-DOCTRINE, lane WB's report (box `i-030d9cac100e6e124`, AWS acct 638175140432, `run-job`/`run-due` now carry a `repo` field). Policy Neon reachable via `POLICY_DATABASE_URL`; `"Documents"` has no `state` column so the host rollup joins through `"Bills".bill_id`. Expected: ~30 min for the SQL rollup, then the per-jurisdiction feed verification (52 fetches, one file each) — call it 90 min total for step 1.
