@@ -27,12 +27,20 @@ const LEGISLATORS = "https://unitedstates.github.io/congress-legislators";
 type Sql = NeonQueryFunction<false, false>;
 type Params = Record<string, string | number | (string | number)[]>;
 
+// api.data.gov also enforces a burst window (the key reports x-ratelimit-limit: 60),
+// so requests go out one at a time, `FEC_PACE_MS` apart (default 1,100 ms).
+const PACE_MS = Math.max(0, Number(process.env.FEC_PACE_MS ?? 1100) || 1100);
+let lastCall = 0;
+
 async function fec(key: string, path: string, params: Params, counts: Record<string, number>): Promise<any> {
   const qs = new URLSearchParams({ api_key: key, per_page: "100" });
   for (const [k, v] of Object.entries(params)) for (const x of Array.isArray(v) ? v : [v]) qs.append(k, String(x));
+  const wait = lastCall + PACE_MS - Date.now();
+  if (wait > 0) await new Promise((ok) => setTimeout(ok, wait));
+  lastCall = Date.now();
   const r = await fetch(`${API}${path}?${qs}`, { signal: AbortSignal.timeout(60_000) });
   counts.queries += 1;
-  if (r.status === 429) throw new Error("OpenFEC rate limit reached (1,000 an hour) — run again later");
+  if (r.status === 429) throw new Error("OpenFEC rate limit reached — run again later");
   if (!r.ok) throw new Error(`OpenFEC ${path} answered ${r.status}`);
   const data: any = await r.json();
   return data?.results ?? [];
@@ -183,11 +191,9 @@ async function pull(sql: Sql, key: string, p: Person, cycles: number[], counts: 
       for (const c of active) {
         const committee_id = String(c.committee_id);
         const base = { committee_id, cycle };
-        const [byEmployer, bySize, byState] = await Promise.all([
-          fec(key, `/schedules/schedule_a/by_employer/`, { ...base, sort: "-total" }, counts),
-          fec(key, `/schedules/schedule_a/by_size/`, base, counts),
-          fec(key, `/schedules/schedule_a/by_state/`, { ...base, sort: "-total" }, counts),
-        ]);
+        const byEmployer = await fec(key, `/schedules/schedule_a/by_employer/`, { ...base, sort: "-total" }, counts);
+        const bySize = await fec(key, `/schedules/schedule_a/by_size/`, base, counts);
+        const byState = await fec(key, `/schedules/schedule_a/by_state/`, { ...base, sort: "-total" }, counts);
         await sql.query(`DELETE FROM "FecReceiptsByEmployer" WHERE people_id = $1 AND committee_id = $2 AND cycle = $3`, [p.people_id, committee_id, cycle]);
         await sql.query(`DELETE FROM "FecReceiptsBySize" WHERE people_id = $1 AND committee_id = $2 AND cycle = $3`, [p.people_id, committee_id, cycle]);
         await sql.query(`DELETE FROM "FecReceiptsByState" WHERE people_id = $1 AND committee_id = $2 AND cycle = $3`, [p.people_id, committee_id, cycle]);
