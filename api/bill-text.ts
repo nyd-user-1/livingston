@@ -543,6 +543,19 @@ async function byHostPool<T extends { state_link: string }>(rows: T[], concurren
 }
 
 
+/**
+ * LegiScan's link is where the legislature published the document WHEN LEGISCAN
+ * SAW IT. Sites move. Illinois rebuilt ilga.gov in 2025 and every pre-redesign
+ * link — /legislation/96/SB/09600SB1346.htm, /legislation/publicacts/… — now
+ * 404s, while the same file is served under /documents/legislation/…; 7,600
+ * documents of older sessions were recorded as dead before this existed. The
+ * rewrite is per host, explicit, and verified by hand before it was added; the
+ * stored row keeps LegiScan's document_id, so nothing else changes.
+ */
+export function rewriteLink(url: string): string {
+  return url.replace(/^https?:\/\/(www\.)?ilga\.gov\/legislation\//i, "https://www.ilga.gov/documents/legislation/");
+}
+
 async function runStateLink(sql: Sql, state: string, since: number, limit: number, includeAmendments: boolean, concurrency: number, requeueErrors: boolean, billIds: number[], counts: Counts, fetcher: PoliteFetcher) {
   // Default: documents with no "BillTexts" row at all — the absence IS the resume
   // point, so there is no checkpoint to keep.
@@ -609,7 +622,7 @@ async function runStateLink(sql: Sql, state: string, since: number, limit: numbe
   const best = new Map<number, number>();
   const buf = new TextBuffer(sql, counts);
   const one = async (d: typeof rows[number]) => {
-    const got = await fetcher.get(d.state_link);
+    const got = await fetcher.get(rewriteLink(d.state_link));
     if (!got.ok) {
       counts[`skip_${got.skipped ?? "error"}`] = (counts[`skip_${got.skipped ?? "error"}`] ?? 0) + 1;
       await buf.add({
@@ -622,6 +635,19 @@ async function runStateLink(sql: Sql, state: string, since: number, limit: numbe
     try {
       const { text, how } = await bodyToText(got.mime || d.document_mime, got.body as Uint8Array);
       counts[`via_${how.split(":")[0]}`] = (counts[`via_${how.split(":")[0]}`] ?? 0) + 1;
+      // A single-page app's shell is not a bill. Virginia's new LIS and Indiana's
+      // IGA both answer a crawler with "You need to enable JavaScript to run this
+      // app." — 25,000 rows of it were stored as text before this existed. Those
+      // sites' text comes through their APIs; here it is a verdict, not a document.
+      if (text && text.length < 400 && /enable JavaScript to run this app/i.test(text)) {
+        counts.jsShell = (counts.jsShell ?? 0) + 1;
+        await buf.add({
+          document_id: d.document_id, bill_id: d.bill_id, state: d.state, session_id: d.session_id,
+          version: d.document_desc || null, source: "state_link", mime: got.mime || d.document_mime || null,
+          text: null, error: "js-shell: the page is a JavaScript app; this site's text comes through its API",
+        });
+        return;
+      }
       await buf.add({
         document_id: d.document_id, bill_id: d.bill_id, state: d.state, session_id: d.session_id,
         version: d.document_desc || null, source: "state_link", mime: got.mime || d.document_mime || null,
