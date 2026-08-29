@@ -113,10 +113,13 @@ export default async function handler(req: any, res: any) {
     // actionDate is a date, and a bill can move twice in one).
     let since = String(req.query?.since ?? "");
     if (!/^\d{4}-\d{2}-\d{2}$/.test(since)) {
-      const [row] = await sql.query(`SELECT max(last_action_date) AS d FROM "Bills" WHERE session_id = $1`, [session]);
+      // A LegiScan row with a future last_action_date once put `since` in October and this
+      // sync fetched nothing for weeks — ignore dates past today, and never start in the future.
+      const [row] = await sql.query(`SELECT max(last_action_date) AS d FROM "Bills" WHERE session_id = $1 AND last_action_date <= current_date`, [session]);
       const d = row?.d ? new Date(row.d) : new Date(Date.now() - 30 * 86_400_000);
       d.setUTCDate(d.getUTCDate() - 1);
-      since = d.toISOString().slice(0, 10);
+      const yesterday = new Date(Date.now() - 86_400_000);
+      since = (d > yesterday ? yesterday : d).toISOString().slice(0, 10);
     }
 
     // Newest action first, until we pass `since`.
