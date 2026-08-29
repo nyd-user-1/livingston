@@ -9,6 +9,9 @@
 //   node scripts/box/text-backfill.mjs --source state_link --all-states [--parallel 4] [--max-seconds 14400]
 //   node scripts/box/text-backfill.mjs --source state_link --bill-ids ids.txt   # exactly these, any session
 //   node scripts/box/text-backfill.mjs --source nysenate-bulk                   # 1,000 bills a request
+//   node scripts/box/text-backfill.mjs --source ca-pubinfo --session 2025      # one pubinfo_<year>.zip
+//   node scripts/box/text-backfill.mjs --source ca-pubinfo --all-sessions --since-session 2009
+//   node scripts/box/text-backfill.mjs --source ca-pubinfo --session 2025 --zip pubinfo_Sat.zip --sample 5 --keep   # the cheap test
 //
 // It holds NO state. Every source's resume point is a column in the database —
 // `Bills.text_fetched_at` for NY, a `"BillTexts"` row for everything walked —
@@ -72,7 +75,7 @@ const SKIP_STATES = new Set(val("--skip-states").split(",").map((x) => x.trim().
 // invisible to a walk scoped at session_id >= 2023.
 const BILL_IDS = val("--bill-ids");
 
-if (!SOURCE) { console.error("usage: text-backfill.mjs --source nysenate|govinfo|state_link [...]"); process.exit(2); }
+if (!SOURCE) { console.error("usage: text-backfill.mjs --source nysenate|govinfo|state_link|ca-pubinfo [...]"); process.exit(2); }
 
 const log = (...a) => console.log(new Date().toISOString().slice(11, 19), ...a);
 
@@ -236,6 +239,39 @@ if (SOURCE === "govinfo" || SOURCE === "govinfo-billsum") {
     log(`congress ${c}: ${b.zips ?? 0} zips · ${((b.zipBytes ?? 0) / 1e6).toFixed(0)} MB · inserted ${b.inserted ?? 0} · unchanged ${b.unchanged ?? 0} · unmatched ${b.unmatched ?? 0}${b.summaries != null ? ` · summaries ${b.summaries}` : ""} · ${b.chars ? (b.chars / 1e6).toFixed(1) : 0}M chars · ${((Date.now() - t0) / 1000).toFixed(0)}s`);
   }
   log(`${SOURCE} done: ${tot.rows.toLocaleString()} rows seen · ${(tot.chars / 1e6).toFixed(1)}M chars written · ${tot.unmatched} unmatched · ${bad} congress(es) failed`);
+  process.exit(bad ? 1 : 0);
+}
+
+/* ---- ca-pubinfo ---------------------------------------------------------- */
+
+if (SOURCE === "ca-pubinfo") {
+  // One zip per two-year session, addressed by its first year. --all-sessions
+  // takes the sessions we hold bills for; the zips exist back to 1989.
+  let sessions = [];
+  if (has("--all-sessions")) {
+    const rows = await sql.query(`SELECT DISTINCT session_id FROM "Bills" WHERE state = 'CA' AND session_id >= $1 ORDER BY 1 DESC`, [SINCE]);
+    sessions = rows.map((r) => Number(r.session_id));
+  } else if (SESSION) sessions = [Number(SESSION)];
+  else { console.error("ca-pubinfo: pass --session YYYY or --all-sessions [--since-session 2009]"); process.exit(2); }
+  const extra = [];
+  if (val("--cache")) extra.push(`cache=${path.resolve(val("--cache"))}`);
+  if (val("--zip")) extra.push(`zip=${val("--zip")}`);
+  if (val("--sample")) extra.push(`sample=${val("--sample")}`);
+  if (has("--keep")) extra.push("keep=1");
+  log(`ca-pubinfo: ${sessions.length} session(s) — ${sessions.join(" ")}${extra.length ? ` (${extra.join(" ")})` : ""}`);
+  const tot = { versions: 0, bills: 0, chars: 0, real: 0, synthetic: 0, unmatched: 0 };
+  let bad = 0;
+  for (const s of sessions) {
+    if (budgetSpent()) { log("ca-pubinfo: the budget is spent — stopping between sessions"); break; }
+    const t0 = Date.now();
+    const r = await call([`source=ca-pubinfo`, `session=${s}`, ...extra]);
+    if (r.code !== 0 || !r.body?.ok) { bad += 1; log(`session ${s} FAILED — ${String(r.body?.error ?? r.out).slice(0, 260)}`); continue; }
+    const b = r.body;
+    tot.versions += b.versions ?? 0; tot.bills += b.bills ?? 0; tot.chars += b.chars ?? 0;
+    tot.real += b.realIds ?? 0; tot.synthetic += b.syntheticIds ?? 0; tot.unmatched += b.unmatched ?? 0;
+    log(`session ${s}: ${((b.zipBytes ?? 0) / 1e6).toFixed(0)} MB${b.zipCached ? " (cached)" : ""} · ${b.versionsInDump ?? 0} versions in dump · ${b.versions ?? 0} written for ${b.bills ?? 0} bills · real ids ${b.realIds ?? 0} · synthetic ${b.syntheticIds ?? 0} · unmatched ${b.unmatched ?? 0} · inserted ${b.inserted ?? 0} · updated ${b.updated ?? 0} · unchanged ${b.unchanged ?? 0} · lob missing ${b.lobMissing ?? 0} · malformed ${b.malformedRows ?? 0} · ${((b.chars ?? 0) / 1e6).toFixed(1)}M chars · ${((Date.now() - t0) / 60000).toFixed(1)} min`);
+  }
+  log(`ca-pubinfo done: ${tot.versions.toLocaleString()} versions · ${tot.bills.toLocaleString()} bills · ${(tot.chars / 1e6).toFixed(1)}M chars · real ${tot.real} / synthetic ${tot.synthetic} · unmatched ${tot.unmatched} · ${bad} session(s) failed`);
   process.exit(bad ? 1 : 0);
 }
 
