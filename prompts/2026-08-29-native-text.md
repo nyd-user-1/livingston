@@ -131,3 +131,12 @@ Verified live from the lead's Mac on 2026-08-29. "walker" = the existing `lv-tex
 *(lane writes here)*
 
 ### Heartbeats
+
+**13:30 ET — lane NT is being run by the lead (Fable) directly, on Brendan's word ("you go get them", then "whatever it takes to make it move fast").** Two decisions changed the brief before anything was built:
+- The walker's real limit was the 4-hour nightly window, not the per-host rate. Relaunched `lv-text-walk` on box 1 **continuous, `--since-session 2009`, `--parallel 16`** (2,764,826 documents outstanding across 49 states) and `lv-text-nj` at the same scope. Measured: **~42k texts/hour**, load 0.6, 1.8 GB RAM, ≤18 Neon connections through the pooler. OK/CA/TN/HI closed themselves on contact as before.
+- With the walker continuous, **TX FTP, MA and OH native loaders gain nothing** (same one-connection-per-host rule; OH's chain is fixed by the CA bundle; TX 2025 was already 100% walked). Not built. Only genuinely blocked states need native routes: CA now, PA/AZ/FL/OK/TN/HI/AK/DC by email, IN by key.
+
+**13:47 — CA loader shipped, `673cbd2`.** `api/_lib/text-sources/ca-pubinfo.ts` + `api/_lib/text-shared.ts` (bill-text.ts's converters/TextBuffer/retry moved verbatim; api typecheck 8 → 8, the pre-existing chat/paper errors). Cheap test on `pubinfo_Sat.zip`: 5 versions, 5 real ids, 3 of them overwriting the walker's robots-refusal rows. `caml:Description`'s machine record dropped, the Legislative Counsel's Digest kept. `lv-text-ca --all-sessions --since-session 2009` launched on box 1.
+
+**14:02 — CA 2025 landed.** `pubinfo_2025.zip` 1,219 MB (CA serves ~1.6 MB/s; 12 min of the 14.7) · **17,434 versions in dump = 17,277 written + 157 unmatched** (reconciles exactly) · **4,917 of 5,057 bills (97%)** · real ids **17,108**, synthetic 169 · inserted 9,360 · updated 7,912 (the walker's refusal rows, replaced) · 358.0M chars ≈ 90M tokens · malformed 0 · lob missing 0.
+**Proof (c), CA 2025 — three documents against LegiScan's own copy (`getBillText`, 3 metered queries):** AB559 Introduced **23/25** sentences verbatim; SCR129 Enrolled **18/19**; AB694 Amended Assembly **17/25** — LegiScan's copy is a redline (`<strike>` ×60) while pubinfo's CAML is the clean amended text, and the 8 misses are sentences their markup splits. The misses on the other two are at element joins (GeneralSubject|Title). Spans: 3 documents of one session; nothing more.
