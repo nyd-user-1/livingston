@@ -516,7 +516,7 @@ export function parseBillsum(xml: string): { type: string; number: number; text:
  * measured, zero hosts serve two states — so grouping by host also groups by
  * state, and a slow legislature can only ever hold up its own queue.
  */
-async function byHostPool<T extends { state_link: string }>(rows: T[], concurrency: number, counts: Counts, one: (row: T) => Promise<void>) {
+async function byHostPool<T extends { state_link: string }>(rows: T[], concurrency: number, counts: Counts, one: (row: T) => Promise<void>, fetcher?: PoliteFetcher) {
   const byHost = new Map<string, T[]>();
   for (const d of rows) {
     let h = "";
@@ -525,13 +525,18 @@ async function byHostPool<T extends { state_link: string }>(rows: T[], concurren
     if (list) list.push(d); else byHost.set(h, [d]);
   }
   counts.hostsInBatch = byHost.size;
-  const queue = [...byHost.values()];
+  const queue = [...byHost.entries()];
   let next = 0;
   const worker = async () => {
     for (;;) {
-      const mine = queue[next++];
-      if (!mine) return;
-      for (const d of mine) await one(d);
+      const entry = queue[next++];
+      if (!entry) return;
+      const [host, mine] = entry;
+      // One lane per host, unless a human overrode this host's concurrency — then
+      // that many lanes over the same list, and the fetcher still serialises each lane.
+      const lanes = Math.max(1, fetcher?.concurrencyFor(host) ?? 1);
+      let i = 0;
+      await Promise.all(Array.from({ length: Math.min(lanes, mine.length) }, async () => { for (;;) { const d = mine[i++]; if (!d) return; await one(d); } }));
     }
   };
   await Promise.all(Array.from({ length: Math.max(1, Math.min(concurrency, queue.length)) }, worker));
@@ -633,7 +638,7 @@ async function runStateLink(sql: Sql, state: string, since: number, limit: numbe
     }
   };
 
-  await byHostPool(rows, concurrency, counts, one);
+  await byHostPool(rows, concurrency, counts, one, fetcher);
   await buf.flush();
   counts.bills = best.size;
 }

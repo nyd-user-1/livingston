@@ -31,8 +31,30 @@ export type PoliteResult = {
   skipped?: PoliteSkip;
 };
 
+type HostOverride = { delayMs: number; concurrency: number };
+/**
+ * POLITE_HOST_OVERRIDES="www.ilga.gov=0:16,ilga.gov=0:16" — a per-host
+ * exception to the pacing, set by a human, for a host they have decided to
+ * fetch faster than robots.txt's Crawl-delay asks (Brendan, 2026-08-29:
+ * "it's a Saturday, we're not throttling anyone"). delayMs replaces the
+ * Crawl-delay; concurrency is how many requests may be in flight to that host
+ * at once. Everything else still holds: robots.txt Disallow, Retry-After on
+ * 429/503, and the five-strike drop — a host that starts refusing is still a
+ * host we stop asking.
+ */
+export function parseHostOverrides(spec: string | undefined): Map<string, HostOverride> {
+  const m = new Map<string, HostOverride>();
+  for (const part of (spec ?? "").split(",")) {
+    const mm = /^\s*([^=\s]+)\s*=\s*(\d+)\s*:\s*(\d+)\s*$/.exec(part);
+    if (mm) m.set(mm[1].toLowerCase(), { delayMs: Number(mm[2]), concurrency: Math.max(1, Math.min(32, Number(mm[3]))) });
+  }
+  return m;
+}
 type HostState = {
-  chain: Promise<unknown>;      // serialises every request to this host
+  chain: Promise<unknown>;      // serialises every request to this host (one lane)
+  lanes: Promise<unknown>[];    // N lanes when a host override allows N in flight
+  queued: number;               // round-robin pointer for the lanes (requests counts COMPLETIONS, too late to balance on)
+  override?: HostOverride;
   nextAt: number;               // epoch ms before which we may not start
   delayMs: number;
   strikes: number;              // consecutive 403/429
@@ -49,6 +71,7 @@ const DEFAULT_UA =
 
 export class PoliteFetcher {
   private hosts = new Map<string, HostState>();
+  private overrides = parseHostOverrides(process.env.POLITE_HOST_OVERRIDES);
   readonly ua: string;
   readonly minDelayMs: number;
   readonly maxBytes: number;
@@ -74,7 +97,9 @@ export class PoliteFetcher {
   private state(host: string): HostState {
     let s = this.hosts.get(host);
     if (!s) {
-      s = { chain: Promise.resolve(), nextAt: 0, delayMs: this.minDelayMs, strikes: 0, dropped: false, robots: null, robotsLoaded: false, requests: 0 };
+      const override = this.overrides.get(host.toLowerCase());
+      s = { chain: Promise.resolve(), lanes: [], queued: 0, override, nextAt: 0, delayMs: override ? override.delayMs : this.minDelayMs, strikes: 0, dropped: false, robots: null, robotsLoaded: false, requests: 0 };
+      if (override) s.lanes = Array.from({ length: override.concurrency }, () => Promise.resolve());
       this.hosts.set(host, s);
     }
     return s;
@@ -83,11 +108,21 @@ export class PoliteFetcher {
   /** Chain onto this host's queue: the returned promise runs after everything already queued for it. */
   private queue<T>(host: string, fn: () => Promise<T>): Promise<T> {
     const s = this.state(host);
+    if (s.lanes.length > 1) {
+      // An overridden host: N lanes, each serialised, round-robin — at most N in flight.
+      const i = s.queued++ % s.lanes.length;
+      const run = s.lanes[i].then(fn, fn);
+      s.lanes[i] = run.then(() => undefined, () => undefined);
+      return run;
+    }
     const run = s.chain.then(fn, fn);
     // Keep the chain alive even when a link rejects, or one failure would wedge the host.
     s.chain = run.then(() => undefined, () => undefined);
     return run;
   }
+
+  /** How many requests this fetcher will run at once against a host: 1, unless a human overrode it. */
+  concurrencyFor(host: string): number { return this.overrides.get(host.toLowerCase())?.concurrency ?? 1; }
 
   private async pace(s: HostState) {
     const wait = s.nextAt - Date.now();
@@ -109,7 +144,7 @@ export class PoliteFetcher {
       s.requests += 1;
       s.nextAt = Date.now() + s.delayMs;
       s.robots = r.ok ? parseRobots((await r.text()).slice(0, 200_000), this.ua) : { disallow: [], crawlDelayMs: 0 };
-      if (s.robots.crawlDelayMs > s.delayMs) s.delayMs = s.robots.crawlDelayMs;   // raise only, never lower
+      if (s.robots.crawlDelayMs > s.delayMs && !s.override) s.delayMs = s.robots.crawlDelayMs;   // raise only, never lower — unless a human overrode this host
     } catch {
       s.nextAt = Date.now() + s.delayMs;
       s.robots = { disallow: [], crawlDelayMs: 0 };
