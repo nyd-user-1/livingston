@@ -29,6 +29,7 @@
 //        same html files the website serves, from the mirror that exists to be mirrored.
 //   ?source=va-lis[&limit=&parallel=8]         Virginia 2026+, from the new LIS API (VA_LIS_API_KEY):
 //        LegiScan's links for that session are a React shell; the text is behind the API.
+//   ?source=ma-api[&limit=&parallel=12]         Massachusetts, from malegislature.gov/api — DocumentText inline, no key.
 //   ?mode=delta[&days=7]                      nightly. state_link first (free);
 //        LegiScan getBillText only as the fallback, because that one is metered:
 //        30,000 queries a month for the whole key, and this route stops at 25,000.
@@ -51,6 +52,7 @@ import { TextBuffer, bodyToText, htmlToText, xmlToText, poolerUrl, withRetry, MA
 import { runCaPubinfo } from "./_lib/text-sources/ca-pubinfo.js";
 import { runTxFtp, defaultCacheDir as txCacheDir } from "./_lib/text-sources/tx-ftp.js";
 import { runVaLis } from "./_lib/text-sources/va-lis.js";
+import { runMaApi } from "./_lib/text-sources/ma-api.js";
 import os from "node:os";
 import path from "node:path";
 
@@ -110,33 +112,49 @@ export function nyPrintNo(billNumber: string): string {
 /** Base amendment is 0, "A" is 1, "B" is 2 — stable whatever else the bill has. */
 const nyVersionIndex = (key: string) => (key ? key.toUpperCase().charCodeAt(0) - 64 : 0);
 
-async function runNySenate(sql: Sql, key: string, session: number, limit: number, retryErrors: boolean, counts: Counts) {
-  const bills = (await sql.query(
-    `SELECT bill_id, bill_number, session_id FROM "Bills"
-      WHERE state = 'NY' AND ($1 = 0 OR session_id = $1)
-        AND (${retryErrors ? "text_chars = 0" : "text_fetched_at IS NULL"})
-      ORDER BY session_id DESC, bill_id
-      LIMIT $2`,
-    [session, limit],
-  )) as { bill_id: number; bill_number: string; session_id: number }[];
+// The text is asked for as HTML and converted here rather than taken as the
+// API's plain text: only the HTML carries the redlines — <u> around matter
+// added to current law, <s> around matter struck — and htmlToText keeps those
+// as {+added+} / [-deleted-]. Plain fullText has the brackets and nothing else.
+const NY_TEXT_FORMAT = "fullTextFormat=HTML";
+type NyAmendment = { fullText?: string; fullTextHtml?: string; memo?: string };
+function nyAmendmentText(v: NyAmendment | undefined): string {
+  const html = String(v?.fullTextHtml ?? "");
+  return html.trim() ? htmlToText(html) : String(v?.fullText ?? "");
+}
+
+async function runNySenate(sql: Sql, key: string, session: number, limit: number, retryErrors: boolean, counts: Counts, billIds: number[] = []) {
+  // `billIds` / `billIdsFile` re-fetches exactly these, fetched or not — the
+  // way to bring a set of bills forward onto a newer conversion (the redlines,
+  // 2026-08-29).
+  const bills = (billIds.length
+    ? await sql.query(`SELECT bill_id, bill_number, session_id FROM "Bills" WHERE state = 'NY' AND bill_id = ANY($1::bigint[]) ORDER BY bill_id`, [billIds])
+    : await sql.query(
+      `SELECT bill_id, bill_number, session_id FROM "Bills"
+        WHERE state = 'NY' AND ($1 = 0 OR session_id = $1)
+          AND (${retryErrors ? "text_chars = 0" : "text_fetched_at IS NULL"})
+        ORDER BY session_id DESC, bill_id
+        LIMIT $2`,
+      [session, limit],
+    )) as { bill_id: number; bill_number: string; session_id: number }[];
   counts.considered = bills.length;
   const buf = new TextBuffer(sql, counts);
 
   for (const b of bills) {
     const printNo = nyPrintNo(b.bill_number);
-    const url = `${NY_API}/bills/${b.session_id}/${printNo}?key=${key}`;
+    const url = `${NY_API}/bills/${b.session_id}/${printNo}?key=${key}&${NY_TEXT_FORMAT}`;
     let best = 0;
     try {
       const r = await fetch(url, { signal: AbortSignal.timeout(60_000) });
       counts.queries = (counts.queries ?? 0) + 1;
       if (r.status === 429) { await new Promise((ok) => setTimeout(ok, 30_000)); throw new Error("NY Open Legislation throttled"); }
-      const j = (await r.json()) as { success?: boolean; message?: string; result?: { amendments?: { items?: Record<string, { fullText?: string }> } } };
+      const j = (await r.json()) as { success?: boolean; message?: string; result?: { amendments?: { items?: Record<string, NyAmendment> } } };
       if (!r.ok || j.success === false) throw new Error(`NY ${r.status} ${String(j.message ?? "").slice(0, 120)}`);
       const items = j.result?.amendments?.items ?? {};
       const keys = Object.keys(items);
       if (!keys.length) throw new Error("no amendments in the response");
       for (const k of keys) {
-        const text = String(items[k]?.fullText ?? "");
+        const text = nyAmendmentText(items[k]);
         if (!text.trim()) { counts.emptyVersions = (counts.emptyVersions ?? 0) + 1; continue; }
         best = Math.max(best, text.length);
         await buf.add({
@@ -213,7 +231,7 @@ async function runNySenateBulk(sql: Sql, key: string, session: number, maxPages:
       await pace();
       let j: { success?: boolean; message?: string; total?: number; offsetEnd?: number; result?: { items?: NyBill[] } };
       try {
-        const r = await fetch(`${NY_API}/bills/${yr}?key=${key}&limit=1000&offset=${offset}&full=true`, { signal: AbortSignal.timeout(300_000) });
+        const r = await fetch(`${NY_API}/bills/${yr}?key=${key}&limit=1000&offset=${offset}&full=true&${NY_TEXT_FORMAT}`, { signal: AbortSignal.timeout(300_000) });
         counts.queries = (counts.queries ?? 0) + 1;
         if (r.status === 429) { strikes += 1; if (strikes > 5) throw new Error("throttled six times in a row"); await new Promise((ok) => setTimeout(ok, 30_000)); continue; }
         j = (await r.json()) as typeof j;
@@ -237,7 +255,7 @@ async function runNySenateBulk(sql: Sql, key: string, session: number, maxPages:
         for (const [k, v] of Object.entries(b.amendments?.items ?? {})) {
           const idx = nyVersionIndex(k);
           const label = k ? `Amendment ${k.toUpperCase()}` : "Original";
-          const full = String(v?.fullText ?? "");
+          const full = nyAmendmentText(v);
           if (full.trim()) {
             best = Math.max(best, full.length);
             await buf.add({ document_id: -(billId * 100 + idx), bill_id: billId, state: "NY", session_id: yr, version: label, source: "nysenate", mime: "text/plain", text: full, error: null });
@@ -280,7 +298,7 @@ async function runNySenateBulk(sql: Sql, key: string, session: number, maxPages:
   await buf.flush();
 }
 
-type NyBill = { printNo?: string; basePrintNo?: string; amendments?: { items?: Record<string, { fullText?: string; memo?: string }> } };
+type NyBill = { printNo?: string; basePrintNo?: string; amendments?: { items?: Record<string, NyAmendment> } };
 
 /* ---- source 2: govinfo bulk data ----------------------------------------- */
 
@@ -843,7 +861,7 @@ export default async function handler(req: { headers?: Record<string, string>; q
       const key = process.env.NYS_LEGISLATION_API_KEY;
       if (!key) return res.status(503).json({ error: "NYS_LEGISLATION_API_KEY is required for source=nysenate" });
       if (source === "nysenate-bulk") await runNySenateBulk(sql, key, Number(req.query?.session ?? 0) || 0, Number(req.query?.pages ?? 0) || 0, counts);
-      else await runNySenate(sql, key, Number(req.query?.session ?? 0) || 0, limit, Boolean(req.query?.retryErrors), counts);
+      else await runNySenate(sql, key, Number(req.query?.session ?? 0) || 0, limit, Boolean(req.query?.retryErrors), counts, billIds);
     } else if (source === "govinfo") {
       const congress = Number(req.query?.congress ?? 0) || (Number(req.query?.session ?? 0) ? congressOf(Number(req.query?.session)) : 0);
       if (!congress) return res.status(400).json({ error: "source=govinfo needs ?congress= or ?session=" });
@@ -874,10 +892,12 @@ export default async function handler(req: { headers?: Record<string, string>; q
       const key = process.env.VA_LIS_API_KEY;
       if (!key) return res.status(503).json({ error: "VA_LIS_API_KEY is required for source=va-lis (https://lis.virginia.gov/apiregistration)" });
       await runVaLis(sql, { key, limit, parallel: Math.min(16, Math.max(1, Number(req.query?.parallel ?? 8) || 8)), ua: fetcher.ua }, counts);
+    } else if (source === "ma-api") {
+      await runMaApi(sql, { limit, parallel: Math.min(24, Math.max(1, Number(req.query?.parallel ?? 12) || 12)), ua: fetcher.ua }, counts);
     } else if (source === "state_link") {
       await runStateLink(sql, state, since, limit, Boolean(req.query?.amendments), concurrency, Boolean(req.query?.requeueErrors), billIds, counts, fetcher);
     } else {
-      return res.status(400).json({ error: "pass ?source=nysenate|govinfo|govinfo-billsum|state_link|ca-pubinfo|tx-ftp|va-lis, or ?mode=delta, or ?census=1" });
+      return res.status(400).json({ error: "pass ?source=nysenate|govinfo|govinfo-billsum|state_link|ca-pubinfo|tx-ftp|va-lis|ma-api, or ?mode=delta, or ?census=1" });
     }
 
     const hosts: PoliteStats[] = fetcher.stats();
