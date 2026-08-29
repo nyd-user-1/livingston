@@ -24,6 +24,7 @@ const BATCH = Number(val("--batch", "2000"));
 const RECREATE = argv.includes("--recreate");
 const ALL_STATES = argv.includes("--all-states");
 const TEXT_CHARS = Number(val("--text-chars", "4000")) || 4000;
+const SESSION = Number(val("--session", "0")) || 0;
 
 const { POLICY_DATABASE_URL, TYPESENSE_URL, TYPESENSE_API_KEY } = process.env;
 if (!POLICY_DATABASE_URL || !TYPESENSE_URL || !TYPESENSE_API_KEY) throw new Error("POLICY_DATABASE_URL, TYPESENSE_URL, TYPESENSE_API_KEY required");
@@ -72,7 +73,7 @@ const day = (d) => (d ? String(d).slice(0, 10) : "");
 const ts_of = (d) => { const t = Date.parse(day(d)); return Number.isFinite(t) ? Math.floor(t / 1000) : 0; };
 
 async function indexState(STATE) {
-  const [{ n }] = await sql.query(`SELECT count(*)::int AS n FROM "Bills" WHERE state = $1 AND session_id >= $2`, [STATE, SINCE]);
+  const [{ n }] = await sql.query(`SELECT count(*)::int AS n FROM "Bills" WHERE state = $1 AND session_id >= $2 AND ($3 = 0 OR session_id = $3)`, [STATE, SINCE, SESSION]);
   console.log(`${STATE} since ${SINCE}: ${n.toLocaleString()} bills, batch ${BATCH}`);
   let last = 0, done = 0, t0 = Date.now();
 for (;;) {
@@ -87,9 +88,9 @@ for (;;) {
        FROM "Bills" b
        LEFT JOIN LATERAL (SELECT people_id FROM "Sponsors" s WHERE s.bill_id = b.bill_id ORDER BY (s.sponsor_type_id = 1) DESC, s.position ASC LIMIT 1) sp ON TRUE
        LEFT JOIN "People" p ON p.people_id = sp.people_id
-      WHERE b.state = $1 AND b.session_id >= $2 AND b.bill_id > $3
+      WHERE b.state = $1 AND b.session_id >= $2 AND ($5 = 0 OR b.session_id = $5) AND b.bill_id > $3
       ORDER BY b.bill_id LIMIT $4`,
-    [STATE, SINCE, last, BATCH],
+    [STATE, SINCE, last, BATCH, SESSION],
   );
   if (!rows.length) break;
   const docs = rows.map((b) => ({
