@@ -37,10 +37,10 @@ export default async function handler(req: any, res: any) {
 
   const params = new URLSearchParams({
     q: q || "*",
-    query_by: "title,bill_number,description,memo,sponsor,committee,text",
-    query_by_weights: "10,10,6,4,3,2,1",
-    prefix: "true,true,false,false,true,false,false",
-    num_typos: "2,0,1,1,1,1,1",
+    query_by: "title,bill_number,number_alt,description,memo,sponsor,committee,text",
+    query_by_weights: "10,10,10,6,4,3,2,1",
+    prefix: "true,true,true,false,false,true,false,false",
+    num_typos: "2,0,0,1,1,1,1,1",
     facet_by: FACETS.join(","),
     max_facet_values: "12",
     highlight_fields: "title,description,memo,text",

@@ -33,6 +33,7 @@ const schema = {
   name: "bills",
   fields: [
     { name: "bill_number", type: "string" },
+    { name: "number_alt", type: "string", optional: true },   // S01234 → S1234, so a typed number matches either spelling
     { name: "state", type: "string", facet: true },
     { name: "session", type: "int32", facet: true },
     { name: "chamber", type: "string", facet: true },
@@ -88,7 +89,7 @@ for (;;) {
   );
   if (!rows.length) break;
   const docs = rows.map((b) => ({
-    id: String(b.bill_id), bill_number: b.bill_number, state: STATE, session: Number(b.session_id), chamber: chamber(b.body),
+    id: String(b.bill_id), bill_number: b.bill_number, number_alt: String(b.bill_number ?? "").replace(/^([A-Z]+)0+(\d)/, "$1$2"), state: STATE, session: Number(b.session_id), chamber: chamber(b.body),
     title: b.title ?? "", description: b.description ?? undefined, status: b.status_desc ?? undefined, committee: b.committee || undefined,
     sponsor: b.sponsor || undefined, party: b.party || undefined, district: b.district || undefined, cosponsors: Math.max(0, Number(b.cosponsors ?? 0)),
     last_action: b.last_action ?? undefined, last_action_date: day(b.last_action_date) || undefined, last_action_ts: ts_of(b.last_action_date),
