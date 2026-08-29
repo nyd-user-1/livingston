@@ -886,7 +886,7 @@ export default async function handler(req: { headers?: Record<string, string>; q
     } else if (source === "tx-ftp") {
       const session = String(req.query?.session ?? "").toUpperCase();
       if (!/^\d{2}[R0-9]$/.test(session)) return res.status(400).json({ error: "source=tx-ftp needs ?session= a TLO code (88R, 883, …)" });
-      await runTxFtp(sql, { session, limit, parallel: Math.min(4, Math.max(1, Number(req.query?.parallel ?? 2) || 2)), cacheDir: String(req.query?.cache ?? "") || txCacheDir() }, counts);
+      await runTxFtp(sql, { session, limit, parallel: Math.min(16, Math.max(1, Number(req.query?.parallel ?? 2) || 2)), cacheDir: String(req.query?.cache ?? "") || txCacheDir() }, counts);
       counts.txSession = session as unknown as number;
     } else if (source === "va-lis") {
       const key = process.env.VA_LIS_API_KEY;
