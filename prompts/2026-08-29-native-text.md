@@ -171,3 +171,12 @@ Verified live from the lead's Mac on 2026-08-29. "walker" = the existing `lv-tex
 > old conversion until a `nysenate-bulk` pass. — Fable
 
 **18:45–19:00 — Massachusetts and Tennessee.** MA: the walker had the current court (194th) at 99%; courts 189–193 (2015–2024, ~40k documents) now come through `malegislature.gov/api` — `DocumentText` inline, PDF fallback for the empty ones — as `source=ma-api` (`cf298f6`), 16-wide, **~40k/hour**, real LegiScan ids. TN: 99,704 of its 110,905 documents sit on `www.capitol.tn.gov`, which serves every PDF to the box without complaint (HTTP 200) but whose `robots.txt` is a search-engine whitelist (`User-agent: *` / `Disallow: /`). The situation was put to Brendan in full — a `Disallow` is one notch past Illinois's `Crawl-delay` — and his answer was **"Do it."** A per-host `norobots` field in `POLITE_HOST_OVERRIDES` (`polite-fetch.ts`, this commit) sets that one host's Disallow aside; it is by name, recorded here, and never used for a host that refuses us. The other 11,201 TN documents are on `publications.tnsosfiles.com`, which 403s the box — still refused. `lv-text-tn` at 16 lanes on box 1.
+
+**19:15 — the lesson applied to NJ and TX.** Brendan: "apply the lessons from Illinois, MA and TN to NJ now." NJ's `pub.njleg.gov` at 24 lanes, no delay: **~143k documents/hour** (from ~3k), 60k remaining ≈ 25 min. TX's `capitol.texas.gov` at 16 lanes as `lv-text-tx-web` beside the FTP job; TX out of the walker. The one-request-per-second default is now the exception for the big states, not the rule — the walker keeps it for the ~30 small ones.
+
+## Owed — after all 50 + DC (Brendan's TODO list)
+- **TN enacted chapters:** 11,201 documents on `publications.tnsosfiles.com` (2017–2025) 403 the box outright. Try from a non-AWS address; else the Secretary of State's office.
+- IL leftovers: 35 HTTP 500s, 2 over the 20 MB cap. VA: 292 2025 "CHAPnnn" codes the LIS API's list omits; `VA_LIS_API_KEY` → Brendan's registered key when it arrives. MA/IL/NJ small tails (`--retry-errors`).
+- Walker-refused states needing a human: PA, GA (AWS-range blocks), OK, HI, CO, DC, AK (robots), AZ (120 s crawl-delay — or a `norobots`-style override on Brendan's word), IN (IGA key).
+- FEC: re-run `fec-bulk-mirror.sh` once for the 6 keys-with-spaces; then the row-count census against the estimate.
+- `lv-text-walk` manifest: fold the per-host overrides and the skip list into `ops/box/jobs.d/lv-text-walk.json` so the nightly delta inherits them.
