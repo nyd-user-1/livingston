@@ -158,3 +158,14 @@ Verified live from the lead's Mac on 2026-08-29. "walker" = the existing `lv-tex
 **A data-quality find, fixed:** **25,521 rows of "You need to enable JavaScript to run this app."** had been stored as bill text — Virginia's new LIS (19,000, the 2026 session) and Indiana's IGA (6,491). Deleted; the walker now records a single-page-app shell as a `js-shell:` verdict, not text (`fa77d2a`); 10,395 bills un-stamped. Virginia 2026 comes through the new LIS API — `getlegislationtextlistasync` → `GetLegislationTextByIDAsync` → `DraftText` HTML, `WebAPIKey` header — as `source=va-lis` (`4d8a612`), proved on 22 documents (20 texts, 2 versions the API does not list). It runs under `VA_LIS_API_KEY` = Brendan's registered key. Indiana still needs its IGA key.
 
 **18:15 — Illinois and Virginia are whole.** IL: `lv-text-il` `EXIT=0` — **144,017 documents in 0.66 h**; coverage **158,148 of 158,216 (100.0%)**, 68 leftovers = 35 HTTP 500, 21 Postgres deadlocks (two writers stamping `"Bills"` in different orders — rows deleted, re-fetched), 7 real 404s, 2 over the 20 MB cap. VA: legacy CGI 2010–2024 **115,688 documents in 0.71 h, 3 errors**; 2025–2026 through the LIS API **18,686 of 19,000** (the 292 misses are 2025 "CHAPnnn" chaptered codes the API's list does not carry, 6 HTTP 204) — coverage **127,122 of 127,439 (99.8%)**. The API run used the key the public site ships in its own bundle, on Brendan's "..?"; his registered key replaces it when it arrives (`VA_LIS_API_KEY`). TX 35.9% and NJ 32.1%, both climbing on their own jobs; FEC at 392 GB of 687 (57%), 6 keys-with-spaces to re-run under `4d8a612`'s fix.
+
+> **Note from the lead session (2026-08-29 evening).** Commit `cf298f6` (ma-api)
+> also carried an edit of mine to `api/bill-text.ts` that was sitting in the
+> working tree: both NY Senate handlers now request `fullTextFormat=HTML` and
+> convert with `htmlToText`, so NY texts keep the redlines as `{+added+}` /
+> `[-deleted-]` (the plain `fullText` has the brackets and nothing else), and
+> `source=nysenate` honours `billIds` / `billIdsFile` for targeted re-fetches.
+> The matching `tidy()` change (leading indentation preserved — NY centres its
+> headings with it) is in the commit after yours. The 100 bills on
+> livingston-v3's /docs/bills were re-fetched; the rest of NY still carries the
+> old conversion until a `nysenate-bulk` pass. — Fable

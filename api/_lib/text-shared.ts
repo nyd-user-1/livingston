@@ -48,14 +48,23 @@ export function decodeEntities(s: string): string {
   });
 }
 
-/** Tidy without destroying: legislative text is meaningful line by line. */
+/**
+ * Tidy without destroying: legislative text is meaningful line by line, and
+ * fixed-width bill text is meaningful column by column — New York centres its
+ * headings with leading spaces and the line-number gutter is indentation. So
+ * runaway padding is collapsed only INSIDE a line (after the first non-blank
+ * character), never at the start of one, and the first line keeps its indent
+ * too: only leading blank lines and trailing whitespace go. (Rows converted
+ * before 2026-08-29 had their indentation collapsed.)
+ */
 export function tidy(s: string): string {
   return s
     .replace(/\r\n?/g, "\n")
     .replace(/[ \t]+\n/g, "\n")
     .replace(/\n{3,}/g, "\n\n")
-    .replace(/[ \t]{2,}/g, (m) => (m.length > 8 ? "  " : m))   // keep small indents, collapse runaway padding
-    .trim();
+    .replace(/(?<=\S)[ \t]{2,}/g, (m) => (m.length > 8 ? "  " : m))   // keep small gaps, collapse runaway padding
+    .replace(/^\n+/, "")
+    .replace(/\s+$/, "");
 }
 
 /**
