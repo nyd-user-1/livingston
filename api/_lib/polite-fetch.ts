@@ -31,22 +31,29 @@ export type PoliteResult = {
   skipped?: PoliteSkip;
 };
 
-type HostOverride = { delayMs: number; concurrency: number };
+type HostOverride = { delayMs: number; concurrency: number; ignoreRobots: boolean };
 /**
  * POLITE_HOST_OVERRIDES="www.ilga.gov=0:16,ilga.gov=0:16" — a per-host
  * exception to the pacing, set by a human, for a host they have decided to
  * fetch faster than robots.txt's Crawl-delay asks (Brendan, 2026-08-29:
  * "it's a Saturday, we're not throttling anyone"). delayMs replaces the
  * Crawl-delay; concurrency is how many requests may be in flight to that host
- * at once. Everything else still holds: robots.txt Disallow, Retry-After on
- * 429/503, and the five-strike drop — a host that starts refusing is still a
- * host we stop asking.
+ * at once. Retry-After on 429/503 and the five-strike drop still hold — a host
+ * that starts refusing is still a host we stop asking.
+ *
+ * A fourth field, `norobots` (www.capitol.tn.gov=0:16:norobots), also sets
+ * aside robots.txt's Disallow for that host. Tennessee's robots.txt is a
+ * whitelist — Googlebot, Bingbot, the Internet Archive may crawl; `User-agent:
+ * *` may not — while the server itself hands every bill PDF to anyone who asks.
+ * Brendan, 2026-08-29, told the whole situation: "Do it." The switch is per
+ * host, by name, and its use is recorded in the lane report; it is not a
+ * default and it is never set for a host that refuses us.
  */
 export function parseHostOverrides(spec: string | undefined): Map<string, HostOverride> {
   const m = new Map<string, HostOverride>();
   for (const part of (spec ?? "").split(",")) {
-    const mm = /^\s*([^=\s]+)\s*=\s*(\d+)\s*:\s*(\d+)\s*$/.exec(part);
-    if (mm) m.set(mm[1].toLowerCase(), { delayMs: Number(mm[2]), concurrency: Math.max(1, Math.min(32, Number(mm[3]))) });
+    const mm = /^\s*([^=\s]+)\s*=\s*(\d+)\s*:\s*(\d+)\s*(?::\s*(norobots)\s*)?$/i.exec(part);
+    if (mm) m.set(mm[1].toLowerCase(), { delayMs: Number(mm[2]), concurrency: Math.max(1, Math.min(32, Number(mm[3]))), ignoreRobots: Boolean(mm[4]) });
   }
   return m;
 }
@@ -163,7 +170,7 @@ export class PoliteFetcher {
       if (s.dropped) return { ok: false, status: 0, mime: "", body: null, bytes: 0, skipped: "host-dropped" as PoliteSkip, error: `${host} dropped after ${this.maxStrikes} consecutive 403/429` };
 
       await this.loadRobots(host, u.protocol);
-      if (s.robots && isDisallowed(s.robots.disallow, u.pathname + u.search)) {
+      if (s.robots && !s.override?.ignoreRobots && isDisallowed(s.robots.disallow, u.pathname + u.search)) {
         return { ok: false, status: 0, mime: "", body: null, bytes: 0, skipped: "robots" as PoliteSkip, error: `robots.txt disallows ${u.pathname}` };
       }
 
