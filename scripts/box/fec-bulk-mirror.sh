@@ -67,7 +67,9 @@ log "in scope: $SC_N objects, $(echo "$SC_B/1073741824" | bc -l | xargs printf '
 # --- 2. what we already hold -------------------------------------------------
 aws s3api list-objects-v2 --region "$DST_REGION" --bucket "$DST_BUCKET" --prefix "$SRC_PREFIX" \
   --query 'Contents[].[Size,Key]' --output text 2>/dev/null | grep -v '^None' > "$WORK/dst.tsv" || true
-awk 'NR==FNR { have[$2]=$1; next } { if (($3 in have) && have[$3]==$1) next; print }' "$WORK/dst.tsv" "$WORK/scope.tsv" > "$WORK/todo.tsv"
+# FILENAME, not NR==FNR: an EMPTY destination listing makes NR==FNR true for every
+# line of the second file too, and the whole scope reads as "already held".
+awk -v dst="$WORK/dst.tsv" 'FILENAME==dst { have[$2]=$1; next } { if (($3 in have) && have[$3]==$1) next; print }' "$WORK/dst.tsv" "$WORK/scope.tsv" > "$WORK/todo.tsv"
 TODO_N=$(wc -l < "$WORK/todo.tsv"); TODO_B=$(awk '{s+=$1} END{print s+0}' "$WORK/todo.tsv")
 log "to copy: $TODO_N objects, $(echo "$TODO_B/1073741824" | bc -l | xargs printf '%.1f') GB (already held: $((SC_N - TODO_N)))"
 
@@ -94,6 +96,7 @@ copy_one() {
   fi
   printf '%s FAIL rc=%s  %s\n' "$(date -u +%H:%M:%S)" "$rc" "$key"; return 1
 }
+[ -s "$WORK/todo.tsv" ] || { log "nothing to copy"; exit 0; }
 export -f copy_one; export SRC_BUCKET SRC_REGION DST_BUCKET DST_REGION
 # biggest first, so the tail of the run is small files rather than indiv22
 sort -k1,1nr "$WORK/todo.tsv" | awk '{print $1 "\t" $3}' \
