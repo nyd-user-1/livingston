@@ -12,6 +12,7 @@
 //   node scripts/box/text-backfill.mjs --source nysenate-bulk                   # 1,000 bills a request
 //   node scripts/box/text-backfill.mjs --source ca-pubinfo --session 2025      # one pubinfo_<year>.zip
 //   node scripts/box/text-backfill.mjs --source tx-ftp --all-sessions [--ftp-connections 2]   # Texas from the FTP mirror
+//   node scripts/box/text-backfill.mjs --source va-lis [--batch 2000] [--api-parallel 8]      # Virginia 2026 via the LIS API (VA_LIS_API_KEY)
 //   node scripts/box/text-backfill.mjs --source ca-pubinfo --all-sessions --since-session 2009
 //   node scripts/box/text-backfill.mjs --source ca-pubinfo --session 2025 --zip pubinfo_Sat.zip --sample 5 --keep   # the cheap test
 //
@@ -307,6 +308,17 @@ if (SOURCE === "tx-ftp") {
     if (r.errored) errored = true;
   }
   process.exit(errored ? 1 : 0);
+}
+
+/* ---- va-lis -------------------------------------------------------------- */
+
+if (SOURCE === "va-lis") {
+  if (!process.env.VA_LIS_API_KEY) { console.error("va-lis: VA_LIS_API_KEY is required (https://lis.virginia.gov/apiregistration)"); process.exit(2); }
+  const par = val("--api-parallel", "8");
+  log(`va-lis: Virginia 2026 documents through the LIS API · batch ${BATCH} · ${par} in flight`);
+  const s = await drain("VA lis", () => ["source=va-lis", `limit=${BATCH}`, `parallel=${par}`]);
+  log(`va-lis done: ${s.considered} considered · ${s.inserted} stored · ${(s.secs / 60).toFixed(1)} min`);
+  process.exit(s.errored ? 1 : 0);
 }
 
 /* ---- state_link ---------------------------------------------------------- */

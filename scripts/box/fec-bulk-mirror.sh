@@ -57,10 +57,11 @@ awk -v pre="$SRC_PREFIX" -v only="$ONLY" -v skip="$SKIP" 'BEGIN{
     n=split(only,o,","); for(i=1;i<=n;i++) if(o[i]!="") O[o[i]]=1;
     m=split(skip,s,","); for(i=1;i<=m;i++) if(s[i]!="") S[s[i]]=1;
   }
-  { key=$3; rest=substr(key, length(pre)+1); split(rest, seg, "/"); top=(rest ~ /\//) ? seg[1] : "(root)";
+  { key=$3; for (f=4; f<=NF; f++) key=key " " $f;   # keys with spaces came back split across fields
+    rest=substr(key, length(pre)+1); split(rest, seg, "/"); top=(rest ~ /\//) ? seg[1] : "(root)";
     if (length(O)>0) { if (!(top in O)) next } else if (top in S) next;
     if ($1==0 || key ~ /\/$/) next;
-    print }' "$WORK/src.tsv" > "$WORK/scope.tsv"
+    print $1 "\t" $2 "\t" key }' "$WORK/src.tsv" > "$WORK/scope.tsv"
 SC_N=$(wc -l < "$WORK/scope.tsv"); SC_B=$(awk '{s+=$1} END{print s+0}' "$WORK/scope.tsv")
 log "in scope: $SC_N objects, $(echo "$SC_B/1073741824" | bc -l | xargs printf '%.1f') GB (skip: ${SKIP:-none}; only: ${ONLY:-all})"
 
@@ -69,7 +70,7 @@ aws s3api list-objects-v2 --region "$DST_REGION" --bucket "$DST_BUCKET" --prefix
   --query 'Contents[].[Size,Key]' --output text 2>/dev/null | grep -v '^None' > "$WORK/dst.tsv" || true
 # FILENAME, not NR==FNR: an EMPTY destination listing makes NR==FNR true for every
 # line of the second file too, and the whole scope reads as "already held".
-awk -v dst="$WORK/dst.tsv" 'FILENAME==dst { have[$2]=$1; next } { if (($3 in have) && have[$3]==$1) next; print }' "$WORK/dst.tsv" "$WORK/scope.tsv" > "$WORK/todo.tsv"
+awk -F'\t' -v dst="$WORK/dst.tsv" 'FILENAME==dst { k=$2; for (f=3; f<=NF; f++) k=k "\t" $f; have[k]=$1; next } { if (($3 in have) && have[$3]==$1) next; print }' "$WORK/dst.tsv" "$WORK/scope.tsv" > "$WORK/todo.tsv"
 TODO_N=$(wc -l < "$WORK/todo.tsv"); TODO_B=$(awk '{s+=$1} END{print s+0}' "$WORK/todo.tsv")
 log "to copy: $TODO_N objects, $(echo "$TODO_B/1073741824" | bc -l | xargs printf '%.1f') GB (already held: $((SC_N - TODO_N)))"
 
@@ -78,7 +79,7 @@ if [ "$DRY" = 0 ]; then
   aws s3 cp --region "$DST_REGION" --quiet "$WORK/src.tsv" "s3://$DST_BUCKET/_manifest/source-$STAMP.tsv"
   aws s3 cp --region "$DST_REGION" --quiet "$WORK/scope.tsv" "s3://$DST_BUCKET/_manifest/scope-$STAMP.tsv"
 fi
-[ "$DRY" = 1 ] && { awk '{printf "%12d  %s\n", $1, $3}' "$WORK/todo.tsv" | sort -k2 | head -40; exit 0; }
+[ "$DRY" = 1 ] && { awk -F'\t' '{printf "%12d  %s\n", $1, $3}' "$WORK/todo.tsv" | sort -k2 | head -40; exit 0; }
 
 # --- 3. stream, N at a time --------------------------------------------------
 copy_one() {
@@ -99,7 +100,7 @@ copy_one() {
 [ -s "$WORK/todo.tsv" ] || { log "nothing to copy"; exit 0; }
 export -f copy_one; export SRC_BUCKET SRC_REGION DST_BUCKET DST_REGION
 # biggest first, so the tail of the run is small files rather than indiv22
-sort -k1,1nr "$WORK/todo.tsv" | awk '{print $1 "\t" $3}' \
+sort -t$'\t' -k1,1nr "$WORK/todo.tsv" | awk -F'\t' '{print $1 "\t" $3}' \
   | xargs -P "$PARALLEL" -n 1 -d '\n' bash -c 'IFS=$'"'"'\t'"'"' read -r size key <<< "$0"; copy_one "$size" "$key"' \
   | tee "$WORK/copies.log"
 OK=$(grep -c ' ok ' "$WORK/copies.log" || true); BAD=$(grep -cE 'FAIL|MISMATCH' "$WORK/copies.log" || true)
