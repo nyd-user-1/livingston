@@ -7,6 +7,7 @@
 //   node scripts/box/text-backfill.mjs --source govinfo --congress 119
 //   node scripts/box/text-backfill.mjs --source state_link --state TX [--since-session 2023]
 //   node scripts/box/text-backfill.mjs --source state_link --all-states [--parallel 4] [--max-seconds 14400]
+//   node scripts/box/text-backfill.mjs --source state_link --all-states --only-states NM,MT,ND   # a second box's share
 //   node scripts/box/text-backfill.mjs --source state_link --bill-ids ids.txt   # exactly these, any session
 //   node scripts/box/text-backfill.mjs --source nysenate-bulk                   # 1,000 bills a request
 //   node scripts/box/text-backfill.mjs --source ca-pubinfo --session 2025      # one pubinfo_<year>.zip
@@ -70,6 +71,11 @@ const RETRY_ERRORS = has("--retry-errors");
 // their host. One connection per host is the rule; two processes on
 // pub.njleg.gov would break it just as surely as two threads would.
 const SKIP_STATES = new Set(val("--skip-states").split(",").map((x) => x.trim().toUpperCase()).filter(Boolean));
+// The mirror image, for a SECOND box: --all-states restricted to exactly these.
+// Two boxes may walk at once only on disjoint state sets — one connection per
+// host is the rule, and a state's hosts are its own — so box 1 --skip-states
+// what box 2 --only-states, and the two lists are the same list.
+const ONLY_STATES = new Set(val("--only-states").split(",").map((x) => x.trim().toUpperCase()).filter(Boolean));
 // A file of bill_ids, one per line: fetch text for exactly these, any session.
 // Built for lane MB's curated CPI matches, which are 2003-2019 and therefore
 // invisible to a walk scoped at session_id >= 2023.
@@ -309,7 +315,7 @@ if (SOURCE === "state_link") {
       GROUP BY 1 ORDER BY 2 DESC`,
     [SINCE],
   );
-  const states = rows.map((r) => r.state).filter((st) => !SKIP_STATES.has(st));
+  const states = rows.map((r) => r.state).filter((st) => !SKIP_STATES.has(st) && (ONLY_STATES.size === 0 || ONLY_STATES.has(st)));
   const held = rows.filter((r) => SKIP_STATES.has(r.state));
   if (held.length) log(`state_link --all-states: holding back ${held.map((r) => `${r.state} (${Number(r.docs).toLocaleString()} docs)`).join(", ")} — another job owns that host`);
   log(`state_link --all-states: ${states.length} states, ${rows.filter((r) => !SKIP_STATES.has(r.state)).reduce((n, r) => n + Number(r.docs), 0).toLocaleString()} documents outstanding, ${PARALLEL} at a time${MAX_SECONDS ? `, budget ${(MAX_SECONDS / 3600).toFixed(1)} h` : ""}`);
