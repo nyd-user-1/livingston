@@ -78,8 +78,8 @@ for (;;) {
             b.text_chars,
             p.name AS sponsor, p.party AS party, p.district AS district,
             (SELECT count(*)::int - 1 FROM "Sponsors" s2 WHERE s2.bill_id = b.bill_id) AS cosponsors,
-            (SELECT t.text FROM "BillTexts" t WHERE t.bill_id = b.bill_id AND t.version ILIKE 'memo%' AND t.text IS NOT NULL ORDER BY t.fetched_at DESC LIMIT 1) AS memo,
-            (SELECT left(t.text, ${TEXT_CHARS}) FROM "BillTexts" t WHERE t.bill_id = b.bill_id AND t.version NOT ILIKE 'memo%' AND t.version NOT ILIKE 'crs%' AND t.text IS NOT NULL ORDER BY t.fetched_at DESC LIMIT 1) AS text
+            (SELECT t.text FROM "BillTexts" t WHERE t.bill_id = b.bill_id AND t.version ILIKE '%memo%' AND t.text IS NOT NULL ORDER BY t.fetched_at DESC LIMIT 1) AS memo,
+            (SELECT left(t.text, ${TEXT_CHARS}) FROM "BillTexts" t WHERE t.bill_id = b.bill_id AND t.version NOT ILIKE '%memo%' AND t.version NOT ILIKE 'crs%' AND t.text IS NOT NULL ORDER BY t.fetched_at DESC LIMIT 1) AS text
        FROM "Bills" b
        LEFT JOIN LATERAL (SELECT people_id FROM "Sponsors" s WHERE s.bill_id = b.bill_id ORDER BY (s.sponsor_type_id = 1) DESC, s.position ASC LIMIT 1) sp ON TRUE
        LEFT JOIN "People" p ON p.people_id = sp.people_id

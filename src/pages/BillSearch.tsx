@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "react-router-dom";
-import { ArrowUpDown, ChevronLeft, ChevronRight, ExternalLink, FileText, Loader2, Search as SearchIcon, SlidersHorizontal, X } from "lucide-react";
+import { ArrowUpDown, ChevronLeft, ChevronRight, Database, ExternalLink, FileText, Loader2, Search as SearchIcon, SlidersHorizontal, X } from "lucide-react";
 
 /**
  * /search — the New York corpus, through Typesense.
@@ -86,6 +86,7 @@ export default function BillSearch() {
 
   useEffect(() => { if (debounced !== q) update({ q: debounced || null }); }, [debounced]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  const [catalogOpen, setCatalogOpen] = useState(false);
   const [data, setData] = useState<SearchResponse | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -117,17 +118,23 @@ export default function BillSearch() {
   return (
     <div className="mx-auto w-full max-w-6xl px-4 pb-16 pt-6 sm:px-6">
       {/* Header */}
-      <header className="mb-5">
-        <h1 className="text-2xl font-semibold tracking-tight text-foreground">Search the New York legislature</h1>
-        <p className="mt-1 text-sm text-muted-foreground">
-          {data?.out_of ? `${fmt(data.out_of)} bills` : "Every bill"} since 2009 — numbers, titles, sponsor memos, and full text.
-          {data?.search_ms != null && (
-            <span className="ml-2 rounded-full border border-border bg-muted px-2 py-0.5 text-[11px] font-medium text-foreground">
-              {data.search_ms} ms engine · {data.round_trip_ms} ms round trip
-            </span>
-          )}
-        </p>
+      <header className="mb-5 flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <h1 className="text-2xl font-semibold tracking-tight text-foreground">Search the New York legislature</h1>
+          <p className="mt-1 text-sm text-muted-foreground">
+            {data?.out_of ? `${fmt(data.out_of)} bills` : "Every bill"} since 2009 — numbers, titles, sponsor memos, and full text.
+            {data?.search_ms != null && (
+              <span className="ml-2 rounded-full border border-border bg-muted px-2 py-0.5 text-[11px] font-medium text-foreground">
+                {data.search_ms} ms engine · {data.round_trip_ms} ms round trip
+              </span>
+            )}
+          </p>
+        </div>
+        <button onClick={() => setCatalogOpen((v) => !v)} className={`flex items-center gap-2 rounded-lg border border-border px-3 py-2 text-sm font-medium ${catalogOpen ? "bg-active" : "bg-background hover:bg-muted"}`}>
+          <Database className="h-4 w-4" /> What can be searched
+        </button>
       </header>
+      {catalogOpen && <Catalog onClose={() => setCatalogOpen(false)} />}
 
       {/* Search box */}
       <div className="relative">
@@ -237,6 +244,97 @@ export default function BillSearch() {
           )}
         </main>
       </div>
+    </div>
+  );
+}
+
+/* ---- the catalog: everything that could be a search result --------------- */
+
+interface CatalogEntity { key: string; label: string; what: string; count: number | null; estimate: boolean; indexed: "ny" | "all" | null; fields: string | null }
+interface CatalogResponse {
+  generated_at: string; totals: { bills: number; bills_with_text: number; jurisdictions: number; indexed_bills: number };
+  groups: { group: string; entities: CatalogEntity[] }[];
+  jurisdictions: { state: string; bills: number; first_session: number; last_session: number; bills_with_text: number }[];
+}
+
+function Catalog({ onClose }: { onClose: () => void }) {
+  const [cat, setCat] = useState<CatalogResponse | null>(null);
+  const [err, setErr] = useState<string | null>(null);
+  useEffect(() => {
+    fetch("/api/search-catalog").then(async (r) => { if (!r.ok) throw new Error(`HTTP ${r.status}`); return (await r.json()) as CatalogResponse; }).then(setCat).catch((e: Error) => setErr(e.message));
+  }, []);
+  const total = cat ? cat.groups.flatMap((g) => g.entities).reduce((a, e) => a + (e.count ?? 0), 0) : 0;
+
+  return (
+    <section className="mb-6 rounded-lg border border-border bg-card p-4 sm:p-5">
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <h2 className="text-base font-semibold text-foreground">What can be searched</h2>
+          <p className="mt-0.5 text-[13px] text-muted-foreground">
+            Everything in the policy database that could become a result. <span className="font-medium text-foreground">Indexed</span> marks what the search engine covers today (New York bills, texts, memos, and sponsors); the rest is one indexing job away.
+          </p>
+        </div>
+        <button onClick={onClose} className="rounded-md p-1.5 text-muted-foreground hover:bg-muted" aria-label="Close"><X className="h-4 w-4" /></button>
+      </div>
+
+      {err && <p className="mt-3 text-sm text-muted-foreground">Couldn't load the catalog: {err}</p>}
+      {!cat && !err && <p className="mt-3 flex items-center gap-2 text-sm text-muted-foreground"><Loader2 className="h-4 w-4 animate-spin" /> Counting…</p>}
+
+      {cat && (
+        <>
+          <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-4">
+            <Stat label="Bills, all jurisdictions" value={fmt(cat.totals.bills)} sub={`${cat.totals.jurisdictions} legislatures · ${fmt(Math.ceil(cat.totals.bills / PER_PAGE))} pages of ${PER_PAGE}`} />
+            <Stat label="Bills indexed today" value={fmt(cat.totals.indexed_bills)} sub={`New York · ${fmt(Math.ceil(cat.totals.indexed_bills / PER_PAGE))} pages`} />
+            <Stat label="Bills with full text" value={fmt(cat.totals.bills_with_text)} sub="fetched from the legislatures" />
+            <Stat label="Rows that could be results" value={fmt(total)} sub="across every entity below" />
+          </div>
+
+          <div className="mt-5 grid grid-cols-1 gap-5 md:grid-cols-2 xl:grid-cols-3">
+            {cat.groups.map((g) => (
+              <div key={g.group}>
+                <h3 className="mb-1.5 text-xs font-semibold uppercase tracking-wide text-muted-foreground">{g.group}</h3>
+                <ul className="divide-y divide-border rounded-md border border-border">
+                  {g.entities.map((e) => (
+                    <li key={e.key} className="flex items-start justify-between gap-3 px-3 py-2">
+                      <div className="min-w-0">
+                        <div className="flex items-center gap-2">
+                          <span className="text-[13px] font-medium text-foreground">{e.label}</span>
+                          {e.indexed && <span className="rounded-full bg-brand/15 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-foreground">indexed{e.indexed === "ny" ? " · NY" : ""}</span>}
+                        </div>
+                        <p className="mt-0.5 text-[12px] leading-snug text-muted-foreground">{e.what}{e.fields ? <span className="block text-[11px] italic">{e.fields}</span> : null}</p>
+                      </div>
+                      <span className="shrink-0 tabular-nums text-[13px] font-medium text-foreground" title={e.estimate ? "planner estimate" : "exact count"}>
+                        {e.count == null ? "—" : `${e.estimate ? "≈" : ""}${fmt(e.count)}`}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ))}
+          </div>
+
+          <h3 className="mb-1.5 mt-6 text-xs font-semibold uppercase tracking-wide text-muted-foreground">Jurisdictions — {cat.jurisdictions.length}</h3>
+          <div className="grid grid-cols-2 gap-x-4 gap-y-1 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6">
+            {cat.jurisdictions.map((j) => (
+              <div key={j.state} className={`flex items-baseline justify-between rounded-md px-2 py-1 text-[12px] ${j.state === "NY" ? "bg-active" : ""}`} title={`${j.first_session}–${j.last_session} · ${fmt(j.bills_with_text)} with text`}>
+                <span className="font-medium text-foreground">{j.state === "US" ? "Congress" : j.state}</span>
+                <span className="tabular-nums text-muted-foreground">{fmt(j.bills)}</span>
+              </div>
+            ))}
+          </div>
+          <p className="mt-3 text-[11px] text-muted-foreground">Counts as of {new Date(cat.generated_at).toLocaleString()}. ≈ marks a planner estimate on tables too large to count on every page load.</p>
+        </>
+      )}
+    </section>
+  );
+}
+
+function Stat({ label, value, sub }: { label: string; value: string; sub?: string }) {
+  return (
+    <div className="rounded-md border border-border bg-background px-3 py-2">
+      <p className="text-[11px] text-muted-foreground">{label}</p>
+      <p className="text-lg font-semibold tabular-nums text-foreground">{value}</p>
+      {sub && <p className="text-[11px] text-muted-foreground">{sub}</p>}
     </div>
   );
 }
