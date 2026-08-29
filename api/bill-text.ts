@@ -25,6 +25,8 @@
 //        Counsel's pubinfo_<year>.zip — the whole session database including
 //        every bill version's CAML XML. leginfo's website is robots-closed to
 //        crawlers; this is the route it publishes instead. api/_lib/text-sources/.
+//   ?source=tx-ftp&session=88R[&limit=&parallel=2]   Texas, from ftp.legis.state.tx.us — the
+//        same html files the website serves, from the mirror that exists to be mirrored.
 //   ?mode=delta[&days=7]                      nightly. state_link first (free);
 //        LegiScan getBillText only as the fallback, because that one is metered:
 //        30,000 queries a month for the whole key, and this route stops at 25,000.
@@ -45,6 +47,7 @@ import fs from "node:fs";
 import { PoliteFetcher, type PoliteStats } from "./_lib/polite-fetch.js";
 import { TextBuffer, bodyToText, htmlToText, xmlToText, poolerUrl, withRetry, MAX_TEXT_BYTES, type Sql, type Counts } from "./_lib/text-shared.js";
 import { runCaPubinfo } from "./_lib/text-sources/ca-pubinfo.js";
+import { runTxFtp, defaultCacheDir as txCacheDir } from "./_lib/text-sources/tx-ftp.js";
 import os from "node:os";
 import path from "node:path";
 
@@ -828,10 +831,15 @@ export default async function handler(req: { headers?: Record<string, string>; q
         sample: Number(req.query?.sample ?? 0) || 0,
       }, counts);
       counts.session = session;
+    } else if (source === "tx-ftp") {
+      const session = String(req.query?.session ?? "").toUpperCase();
+      if (!/^\d{2}[R0-9]$/.test(session)) return res.status(400).json({ error: "source=tx-ftp needs ?session= a TLO code (88R, 883, …)" });
+      await runTxFtp(sql, { session, limit, parallel: Math.min(4, Math.max(1, Number(req.query?.parallel ?? 2) || 2)), cacheDir: String(req.query?.cache ?? "") || txCacheDir() }, counts);
+      counts.txSession = session as unknown as number;
     } else if (source === "state_link") {
       await runStateLink(sql, state, since, limit, Boolean(req.query?.amendments), concurrency, Boolean(req.query?.requeueErrors), billIds, counts, fetcher);
     } else {
-      return res.status(400).json({ error: "pass ?source=nysenate|govinfo|govinfo-billsum|state_link|ca-pubinfo, or ?mode=delta, or ?census=1" });
+      return res.status(400).json({ error: "pass ?source=nysenate|govinfo|govinfo-billsum|state_link|ca-pubinfo|tx-ftp, or ?mode=delta, or ?census=1" });
     }
 
     const hosts: PoliteStats[] = fetcher.stats();

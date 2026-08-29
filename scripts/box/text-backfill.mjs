@@ -11,6 +11,7 @@
 //   node scripts/box/text-backfill.mjs --source state_link --bill-ids ids.txt   # exactly these, any session
 //   node scripts/box/text-backfill.mjs --source nysenate-bulk                   # 1,000 bills a request
 //   node scripts/box/text-backfill.mjs --source ca-pubinfo --session 2025      # one pubinfo_<year>.zip
+//   node scripts/box/text-backfill.mjs --source tx-ftp --all-sessions [--ftp-connections 2]   # Texas from the FTP mirror
 //   node scripts/box/text-backfill.mjs --source ca-pubinfo --all-sessions --since-session 2009
 //   node scripts/box/text-backfill.mjs --source ca-pubinfo --session 2025 --zip pubinfo_Sat.zip --sample 5 --keep   # the cheap test
 //
@@ -279,6 +280,33 @@ if (SOURCE === "ca-pubinfo") {
   }
   log(`ca-pubinfo done: ${tot.versions.toLocaleString()} versions · ${tot.bills.toLocaleString()} bills · ${(tot.chars / 1e6).toFixed(1)}M chars · real ${tot.real} / synthetic ${tot.synthetic} · unmatched ${tot.unmatched} · ${bad} session(s) failed`);
   process.exit(bad ? 1 : 0);
+}
+
+/* ---- tx-ftp -------------------------------------------------------------- */
+
+if (SOURCE === "tx-ftp") {
+  // Sessions are TLO codes (88R, 883). --all-sessions reads them off our own
+  // "Documents" links, most outstanding first, so nothing is guessed.
+  let sessions = [];
+  if (has("--all-sessions")) {
+    const rows = await sql.query(
+      `SELECT substring(d.state_link from 'tlodocs/([0-9A-Z]+)/') AS s, count(*)::int AS n
+         FROM "Documents" d JOIN "Bills" b ON b.bill_id = d.bill_id LEFT JOIN "BillTexts" t ON t.document_id = d.document_id
+        WHERE b.state = 'TX' AND d.document_type = 'text' AND t.document_id IS NULL AND b.session_id >= $1 AND d.state_link LIKE '%/billtext/html/%'
+        GROUP BY 1 ORDER BY 2 DESC`, [SINCE]);
+    sessions = rows.map((r) => r.s).filter(Boolean);
+  } else if (SESSION) sessions = [SESSION.toUpperCase()];
+  else { console.error("tx-ftp: pass --session 88R or --all-sessions [--since-session 2009]"); process.exit(2); }
+  const par = val("--ftp-connections", "2");
+  log(`tx-ftp: ${sessions.length} session(s) — ${sessions.join(" ")} · batch ${BATCH} · ${par} FTP connection(s)`);
+  let errored = false;
+  for (const s of sessions) {
+    if (budgetSpent()) { log("tx-ftp: budget spent — stopping between sessions"); break; }
+    const r = await drain(`TX ${s}`, () => ["source=tx-ftp", `session=${s}`, `limit=${BATCH}`, `parallel=${par}`]);
+    log(`── TX ${s} finished: ${r.inserted} stored · ${r.skipped} skipped · ${(r.secs / 3600).toFixed(2)} h`);
+    if (r.errored) errored = true;
+  }
+  process.exit(errored ? 1 : 0);
 }
 
 /* ---- state_link ---------------------------------------------------------- */
