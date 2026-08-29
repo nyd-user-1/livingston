@@ -442,7 +442,7 @@ async function runNySenateBulk(sql: Sql, key: string, session: number, maxPages:
         const r = await fetch(`${NY_API}/bills/${yr}?key=${key}&limit=1000&offset=${offset}&full=true`, { signal: AbortSignal.timeout(300_000) });
         counts.queries = (counts.queries ?? 0) + 1;
         if (r.status === 429) { strikes += 1; if (strikes > 5) throw new Error("throttled six times in a row"); await new Promise((ok) => setTimeout(ok, 30_000)); continue; }
-        j = await r.json();
+        j = (await r.json()) as typeof j;
         if (!r.ok || j.success === false) throw new Error(`NY ${r.status} ${String(j.message ?? "").slice(0, 140)}`);
       } catch (e) {
         strikes += 1;

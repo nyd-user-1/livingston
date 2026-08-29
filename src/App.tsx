@@ -11,6 +11,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 // click lands the code is usually already here.
 const Chat = lazy(() => import("@/pages/Chat"));
 const Search = lazy(() => import("@/pages/Search"));
+const BillSearch = lazy(() => import("@/pages/BillSearch"));
 const Features = lazy(() => import("@/pages/Features"));
 const Programs = lazy(() => import("@/pages/Programs"));
 
@@ -39,7 +40,7 @@ function App() {
                 <Route path="/c/:sessionId" element={<Chat />} />
                 <Route path="/new-search" element={<Search />} />
                 {/* /search was the pre-livingston name for the same page */}
-                <Route path="/search" element={<Navigate to="/new-search" replace />} />
+                <Route path="/search" element={<BillSearch />} />
                 {/* Grants & benefits — the shelf of things you can apply for. */}
                 <Route path="/programs" element={<Programs />} />
                 <Route path="/medrxiv" element={<Navigate to="/programs" replace />} />

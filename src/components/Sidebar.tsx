@@ -251,6 +251,16 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
             New Chat
           </button>
           <button
+            onClick={() => { navigate("/search"); closeMobile(); }}
+            onMouseEnter={() => { import("@/pages/BillSearch"); }}
+            className={`flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors ${
+              location.pathname === "/search" ? "bg-active" : "hover:bg-muted"
+            }`}
+          >
+            <Search className="h-4 w-4" />
+            Search Bills
+          </button>
+          <button
             onClick={() => { navigate("/new-search"); closeMobile(); }}
             onMouseEnter={() => { import("@/pages/Search"); }}
             className={`flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors ${
