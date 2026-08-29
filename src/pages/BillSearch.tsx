@@ -300,15 +300,18 @@ function FacetSection({ facet, values, selected, onToggle, onSearch }: {
   onSearch?: (term: string) => Promise<FacetValue[]>;
 }) {
   const [term, setTerm] = useState("");
-  const [found, setFound] = useState<FacetValue[] | null>(null);
+  // The facet-value search result is keyed by the term it answered, so a stale answer
+  // never shows for a newer (or emptied) term and no state is set synchronously in the effect.
+  const [answer, setAnswer] = useState<{ term: string; values: FacetValue[] } | null>(null);
   const [expanded, setExpanded] = useState(false);
-  const debounced = useDebounced(term, 200);
+  const debounced = useDebounced(term, 200).trim();
   useEffect(() => {
-    if (!onSearch || !debounced.trim()) { setFound(null); return; }
+    if (!onSearch || !debounced) return;
     let live = true;
-    onSearch(debounced.trim()).then((v) => { if (live) setFound(v); }).catch(() => { if (live) setFound([]); });
+    onSearch(debounced).then((v) => { if (live) setAnswer({ term: debounced, values: v }); }).catch(() => { if (live) setAnswer({ term: debounced, values: [] }); });
     return () => { live = false; };
   }, [debounced, onSearch]);
+  const found = debounced && answer?.term === debounced ? answer.values : null;
 
   const base = found ?? values;
   // Selected values first (even if they fell out of the top counts), then the rest.
