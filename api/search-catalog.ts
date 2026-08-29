@@ -72,7 +72,7 @@ const ENTITIES: Entity[] = [
 
 const ident = (t: string) => `"${t.replace(/"/g, "")}"`;
 
-export default async function handler(req: any, res: any) {
+export default async function handler(_req: any, res: any) {
   const dbUrl = process.env.POLICY_DATABASE_URL;
   if (!dbUrl) return res.status(503).json({ error: "POLICY_DATABASE_URL is not set" });
   const sql = neon(dbUrl);
