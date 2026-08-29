@@ -58,10 +58,23 @@ export function tidy(s: string): string {
     .trim();
 }
 
+/**
+ * Redlines survive the conversion. Legislative drafting marks language added
+ * to current law by underlining it and language removed by striking it —
+ * Texas committee substitutes carry <u> and <s>, Michigan <u>, others <ins>,
+ * <del>, <strike> — and stripping those tags while keeping their words turned
+ * every amended text into an unreadable mixture of old and new. Now the marks
+ * are kept in the text itself, wdiff-style: {+added+} and [-deleted-]. Plain
+ * enough to read and to index, and enough for a redline view to render from.
+ * (Not applied to PDFs: pdftotext has no strikethrough to give us. Rows
+ * converted before 2026-08-29 carry the words without the marks.)
+ */
 export function htmlToText(html: string): string {
   const stripped = html
     .replace(/<!--[\s\S]*?-->/g, "")
     .replace(/<(script|style|head|nav|footer)\b[^>]*>[\s\S]*?<\/\1>/gi, "")
+    .replace(/<(s|strike|del)\b[^>]*>([\s\S]*?)<\/\1\s*>/gi, (_m, _t, inner: string) => (inner.trim() ? `[-${inner}-]` : ""))
+    .replace(/<(ins|u)\b[^>]*>([\s\S]*?)<\/\1\s*>/gi, (_m, _t, inner: string) => (inner.trim() ? `{+${inner}+}` : ""))
     .replace(/<br\s*\/?>/gi, "\n")
     .replace(/<\/(p|div|tr|li|h[1-6]|section|article|blockquote)\s*>/gi, "\n")
     .replace(/<(p|div|tr|li|h[1-6]|section|article|blockquote)\b[^>]*>/gi, "\n")
