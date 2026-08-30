@@ -714,6 +714,10 @@ async function runStateLink(sql: Sql, state: string, since: number, limit: numbe
         await s3().send(new PutObjectCommand({ Bucket: PDF_DEFER_BUCKET, Key: key, Body: body, ContentType: "application/pdf", Metadata: { source: d.state_link.slice(0, 1000), bill_id: String(d.bill_id) } }));
         counts.pdfDeferred = (counts.pdfDeferred ?? 0) + 1;
         counts.pdfDeferredBytes = (counts.pdfDeferredBytes ?? 0) + body.byteLength;
+        // The driver reads `chars` as "did this round produce anything" and closes
+        // a state after two empty rounds; a parked PDF is progress, so it counts
+        // its bytes here. (Text chars and parked bytes are reported separately too.)
+        counts.chars = (counts.chars ?? 0) + body.byteLength;
         await buf.add({
           document_id: d.document_id, bill_id: d.bill_id, state: d.state, session_id: d.session_id,
           version: d.document_desc || null, source: "state_link", mime: "application/pdf",
