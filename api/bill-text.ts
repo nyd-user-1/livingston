@@ -634,6 +634,12 @@ export function rewriteLink(url: string): string {
     //   -> www.legis.iowa.gov/docs/publications/LGI/<ga>/<bill>.pdf (introduced text; other versions have no fixed path).
     .replace(/^https?:\/\/coolice\.legis\.iowa\.gov\/Legislation\/(\d+)thGA\/Bills\/(?:House|Senate)Files\/Introduced\/([A-Z]+\d+)\.html$/i, "https://www.legis.iowa.gov/docs/publications/LGI/$1/$2.pdf")
     .replace(/^https?:\/\/coolice\.legis\.state\.ia\.us\/linc\/(\d+)\/external\/([A-Z]+\d+)_Introduced\.html$/i, "https://www.legis.iowa.gov/docs/publications/LGI/$1/$2.pdf")
+    // Vermont: www.leg.state.vt.us (dead) /docs/2014/bills/Intro/H-052.pdf -> legislature.vermont.gov/Documents/2014/Docs/BILLS/H-0052/H-0052 As Introduced.pdf;
+    //   /docs/2010/Acts/ACTR185.pdf -> Documents/2010/Docs/ACTS/ACTR185/ACTR185 As Adopted.pdf (ACT### -> As Enacted); /docs/2014/resolutn/HCR100.pdf -> RESOLUTN/HCR100/HCR100 As Introduced.pdf.
+    //   The chamber-passed copies (bills/House, bills/Senate, bills/Passed) have no derivable name and are left alone. Rate-limits at >2 lanes (robots says Crawl-delay 30).
+    .replace(/^https?:\/\/www\.leg\.state\.vt\.us\/docs\/(\d{4})\/bills\/Intro\/([HS])-(\d+)\.pdf$/i, (_m, yr: string, ch: string, n: string) => `https://legislature.vermont.gov/Documents/${yr}/Docs/BILLS/${ch.toUpperCase()}-${n.padStart(4, "0")}/${ch.toUpperCase()}-${n.padStart(4, "0")}%20As%20Introduced.pdf`)
+    .replace(/^https?:\/\/www\.leg\.state\.vt\.us\/docs\/(\d{4})\/Acts\/(ACTR?)(\d+)\.pdf$/i, (_m, yr: string, kind: string, n: string) => `https://legislature.vermont.gov/Documents/${yr}/Docs/ACTS/${kind.toUpperCase()}${n}/${kind.toUpperCase()}${n}%20As%20${kind.toUpperCase() === "ACTR" ? "Adopted" : "Enacted"}.pdf`)
+    .replace(/^https?:\/\/www\.leg\.state\.vt\.us\/docs\/(\d{4})\/resolutn\/([A-Z]+\d+)\.pdf$/i, (_m, yr: string, r: string) => `https://legislature.vermont.gov/Documents/${yr}/Docs/RESOLUTN/${r.toUpperCase()}/${r.toUpperCase()}%20As%20Introduced.pdf`)
     // Oregon: www.leg.state.or.us/11reg/measures/sb0200.dir/sb0233.intro.html -> OLIS
     //   olis.oregonlegislature.gov/liz/2011R1/Downloads/MeasureDocument/SB233/Introduced (PDF). Versions: intro, a/b/c (engrossed), en (enrolled),
     //   <n>ha / <n>sa (chamber amendments to introduced), a<n>sa / b<n>ha (amendments to an engrossment). Conference/minority reports are left alone.
