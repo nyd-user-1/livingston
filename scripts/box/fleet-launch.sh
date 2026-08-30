@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 # scripts/box/fleet-launch.sh — a fleet of bill-text workers, one public IP each.
 #
-#   fleet-launch.sh <ami-id> <count> [--type t4g.medium] [--skip-states A,B] [--start 4] [--max 16] [--dry-run]
+#   fleet-launch.sh <ami-id> <count> [--from i] [--type t4g.medium] [--skip-states A,B] [--start 4] [--max 16] [--dry-run]
+#   --from i launches shards i..count-1 only (a box already running shard 0 by hand counts as a member).
 #
 # Brendan, 2026-08-29: "run 4 per instance for as many instances as you can …
 # different IPs … dial up from 4 to 8 … staggered." Every rate limit we have met
@@ -20,7 +21,7 @@
 # at exit (that bucket is the one the worker role can already write).
 set -euo pipefail
 AMI="${1:?ami-id}"; COUNT="${2:?count}"; shift 2
-TYPE=t4g.medium; SKIP="NJ,CA,IL,VA,MA,TN"; START=4; MAX=16; DRY=0
+TYPE=t4g.medium; SKIP="NJ,CA,IL,VA,MA,TN"; START=4; MAX=16; DRY=0; FROM=0
 # The PDF bucket: every PDF the fleet meets is parked here and converted later in one pass.
 PDF_BUCKET=livingston-bill-pdfs-638175140432
 # The robots-refused states get Tennessee's treatment — Brendan, 2026-08-29 22:05: "all 50 minus
@@ -28,14 +29,14 @@ PDF_BUCKET=livingston-bill-pdfs-638175140432
 # by host name. PA and GA are AWS-range blocks and are not here; they need a human.
 OVERRIDES="webserver1.lsb.state.ok.us=0:4:norobots,www.oklegislature.gov=0:4:norobots,www3.oklegislature.gov=0:4:norobots,www.capitol.hawaii.gov=0:4:norobots,leg.colorado.gov=0:4:norobots,www.leg.state.co.us=0:4:norobots,lims.dccouncil.us=0:4:norobots,lims.dccouncil.gov=0:4:norobots,www.legis.state.ak.us=0:4:norobots,www.akleg.gov=0:4:norobots"
 while [ $# -gt 0 ]; do case "$1" in
-  --type) TYPE="$2"; shift 2 ;; --skip-states) SKIP="$2"; shift 2 ;; --start) START="$2"; shift 2 ;; --max) MAX="$2"; shift 2 ;; --dry-run) DRY=1; shift ;;
+  --from) FROM="$2"; shift 2 ;; --type) TYPE="$2"; shift 2 ;; --skip-states) SKIP="$2"; shift 2 ;; --start) START="$2"; shift 2 ;; --max) MAX="$2"; shift 2 ;; --dry-run) DRY=1; shift ;;
   *) echo "unknown arg $1" >&2; exit 2 ;; esac; done
 REGION=us-east-1
 SUBNET=subnet-09e840612db030382; SG=sg-0d89f5998e3415eb0; KEY=44b-worker
 PROFILE=arn:aws:iam::638175140432:instance-profile/44b-worker-selfstop
 BUCKET=livingston-fec-bulk-638175140432
 
-for i in $(seq 0 $((COUNT - 1))); do
+for i in $(seq "$FROM" $((COUNT - 1))); do
   SHARD="$i/$COUNT"
   USERDATA=$(cat <<EOF
 #!/bin/bash
