@@ -30,6 +30,7 @@
 //   ?source=va-lis[&limit=&parallel=8]         Virginia 2026+, from the new LIS API (VA_LIS_API_KEY):
 //        LegiScan's links for that session are a React shell; the text is behind the API.
 //   ?source=ma-api[&limit=&parallel=12]         Massachusetts, from malegislature.gov/api — DocumentText inline, no key.
+//   ?source=pdf-batch[&state=][&limit=][&concurrency=]   convert the PDFs parked in S3 by PDF_DEFER_BUCKET.
 //   ?mode=delta[&days=7]                      nightly. state_link first (free);
 //        LegiScan getBillText only as the fallback, because that one is metered:
 //        30,000 queries a month for the whole key, and this route stops at 25,000.
@@ -54,6 +55,7 @@ import { runTxFtp, defaultCacheDir as txCacheDir } from "./_lib/text-sources/tx-
 import { runVaLis } from "./_lib/text-sources/va-lis.js";
 import { runMaApi } from "./_lib/text-sources/ma-api.js";
 import os from "node:os";
+import { S3Client, PutObjectCommand, GetObjectCommand } from "@aws-sdk/client-s3";
 import path from "node:path";
 
 export const config = { maxDuration: 300 };
@@ -666,7 +668,28 @@ async function runStateLink(sql: Sql, state: string, since: number, limit: numbe
       return;
     }
     try {
-      const { text, how } = await bodyToText(got.mime || d.document_mime, got.body as Uint8Array);
+      // PDF deferral (PDF_DEFER_BUCKET): park the bytes in S3 and move on. A
+      // fetch is bound by what the host gives one IP; a conversion is bound by
+      // CPU; tying them together made Tennessee run at pdftotext's pace, not the
+      // host's. The original is kept (redlines, OCR, re-conversion later), the
+      // row says where it is, and `?source=pdf-batch` converts the lot in one
+      // pass on a big box. Brendan, 2026-08-29: "get the pdf into s3 and we
+      // run it all at once."
+      const body = got.body as Uint8Array;
+      const isPdf = (body.length > 4 && body[0] === 0x25 && body[1] === 0x50 && body[2] === 0x44 && body[3] === 0x46) || /pdf/i.test(got.mime || d.document_mime || "");
+      if (isPdf && PDF_DEFER_BUCKET) {
+        const key = `pdf/${d.state}/${d.document_id}.pdf`;
+        await s3().send(new PutObjectCommand({ Bucket: PDF_DEFER_BUCKET, Key: key, Body: body, ContentType: "application/pdf", Metadata: { source: d.state_link.slice(0, 1000), bill_id: String(d.bill_id) } }));
+        counts.pdfDeferred = (counts.pdfDeferred ?? 0) + 1;
+        counts.pdfDeferredBytes = (counts.pdfDeferredBytes ?? 0) + body.byteLength;
+        await buf.add({
+          document_id: d.document_id, bill_id: d.bill_id, state: d.state, session_id: d.session_id,
+          version: d.document_desc || null, source: "state_link", mime: "application/pdf",
+          text: null, error: `pdf-deferred: s3://${PDF_DEFER_BUCKET}/${key}`,
+        });
+        return;
+      }
+      const { text, how } = await bodyToText(got.mime || d.document_mime, body);
       counts[`via_${how.split(":")[0]}`] = (counts[`via_${how.split(":")[0]}`] ?? 0) + 1;
       // A single-page app's shell is not a bill. Virginia's new LIS and Indiana's
       // IGA both answer a crawler with "You need to enable JavaScript to run this
@@ -698,6 +721,53 @@ async function runStateLink(sql: Sql, state: string, since: number, limit: numbe
   };
 
   await byHostPool(rows, concurrency, counts, one, fetcher);
+  await buf.flush();
+  counts.bills = best.size;
+}
+
+const PDF_DEFER_BUCKET = process.env.PDF_DEFER_BUCKET || "";
+let s3Client: S3Client | null = null;
+const s3 = () => (s3Client ??= new S3Client({ region: process.env.AWS_REGION || "us-east-1" }));
+
+/**
+ * The second half of PDF deferral: rows whose error says `pdf-deferred: s3://…`
+ * are read back from S3, converted, and rewritten as text. Runs anywhere with
+ * pdftotext and the bucket; meant for one big pass on a many-core box.
+ */
+async function runPdfBatch(sql: Sql, state: string, limit: number, concurrency: number, counts: Counts) {
+  const rows = (await sql.query(
+    `SELECT document_id, bill_id, state, session_id, version, error
+       FROM "BillTexts" WHERE text IS NULL AND error LIKE 'pdf-deferred: s3://%' AND ($1 = '' OR state = $1)
+      ORDER BY state, document_id LIMIT $2`,
+    [state, limit],
+  )) as { document_id: number; bill_id: number; state: string; session_id: number; version: string | null; error: string }[];
+  counts.considered = rows.length;
+  if (!rows.length) return;
+  const buf = new TextBuffer(sql, counts);
+  const best = new Map<number, number>();
+  let next = 0;
+  const worker = async () => {
+    for (;;) {
+      const r = rows[next++];
+      if (!r) return;
+      const m = /^pdf-deferred: s3:\/\/([^/]+)\/(.+)$/.exec(r.error);
+      if (!m) { counts.badMarker = (counts.badMarker ?? 0) + 1; continue; }
+      const base = { document_id: r.document_id, bill_id: r.bill_id, state: r.state, session_id: r.session_id, version: r.version, source: "state_link", mime: "application/pdf" };
+      try {
+        const obj = await s3().send(new GetObjectCommand({ Bucket: m[1], Key: m[2] }));
+        const bytes = await obj.Body!.transformToByteArray();
+        const { text } = await bodyToText("application/pdf", bytes);
+        if (!text) { counts.emptyText = (counts.emptyText ?? 0) + 1; await buf.add({ ...base, text: null, error: `no text extracted (pdftotext) [s3://${m[1]}/${m[2]}]` }); continue; }
+        await buf.add({ ...base, text, error: null }, text.length);
+        best.set(r.bill_id, Math.max(best.get(r.bill_id) ?? 0, text.length));
+      } catch (e) {
+        counts.convertErrors = (counts.convertErrors ?? 0) + 1;
+        await buf.add({ ...base, text: null, error: `pdf-batch: ${String((e as Error).message).slice(0, 200)} [s3://${m[1]}/${m[2]}]` });
+      }
+    }
+  };
+  await Promise.all(Array.from({ length: Math.max(1, Math.min(concurrency, rows.length)) }, worker));
+  for (const [billId, chars] of best) buf.stamp(billId, chars);
   await buf.flush();
   counts.bills = best.size;
 }
@@ -906,10 +976,12 @@ export default async function handler(req: { headers?: Record<string, string>; q
       await runVaLis(sql, { key, limit, parallel: Math.min(16, Math.max(1, Number(req.query?.parallel ?? 8) || 8)), ua: fetcher.ua }, counts);
     } else if (source === "ma-api") {
       await runMaApi(sql, { limit, parallel: Math.min(24, Math.max(1, Number(req.query?.parallel ?? 12) || 12)), ua: fetcher.ua }, counts);
+    } else if (source === "pdf-batch") {
+      await runPdfBatch(sql, state, limit, concurrency, counts);
     } else if (source === "state_link") {
       await runStateLink(sql, state, since, limit, Boolean(req.query?.amendments), concurrency, Boolean(req.query?.requeueErrors), billIds, counts, fetcher, parseShard(String(req.query?.shard ?? "")));
     } else {
-      return res.status(400).json({ error: "pass ?source=nysenate|govinfo|govinfo-billsum|state_link|ca-pubinfo|tx-ftp|va-lis|ma-api, or ?mode=delta, or ?census=1" });
+      return res.status(400).json({ error: "pass ?source=nysenate|govinfo|govinfo-billsum|state_link|ca-pubinfo|tx-ftp|va-lis|ma-api|pdf-batch, or ?mode=delta, or ?census=1" });
     }
 
     const hosts: PoliteStats[] = fetcher.stats();

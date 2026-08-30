@@ -134,6 +134,9 @@ async function main() {
       bundle: true,
       platform: "node",
       format: "esm",
+      // The AWS SDK (PDF deferral) is CommonJS inside and `require("node:https")`s
+      // at load; an ESM bundle has no `require` unless we give it one.
+      banner: { js: 'import { createRequire as __createRequire } from "node:module"; const require = __createRequire(import.meta.url);' },
       target: "node22",
       logLevel: "warning",
     });

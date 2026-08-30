@@ -14,6 +14,7 @@
 //   node scripts/box/text-backfill.mjs --source tx-ftp --all-sessions [--ftp-connections 2]   # Texas from the FTP mirror
 //   node scripts/box/text-backfill.mjs --source va-lis [--batch 2000] [--api-parallel 8]      # Virginia 2026 via the LIS API (VA_LIS_API_KEY)
 //   node scripts/box/text-backfill.mjs --source ma-api [--batch 2000] [--api-parallel 12]     # Massachusetts via malegislature.gov/api
+//   node scripts/box/text-backfill.mjs --source pdf-batch [--state XX] --batch 500 --concurrency 24   # convert the S3-parked PDFs
 //   node scripts/box/text-backfill.mjs --source ca-pubinfo --all-sessions --since-session 2009
 //   node scripts/box/text-backfill.mjs --source ca-pubinfo --session 2025 --zip pubinfo_Sat.zip --sample 5 --keep   # the cheap test
 //
@@ -334,6 +335,17 @@ if (SOURCE === "ma-api") {
   log(`ma-api: Massachusetts through malegislature.gov/api · batch ${BATCH} · ${par} in flight`);
   const s = await drain("MA api", () => ["source=ma-api", `limit=${BATCH}`, `parallel=${par}`]);
   log(`ma-api done: ${s.considered} considered · ${s.inserted} stored · ${(s.secs / 60).toFixed(1)} min`);
+  process.exit(s.errored ? 1 : 0);
+}
+
+/* ---- pdf-batch ----------------------------------------------------------- */
+
+if (SOURCE === "pdf-batch") {
+  // One pass over every PDF the fleet parked in S3 (PDF_DEFER_BUCKET). Run it on
+  // a many-core box: --concurrency is pdftotext processes in flight.
+  log(`pdf-batch: ${STATE || "all states"} · batch ${BATCH} · ${CONCURRENCY} conversions in flight`);
+  const s = await drain(`pdf-batch ${STATE || "all"}`, () => ["source=pdf-batch", ...(STATE ? [`state=${STATE}`] : []), `limit=${BATCH}`, `concurrency=${CONCURRENCY}`]);
+  log(`pdf-batch done: ${s.considered} considered · ${s.inserted + s.updated} converted · ${(s.secs / 3600).toFixed(2)} h`);
   process.exit(s.errored ? 1 : 0);
 }
 

@@ -7,6 +7,13 @@
 
 Today's lesson, learned state by state: every rate limit we hit is **per IP**. One box at 32 lanes gets `429`'d by Florida and Michigan; the same box at 4 lanes is fine. So the design Brendan asked for: *k* boxes from one AMI, each its own public IP, each taking `document_id % k = i` of the outstanding documents, each host on each box starting at 4 concurrent requests and stepping up 4 at a time after 300 clean answers (to 16), halving on a `429`. No box talks to another — the database is the coordinator — and a box that dies loses nothing. Brendan: "we have like 40 more states to go … we need a solution that fits all states."
 
+## Amendment 22:20 ET (lead) — pull before you launch
+
+Two things landed after this brief was written; `git pull` first, and if you had already launched, terminate by tag and relaunch:
+- **PDF deferral.** The fleet no longer converts PDFs in line. With `PDF_DEFER_BUCKET` set (the launcher sets it), a PDF is parked at `s3://livingston-bill-pdfs-638175140432/pdf/<state>/<document_id>.pdf` and its row says `pdf-deferred: s3://…`. Fetching runs at the host's pace, not pdftotext's. **The conversion is a separate, later pass** — `text-backfill.mjs --source pdf-batch --batch 500 --concurrency 24` on a many-core box — which the lead runs; you report how many PDFs were parked (the census query counts them under `err`, so also run `SELECT state, count(*) FROM "BillTexts" WHERE error LIKE 'pdf-deferred%' GROUP BY 1`).
+- **The robots-refused states are in scope** (OK, HI, CO, DC, AK), with fixed 4-lane `norobots` overrides per host in the launcher. Their earlier `robots:` and `host-dropped:` rows must be cleared so they are re-selected — step 2's DELETE now reads: `DELETE FROM "BillTexts" WHERE source='state_link' AND (error LIKE 'host-dropped%' OR error LIKE 'robots:%') AND state NOT IN ('PA','GA','TN');` (TN's remaining refusals are `publications.tnsosfiles.com`, a real block; PA/GA are AWS-range blocks). Report the count.
+- FL is in scope (removed from the skip list); MI stays on box 1.
+
 ## What exists
 
 - **AMI** `ami-0d10c2f783603af51` — a no-reboot snapshot of box 1 (repo at `~/livingston` with `.env.local`, node 22, poppler, the state CA bundle, `~/bin/run-job`). Check it is `available` (`aws ec2 describe-images --region us-east-1 --image-ids ami-0d10c2f783603af51 --query 'Images[0].State'`); it was `pending` at 20:40 ET.
@@ -45,7 +52,7 @@ SELECT state, count(*) AS docs, count(*) FILTER (WHERE got) AS got,
 
 ## Hard rules
 
-Never a second unsharded walker while the fleet runs · never two fleets with different *k* at once · `POLITE_AUTO_LANES` and the fleet's lane logic are the tuning surface; **do not add `norobots` for any host** — the one exception (Tennessee) was Brendan's explicit call and is already done · no `DELETE` beyond step 2's statement · no `src/` changes · no LegiScan API queries · **no push** — commit anything you change by pathspec and say so; the lead pushes after Q/A · if a host answers `403/429` to every shard at 4 lanes, it is refusing the fleet, not a bug — record and report · instances cost money while they run: a shard that is idle for 30 minutes with no log movement gets terminated and reported, not watched.
+Never a second unsharded walker while the fleet runs · never two fleets with different *k* at once · `POLITE_AUTO_LANES` and the fleet's lane logic are the tuning surface · **the `norobots` overrides baked into `fleet-launch.sh` (OK, HI, CO, DC, AK) are Brendan's decision of 22:05 ET — "all 50 minus the 3-4 where you are blocked, max speed" — do not add hosts to that list yourself; PA and GA are AWS-range blocks and stay out** · no `DELETE` beyond step 2's statement · no `src/` changes · no LegiScan API queries · **no push** — commit anything you change by pathspec and say so; the lead pushes after Q/A · if a host answers `403/429` to every shard at 4 lanes, it is refusing the fleet, not a bug — record and report · instances cost money while they run: a shard that is idle for 30 minutes with no log movement gets terminated and reported, not watched.
 
 ## Reporting — into this file, under **Report**
 
