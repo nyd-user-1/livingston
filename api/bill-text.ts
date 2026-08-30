@@ -660,19 +660,24 @@ async function runStateLink(sql: Sql, state: string, since: number, limit: numbe
             AND d.document_type = ANY($4::text[])
           ORDER BY b.session_id DESC, d.document_id
           LIMIT $3`
-      : `SELECT d.document_id, d.bill_id, d.state_link, d.document_mime, d.document_desc, d.document_size, b.state, b.session_id
-           FROM "Documents" d
-           JOIN "Bills" b ON b.bill_id = d.bill_id
+      // Bills of the state FIRST (a materialised CTE), then their documents. Left
+      // to itself the planner chose a parallel seq scan of all 4.4M "Documents"
+      // rows per round and applied the state filter after the join — 188 s a
+      // select with the fleet on it (2026-08-30 04:45Z). The CTE pins the plan
+      // to the state index and the documents' bill_id index.
+      : `WITH bs AS MATERIALIZED (
+           SELECT bill_id, state, session_id FROM "Bills" WHERE ($1 = '' OR state = $1) AND session_id >= $2)
+         SELECT d.document_id, d.bill_id, d.state_link, d.document_mime, d.document_desc, d.document_size, bs.state, bs.session_id
+           FROM bs
+           JOIN "Documents" d ON d.bill_id = bs.bill_id
            LEFT JOIN "BillTexts" t ON t.document_id = d.document_id
           WHERE d.document_type = ANY($4::text[])
             AND d.state_link <> ''
-            AND ($1 = '' OR b.state = $1)
-            AND b.session_id >= $2
             AND t.document_id IS NULL
             AND d.state_link NOT LIKE '%legiscan.com%'
             AND (d.document_size IS NULL OR d.document_size <= ${MAX_TEXT_BYTES})
             AND (d.document_id % $5::int) = $6::int
-          ${shard.of > 1 ? "" : "ORDER BY b.session_id DESC, d.bill_id, d.document_id"}
+          ${shard.of > 1 ? "" : "ORDER BY bs.session_id DESC, d.bill_id, d.document_id"}
           LIMIT $3`,
     billIds.length
       ? [includeAmendments ? ["text", "amendment"] : ["text"], billIds, limit]
@@ -778,7 +783,7 @@ const s3 = () => (s3Client ??= new S3Client({ region: process.env.AWS_REGION || 
 async function runPdfBatch(sql: Sql, state: string, limit: number, concurrency: number, counts: Counts) {
   const rows = (await sql.query(
     `SELECT document_id, bill_id, state, session_id, version, error
-       FROM "BillTexts" WHERE text IS NULL AND error LIKE 'pdf-deferred: s3://%' AND ($1 = '' OR state = $1)
+       FROM "BillTexts" WHERE text IS NULL AND error LIKE 'pdf-deferred%' AND ($1 = '' OR state = $1)
       ORDER BY state, document_id LIMIT $2`,
     [state, limit],
   )) as { document_id: number; bill_id: number; state: string; session_id: number; version: string | null; error: string }[];
