@@ -69,3 +69,37 @@ Heartbeat before each step with the expected duration; a heartbeat every 15–20
 *(lane writes here)*
 
 ### Heartbeats
+
+**2026-08-30 07:50 ET (lead) — fleet 1 drained; the census; the routes; fleet 2.**
+Fleet 1 finished at 07:17Z: every shard reported `all-states done 44/44` (the `EXIT=1` on seven of them means "one state ended on errors", nothing lost) and self-terminated. Bills with text were **73.1 % (1,556,555 / 2,128,849)** at 03:10 ET; the census below is by *document* (2009+, state_link, not NY/US/LegiScan-hosted).
+
+*What the census said.* 452k document rows had failed for reasons that turned out to be ours to fix, not the states': hosts that **moved** under us (old host dead, new host serving the same path from AWS) and hosts that **rate-limited** a single IP. Probed every dropped host from home and from box 2 (`scratchpad/probe-hosts.sh`):
+
+| State | Old host (dead/dropped) | Route now (`rewriteLink`, commit `6bcd79f`) | Rows |
+|---|---|---|---|
+| FL | `www.flsenate.gov` 429s at >2 lanes | same host, paced `1000:2` per IP | 57k |
+| PA | `legis.state.pa.us` / `palegis.us` | **blocks the AWS range** — running from the Mac (home IP), 14 docs/s | 44k |
+| AZ | `azleg.gov` 403 = rate-limit | same host, `1000:2` | 35k |
+| GA | `legis.ga.gov` | **blocks AWS** — Mac | 41k |
+| AL | `alisondb.legislature.state.al.us` (gone) | new ALISON `alison.legislature.state.al.us/files/pdf/SearchableInstruments/<sess>/PrintFiles/<BILL>-Int.pdf` — the site's GraphQL (`gql.api.alison…/graphql`, `instruments(where:{sessionAbbreviation})`, introspection off, read from its Next.js chunks) hands out exactly these; version suffix capitalised | 27k |
+| MO | `www.house.mo.gov` 403/429 + 404s | `house.mo.gov` (bare) `1000:2`; `hlrbillspdf` tree → `documents.house.mo.gov` | 33k |
+| WV | `legis.state.wv.us` | `www.wvlegislature.gov`, same path | 19k |
+| CO | `leg.colorado.gov/sites/default/files/documents/…` 404 | `content.leg.colorado.gov`, file name lower-cased | 18k+ |
+| KY | `lrc.ky.gov/record/11RS/HB313/bill.doc` | `apps.legislature.ky.gov/record/11rs/…/bill.doc` — Word 97; **antiword** converter added (`docToText`, OLE magic sniffed) | 14k |
+| NH | `gencourt.state.nh.us` ×2 | `gc.nh.gov`, same paths | 21k |
+| OR | `www.leg.state.or.us/11reg/measures/sb0200.dir/sb0233.intro.html` | OLIS `olis.oregonlegislature.gov/liz/2011R1/Downloads/MeasureDocument/SB233/Introduced` — sessions 09/10ss1/11/12/13 → `2009R1/2010S1/…`; versions intro/a/b/c/en/`<n>ha`/`<n>sa`/`a<n>sa`…; conference/minority reports left | 12k |
+| TN | `publications.tnsosfiles.com` | answers AWS at 200 — `norobots`, 4 lanes | 11k |
+| LA | `legis.state.la.us/billdata/streamdocument.asp?did=N` | `legis.la.gov/legis/ViewDocument.aspx?d=N` | 10k |
+| MD | `mlis.state.md.us` | `mgaleg.maryland.gov`, same path | 9k |
+| VT | `leg.state.vt.us` (dead) → `legislature.vermont.gov` | **blocks AWS** — Mac | 8k |
+| AK | `legis.state.ak.us` | `www.akleg.gov`, same path | 7.5k |
+| IA | `coolice.legis.iowa.gov` / `coolice.legis.state.ia.us` | `legis.iowa.gov/docs/publications/LGI/<ga>/<bill>.pdf` (introduced only; other versions have no fixed path) | 11k |
+| RI | `rilin.state.ri.us` | `webserver.rilegislature.gov`, same path | 5k |
+
+Every rewrite was exercised end-to-end from the bundle (`scratchpad/rw-test.mjs`): 19 sample links → 19 × HTTP 200 with the right content type.
+
+*Still no route:* **MT** 23k — `leg.mt.gov/bills/<yr>/…pdf` redirects to `archive.legmt.gov` which 404s everything; the new `api.legmt.gov/docs/v1/documents/getBillText?legislatureOrdinal=69&sessionOrdinal=20251&billType=HB&billNumber=2` serves the *current* session's PDFs but "No Document(s) found" for 68/20231 and earlier — older sessions' text is not in the document store yet. **AR** 13.5k — `arkleg.state.ar.us` answers every document request (old path, ftp:// path, `FTPDocument?path=`) with a 42-byte GIF: a bot wall. **SD** 8.8k — both old hosts dead, the new `sdlegislature.gov` API needs internal ids. **DE** 2k — Lotus Notes `.doc?open` → "PageNotFound". **OH archives** 8k — `archives.legislature.state.oh.us` (129th GA) dead, not in the v2 API. **IN** 50k — token (Brendan's email). **MN** 5k / **MT** 4k / **AR** 1.8k parked PDFs are image scans (pdftotext empty) — OCR, later.
+
+*What was done.* (1) `DELETE FROM "BillTexts"` of the 452,315 text-less rows whose error was one of the above (host-dropped for those hosts, `fetch failed`, HTTP 5xx/429/403, transient DB errors, MO/CO 404s) — the absence is the resume point, so the fleet re-fetches them through the new routes. (2) **Fleet 2**: `fleet-launch.sh ami-06f318091abc639be 10 --bootstrap --skip-states CA,TX,VA,MA,HI,OK,PA,GA,VT --start 4 --max 12` at 07:49 ET — 10 × t4g.medium, shards `i/10`, **`TEXT_SINK_BUCKET` on** (text to `s3://livingston-bill-pdfs-…/text/<state>/…jsonl.gz`, stub rows in Neon; load with `--source s3-load` afterwards — Brendan's orderly-load direction), per-host pacing in `OVERRIDES` (FL/AZ/MO `1000:2`, TN/CO norobots, OLIS/ALISON/KY 250:4), antiword in the apt line, tarball rebuilt from box 2 (`6bcd79f`). (3) **Mac**: `text-backfill.mjs --state PA|GA|VT` from this laptop (home IP; 12 lanes total; PDFs park to S3, text to the sink); PA's first round: 2,000 in 145 s. (4) **Converter** (`i-0ffee58a85d5c6466`, c7g.4xlarge) is healthy — its log line printed `inserted 0 · unchanged 0` because pdf-batch rows are *updates*; the driver now prints `updated`. Parked backlog 99,961 at 07:20 ET, draining ~100/s. (5) **OK** job `lv-text-ok` on box 2 continues (91,819 left at 07:20). (6) Forms: `inspect` had failed on four federal sources with `unsupported Unicode escape sequence` (AcroForm field names carrying NULs → jsonb) — fixed, `lv-forms-d2` re-inspecting IRS/VA/USCIS/Grants.gov; the NYS jobs pick the fix up when their own inspect steps start.
+
+*Ceiling after this pass:* the 452k re-fetched + OK + parked PDFs ≈ +25 pp of documents; blocked-for-real (IN, PA/GA only via the Mac, MT, AR, SD, DE, OH-archive, scans) ≈ 120k documents ≈ 5 %.
