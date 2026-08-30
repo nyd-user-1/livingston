@@ -254,7 +254,7 @@ export class TextBuffer {
     // and one such row fails its whole batch. Fold the common non-ASCII punctuation to ASCII, then, if
     // the head is still too wide, cut the text so its first million characters fit. Rare (only the
     // budget-sized bills), counted, and the stored text is what the index can hold anyway.
-    if (r.text && r.text.length > 900_000) {
+    if (r.text && r.text.length > 260_000) {   // 260k four-byte characters is already over the ceiling; below that no text can be
       let head = r.text.slice(0, 1_000_000);
       if (Buffer.byteLength(head, "utf8") > 1_040_000) {
         r.text = r.text.replace(/[\u2018\u2019\u201a]/g, "'").replace(/[\u201c\u201d\u201e]/g, '"').replace(/[\u2013\u2014]/g, "-").replace(/\u00a0/g, " ").replace(/\u2026/g, "...");
