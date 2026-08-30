@@ -373,16 +373,26 @@ if (SOURCE === "state_link") {
   // Order by the slowest host each state owns: documents × the crawl-delay we
   // will actually be held to. Longest first, so the tail of the run is short
   // states rather than Arizona.
-  const rows = await sql.query(
-    `SELECT b.state, count(*)::int AS docs
-       FROM "Documents" d JOIN "Bills" b ON b.bill_id = d.bill_id
-       LEFT JOIN "BillTexts" t ON t.document_id = d.document_id
-      WHERE d.document_type = 'text' AND d.state_link <> '' AND b.session_id >= $1
-        AND t.document_id IS NULL AND b.state NOT IN ('NY','US')
-        AND d.state_link NOT LIKE '%legiscan.com%'
-      GROUP BY 1 ORDER BY 2 DESC`,
-    [SINCE],
-  );
+  // The per-state outstanding count is the honest ordering, but it is a heavy
+  // scan, and on a saturated Neon it timed out and crashed three fleet shards at
+  // start (2026-08-30 03:15Z). In shard mode order by the cheap proxy — bills
+  // per state, an indexed count — and retry either query a few times before
+  // giving up; a driver that dies before its first round takes its box with it.
+  const orderSql = SHARD
+    ? `SELECT state, count(*)::int AS docs FROM "Bills" WHERE session_id >= $1 AND state NOT IN ('NY','US') GROUP BY 1 ORDER BY 2 DESC`
+    : `SELECT b.state, count(*)::int AS docs
+         FROM "Documents" d JOIN "Bills" b ON b.bill_id = d.bill_id
+         LEFT JOIN "BillTexts" t ON t.document_id = d.document_id
+        WHERE d.document_type = 'text' AND d.state_link <> '' AND b.session_id >= $1
+          AND t.document_id IS NULL AND b.state NOT IN ('NY','US')
+          AND d.state_link NOT LIKE '%legiscan.com%'
+        GROUP BY 1 ORDER BY 2 DESC`;
+  let rows = null;
+  for (let attempt = 1; attempt <= 6 && !rows; attempt += 1) {
+    try { rows = await sql.query(orderSql, [SINCE]); }
+    catch (e) { log(`state ordering query failed (attempt ${attempt}/6): ${String(e.message ?? e).slice(0, 120)} — retrying in 60 s`); await new Promise((ok) => setTimeout(ok, 60_000)); }
+  }
+  if (!rows) { log("could not read the state list from the database after 6 attempts — giving up"); process.exit(1); }
   const states = rows.map((r) => r.state).filter((st) => !SKIP_STATES.has(st) && (ONLY_STATES.size === 0 || ONLY_STATES.has(st)));
   const held = rows.filter((r) => SKIP_STATES.has(r.state));
   if (held.length) log(`state_link --all-states: holding back ${held.map((r) => `${r.state} (${Number(r.docs).toLocaleString()} docs)`).join(", ")} — another job owns that host`);
