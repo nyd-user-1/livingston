@@ -191,3 +191,12 @@ Brendan at 22:05: "go at max speed until you have gone through all 50 states …
 - **Decisions of record (Brendan's):** OK, HI, CO, DC, AK fetched with `norobots` (TN's treatment); Crawl-delay not honoured in adaptive mode; Florida's and Michigan's per-IP 429s answered with more IPs, not more patience.
 - **Neon is the ceiling.** Still-open ask to Brendan: raise the compute's autoscaling max for the night.
 - **Numbers:** bills with text 50.1% at 22:05 → **55.0% at 00:20**, with 174k PDFs parked and converting. Cost of the night so far ≈ $7–14 all-in.
+
+## 2026-08-30 03:10 ET — the fleet drains; Oklahoma recovered; forms library underway
+
+- **Fleet:** shards report `all-states done: 44/44 · ~70k stored · ~33k skipped · 2.4–2.9G chars · 1 ended on errors` and terminate (7 gone, 12 finishing DC at 03:10). Per shard ≈ 70k documents stored + parked → **~1.4M documents across the fleet in ~4.5 hours** for ≈ $3 of compute.
+- **Bills with text:** 50.1% (22:05) → 60.1% (01:05) → 71.9% (02:40) → **73.1% (03:10)**, with **127k PDFs still parked** and converting at ~90/s — the converter's writes had looked stuck ("unchanged" in the counters) but the rows prove they land; the counter is a `RETURNING` artefact, noted, not fixed tonight.
+- **Oklahoma recovered (100k documents):** the LegiScan links point at `webserver1.lsb.state.ok.us`, which now answers "Bad Request (Invalid Hostname)" — 84,807 HTTP 400s and 15,012 404s recorded as verdicts. The same `cf_pdf` paths serve from `www.oklegislature.gov` (case-insensitively), and the pre-2013 `.rtf` links map to the `cf_pdf` PDFs the site itself links (`/2011-12bills/HB/HB1421_int.rtf` → `/cf_pdf/2011-12%20int/hb/HB1421%20int.pdf`). `rewriteLink` (`c710042`); 99,819 dead rows deleted; `lv-text-ok` on box 2 at 4,000 per 112 s.
+- **Hawaii done** (150,443 texts). **Michigan:** NUL-byte failures fixed (`31913bb`); some shards' MI rounds ended on errors before the fix — the retry sweep covers them.
+- **Still to route:** Alabama (`alisondb.legislature.state.al.us` is gone; the new ALISON is a GraphQL app), Oregon (`leg.state.or.us` old paths dead; OLIS is the new site), Indiana (token), PA/GA (AWS-range blocks), TN's tnsosfiles.
+- **Forms library** (lane FL, `prompts/2026-08-30-forms-library.md`): 174k PDFs catalogued (NYS ~89k, federal ~85k), 9,224 fetched (4.6 GB) in the first 15 minutes across six parallel jobs on box 2; IRS already in `inspect`.
