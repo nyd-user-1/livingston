@@ -218,6 +218,13 @@ export class TextBuffer {
   constructor(private sql: Sql, private counts: Counts, private size = 50, private maxAgeMs = 30_000) {}
 
   async add(r: TextRow, chars?: number) {
+    // Postgres text cannot hold NUL. A Michigan document carried one and its
+    // whole 50-row batch failed with 'invalid byte sequence for encoding "UTF8":
+    // 0x00' — twenty of those in a row would have ended a fleet driver and its
+    // box (2026-08-30 05:20Z). Strip it here, once, for every source.
+    if (r.text && r.text.includes("\u0000")) { r.text = r.text.replace(/\u0000/g, ""); this.counts.nulStripped = (this.counts.nulStripped ?? 0) + 1; }
+    if (r.error && r.error.includes("\u0000")) r.error = r.error.replace(/\u0000/g, "");
+    if (r.version && r.version.includes("\u0000")) r.version = r.version.replace(/\u0000/g, "");
     this.rows.push(r);
     this.bytes += (r.text?.length ?? 0) + 200;
     if (chars && chars > 0) this.stamp(r.bill_id, chars);
