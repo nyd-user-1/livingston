@@ -83,6 +83,11 @@ const ONLY_STATES = new Set(val("--only-states").split(",").map((x) => x.trim().
 // Built for lane MB's curated CPI matches, which are 2003-2019 and therefore
 // invisible to a walk scoped at session_id >= 2023.
 const BILL_IDS = val("--bill-ids");
+// --shard i/k: this box takes documents whose id % k = i. A fleet of k boxes,
+// one per public IP, covers everything exactly once with no coordination but
+// the database. (Brendan, 2026-08-29: "run 4 per instance for as many
+// instances as you can … different IPs.")
+const SHARD = val("--shard", "");
 
 if (!SOURCE) { console.error("usage: text-backfill.mjs --source nysenate|govinfo|state_link|ca-pubinfo [...]"); process.exit(2); }
 
@@ -348,7 +353,7 @@ if (SOURCE === "state_link") {
     if (!STATE) { console.error("state_link: pass --state XX, --all-states or --bill-ids <file>"); process.exit(2); }
     log(`state_link: ${STATE} since ${SINCE}, batch ${BATCH}, concurrency ${CONCURRENCY}`);
     const extra = RETRY_ERRORS ? ["requeueErrors=1"] : [];
-    const s = await drain(STATE, () => ["source=state_link", `state=${STATE}`, `since=${SINCE}`, `limit=${BATCH}`, `concurrency=${CONCURRENCY}`, ...extra]);
+    const s = await drain(STATE, () => ["source=state_link", `state=${STATE}`, `since=${SINCE}`, `limit=${BATCH}`, `concurrency=${CONCURRENCY}`, ...(SHARD ? [`shard=${SHARD}`] : []), ...extra]);
     log(`${STATE} done: ${s.considered} considered · ${s.inserted} stored · ${s.skipped} skipped · ${(s.secs / 3600).toFixed(2)} h`);
     process.exit(s.errored ? 1 : 0);
   }
@@ -369,7 +374,7 @@ if (SOURCE === "state_link") {
   const states = rows.map((r) => r.state).filter((st) => !SKIP_STATES.has(st) && (ONLY_STATES.size === 0 || ONLY_STATES.has(st)));
   const held = rows.filter((r) => SKIP_STATES.has(r.state));
   if (held.length) log(`state_link --all-states: holding back ${held.map((r) => `${r.state} (${Number(r.docs).toLocaleString()} docs)`).join(", ")} — another job owns that host`);
-  log(`state_link --all-states: ${states.length} states, ${rows.filter((r) => !SKIP_STATES.has(r.state)).reduce((n, r) => n + Number(r.docs), 0).toLocaleString()} documents outstanding, ${PARALLEL} at a time${MAX_SECONDS ? `, budget ${(MAX_SECONDS / 3600).toFixed(1)} h` : ""}`);
+  log(`state_link --all-states: ${states.length} states, ${rows.filter((r) => !SKIP_STATES.has(r.state)).reduce((n, r) => n + Number(r.docs), 0).toLocaleString()} documents outstanding, ${PARALLEL} at a time${MAX_SECONDS ? `, budget ${(MAX_SECONDS / 3600).toFixed(1)} h` : ""}${SHARD ? ` · shard ${SHARD}` : ""}`);
 
   let next = 0;
   const done = [];
@@ -378,7 +383,7 @@ if (SOURCE === "state_link") {
       if (budgetSpent()) return;
       const st = states[next++];
       if (!st) return;
-      const s = await drain(st, () => ["source=state_link", `state=${st}`, `since=${SINCE}`, `limit=${BATCH}`, `concurrency=${CONCURRENCY}`, ...(RETRY_ERRORS ? ["requeueErrors=1"] : [])]);
+      const s = await drain(st, () => ["source=state_link", `state=${st}`, `since=${SINCE}`, `limit=${BATCH}`, `concurrency=${CONCURRENCY}`, ...(SHARD ? [`shard=${SHARD}`] : []), ...(RETRY_ERRORS ? ["requeueErrors=1"] : [])]);
       done.push(s);
       log(`── ${st} finished: ${s.inserted} stored, ${s.skipped} skipped, ${(s.secs / 3600).toFixed(2)} h — ${done.length}/${states.length} states done`);
     }

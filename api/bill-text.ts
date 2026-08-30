@@ -555,7 +555,7 @@ async function byHostPool<T extends { state_link: string }>(rows: T[], concurren
       const [host, mine] = entry;
       // One lane per host, unless a human overrode this host's concurrency — then
       // that many lanes over the same list, and the fetcher still serialises each lane.
-      const lanes = Math.max(1, fetcher?.concurrencyFor(host) ?? 1);
+      const lanes = Math.max(1, fetcher?.maxLanesFor(host) ?? 1);
       let i = 0;
       await Promise.all(Array.from({ length: Math.min(lanes, mine.length) }, async () => { for (;;) { const d = mine[i++]; if (!d) return; await one(d); } }));
     }
@@ -580,7 +580,15 @@ export function rewriteLink(url: string): string {
     .replace(/^http:\/\/(www\.)?legislature\.mi\.gov\//i, "https://www.legislature.mi.gov/");
 }
 
-async function runStateLink(sql: Sql, state: string, since: number, limit: number, includeAmendments: boolean, concurrency: number, requeueErrors: boolean, billIds: number[], counts: Counts, fetcher: PoliteFetcher) {
+/** "2/8" → the third of eight shards: this worker takes documents whose id % 8 = 2. Several boxes, several IPs, no overlap, no chatter — the database is the coordinator. */
+export function parseShard(spec: string): { index: number; of: number } {
+  const m = /^(\d+)\s*\/\s*(\d+)$/.exec(spec.trim());
+  if (!m) return { index: 0, of: 1 };
+  const of = Math.max(1, Number(m[2])); const index = Math.min(of - 1, Math.max(0, Number(m[1])));
+  return { index, of };
+}
+
+async function runStateLink(sql: Sql, state: string, since: number, limit: number, includeAmendments: boolean, concurrency: number, requeueErrors: boolean, billIds: number[], counts: Counts, fetcher: PoliteFetcher, shard = { index: 0, of: 1 }) {
   // Default: documents with no "BillTexts" row at all — the absence IS the resume
   // point, so there is no checkpoint to keep.
   //
@@ -635,11 +643,12 @@ async function runStateLink(sql: Sql, state: string, since: number, limit: numbe
             AND t.document_id IS NULL
             AND d.state_link NOT LIKE '%legiscan.com%'
             AND (d.document_size IS NULL OR d.document_size <= ${MAX_TEXT_BYTES})
+            AND (d.document_id % $5::int) = $6::int
           ORDER BY b.session_id DESC, d.bill_id, d.document_id
           LIMIT $3`,
     billIds.length
       ? [includeAmendments ? ["text", "amendment"] : ["text"], billIds, limit]
-      : [state, since, limit, includeAmendments ? ["text", "amendment"] : ["text"]],
+      : [state, since, limit, includeAmendments ? ["text", "amendment"] : ["text"], shard.of, shard.index],
   )) as { document_id: number; bill_id: number; state_link: string; document_mime: string; document_desc: string; state: string; session_id: number }[];
   counts.considered = rows.length;
 
@@ -898,7 +907,7 @@ export default async function handler(req: { headers?: Record<string, string>; q
     } else if (source === "ma-api") {
       await runMaApi(sql, { limit, parallel: Math.min(24, Math.max(1, Number(req.query?.parallel ?? 12) || 12)), ua: fetcher.ua }, counts);
     } else if (source === "state_link") {
-      await runStateLink(sql, state, since, limit, Boolean(req.query?.amendments), concurrency, Boolean(req.query?.requeueErrors), billIds, counts, fetcher);
+      await runStateLink(sql, state, since, limit, Boolean(req.query?.amendments), concurrency, Boolean(req.query?.requeueErrors), billIds, counts, fetcher, parseShard(String(req.query?.shard ?? "")));
     } else {
       return res.status(400).json({ error: "pass ?source=nysenate|govinfo|govinfo-billsum|state_link|ca-pubinfo|tx-ftp|va-lis|ma-api, or ?mode=delta, or ?census=1" });
     }

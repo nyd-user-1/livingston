@@ -62,6 +62,8 @@ type HostState = {
   lanes: Promise<unknown>[];    // N lanes when a host override allows N in flight
   queued: number;               // round-robin pointer for the lanes (requests counts COMPLETIONS, too late to balance on)
   override?: HostOverride;
+  auto?: { start: number; max: number };   // adaptive lanes: this host ramps and backs off on its own
+  clean: number;                // clean answers since the last lane change (auto mode)
   nextAt: number;               // epoch ms before which we may not start
   delayMs: number;
   strikes: number;              // consecutive 403/429
@@ -71,14 +73,32 @@ type HostState = {
   requests: number;
 };
 
-export type PoliteStats = { host: string; requests: number; strikes: number; dropped: boolean; delayMs: number };
+export type PoliteStats = { host: string; requests: number; strikes: number; dropped: boolean; delayMs: number; lanes?: number };
 
 const DEFAULT_UA =
   "livingston-bill-text/1.0 (legislative full-text archive; +https://github.com/nyd-user-1/livingston; contact: brendan@nysgpt.com)";
 
+/**
+ * POLITE_AUTO_LANES="4:16" — adaptive concurrency for every host that has no
+ * explicit override. Each host starts at `start` lanes with no delay; after
+ * every 300 clean answers it steps up by `start` until `max`; on a 403/429 it
+ * halves (never below 1) and waits the Retry-After. Each box — each IP — finds
+ * its own ceiling for each site, which is the fleet design Brendan asked for
+ * on 2026-08-29: "push up per IP 4 at a clip." robots.txt Disallow still
+ * applies; Crawl-delay does not (that was the Illinois decision, generalised).
+ */
+export function parseAutoLanes(spec: string | undefined): { start: number; max: number } | null {
+  const m = /^\s*(\d+)\s*:\s*(\d+)\s*$/.exec(spec ?? "");
+  if (!m) return null;
+  const start = Math.max(1, Math.min(32, Number(m[1]))); const max = Math.max(start, Math.min(32, Number(m[2])));
+  return { start, max };
+}
+const AUTO_STEP_AFTER = 300;   // clean answers between step-ups
+
 export class PoliteFetcher {
   private hosts = new Map<string, HostState>();
   private overrides = parseHostOverrides(process.env.POLITE_HOST_OVERRIDES);
+  private auto = parseAutoLanes(process.env.POLITE_AUTO_LANES);
   readonly ua: string;
   readonly minDelayMs: number;
   readonly maxBytes: number;
@@ -95,7 +115,7 @@ export class PoliteFetcher {
 
   stats(): PoliteStats[] {
     return [...this.hosts.entries()]
-      .map(([host, s]) => ({ host, requests: s.requests, strikes: s.strikes, dropped: s.dropped, delayMs: s.delayMs }))
+      .map(([host, s]) => ({ host, requests: s.requests, strikes: s.strikes, dropped: s.dropped, delayMs: s.delayMs, lanes: s.lanes.length || 1 }))
       .sort((a, b) => b.requests - a.requests);
   }
 
@@ -105,8 +125,10 @@ export class PoliteFetcher {
     let s = this.hosts.get(host);
     if (!s) {
       const override = this.overrides.get(host.toLowerCase());
-      s = { chain: Promise.resolve(), lanes: [], queued: 0, override, nextAt: 0, delayMs: override ? override.delayMs : this.minDelayMs, strikes: 0, dropped: false, robots: null, robotsLoaded: false, requests: 0 };
+      const auto = override ? undefined : this.auto ?? undefined;
+      s = { chain: Promise.resolve(), lanes: [], queued: 0, override, auto, clean: 0, nextAt: 0, delayMs: override ? override.delayMs : auto ? 0 : this.minDelayMs, strikes: 0, dropped: false, robots: null, robotsLoaded: false, requests: 0 };
       if (override) s.lanes = Array.from({ length: override.concurrency }, () => Promise.resolve());
+      else if (auto) s.lanes = Array.from({ length: auto.start }, () => Promise.resolve());
       this.hosts.set(host, s);
     }
     return s;
@@ -128,8 +150,27 @@ export class PoliteFetcher {
     return run;
   }
 
-  /** How many requests this fetcher will run at once against a host: 1, unless a human overrode it. */
-  concurrencyFor(host: string): number { return this.overrides.get(host.toLowerCase())?.concurrency ?? 1; }
+  /** How many requests this fetcher will run at once against a host right now: 1, unless overridden or adaptive. */
+  concurrencyFor(host: string): number { return Math.max(1, this.state(host).lanes.length || 1); }
+  /** The most it could ever run at once against a host — what a caller should be ready to keep fed. */
+  maxLanesFor(host: string): number { const s = this.state(host); return s.override?.concurrency ?? s.auto?.max ?? 1; }
+
+  /** Adaptive lanes: step up after a run of clean answers, halve on a refusal. */
+  private adapt(s: HostState, refused: boolean) {
+    if (!s.auto) return;
+    if (refused) {
+      s.clean = 0;
+      const n = Math.max(1, Math.floor(s.lanes.length / 2));
+      if (n < s.lanes.length) s.lanes = s.lanes.slice(0, n);
+      return;
+    }
+    s.clean += 1;
+    if (s.clean >= AUTO_STEP_AFTER && s.lanes.length < s.auto.max) {
+      s.clean = 0;
+      const n = Math.min(s.auto.max, s.lanes.length + s.auto.start);
+      while (s.lanes.length < n) s.lanes.push(Promise.resolve());
+    }
+  }
 
   private async pace(s: HostState) {
     const wait = s.nextAt - Date.now();
@@ -151,7 +192,7 @@ export class PoliteFetcher {
       s.requests += 1;
       s.nextAt = Date.now() + s.delayMs;
       s.robots = r.ok ? parseRobots((await r.text()).slice(0, 200_000), this.ua) : { disallow: [], crawlDelayMs: 0 };
-      if (s.robots.crawlDelayMs > s.delayMs && !s.override) s.delayMs = s.robots.crawlDelayMs;   // raise only, never lower — unless a human overrode this host
+      if (s.robots.crawlDelayMs > s.delayMs && !s.override && !s.auto) s.delayMs = s.robots.crawlDelayMs;   // raise only, never lower — unless a human overrode this host, or the fleet's adaptive mode is on
     } catch {
       s.nextAt = Date.now() + s.delayMs;
       s.robots = { disallow: [], crawlDelayMs: 0 };
@@ -189,6 +230,7 @@ export class PoliteFetcher {
 
         if (r.status === 403 || r.status === 429) {
           s.strikes += 1;
+          this.adapt(s, true);
           if (s.strikes >= this.maxStrikes) {
             s.dropped = true;
             return { ok: false, status: r.status, mime: "", body: null, bytes: 0, skipped: "host-dropped" as PoliteSkip, error: `${host} dropped after ${s.strikes} consecutive ${r.status}` };
@@ -207,6 +249,7 @@ export class PoliteFetcher {
         if (!r.ok) { s.strikes = 0; return { ok: false, status: r.status, mime: (r.headers.get("content-type") ?? "").split(";")[0].trim(), body: null, bytes: 0, error: `HTTP ${r.status}` }; }
 
         s.strikes = 0;
+        this.adapt(s, false);
         const mime = (r.headers.get("content-type") ?? "").split(";")[0].trim();
         const declared = Number(r.headers.get("content-length") ?? 0);
         if (declared && declared > this.maxBytes) {
