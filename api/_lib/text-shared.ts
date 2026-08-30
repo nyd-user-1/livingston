@@ -8,7 +8,7 @@
 // One copy, imported everywhere — two that agree today drift tomorrow.
 
 import type { NeonQueryFunction } from "@neondatabase/serverless";
-import { createHash } from "node:crypto";
+import { createHash, randomBytes } from "node:crypto";
 import { spawn } from "node:child_process";
 import { gzipSync, gunzipSync } from "node:zlib";
 import { S3Client, PutObjectCommand, GetObjectCommand } from "@aws-sdk/client-s3";
@@ -343,7 +343,12 @@ export class TextBuffer {
     const out = batch.filter((r) => !r.text);
     const day = new Date().toISOString().slice(0, 10).replace(/-/g, "");
     for (const [state, rows] of byState) {
-      const key = `${TEXT_SINK_PREFIX}/${state}/${day}/${TEXT_SINK_TAG}-${Date.now()}-${rows.length}.jsonl.gz`;
+      // The key must be unique across every writer, not just within this one: two
+      // Arizona shards flushed 48-row batches in the same millisecond (2026-08-30
+      // 08:25:12.020Z), the second PUT overwrote the first object, and the first
+      // shard's 48 stubs pointed at text that was not theirs — the only sink rows
+      // the loader could never fill. pid + 6 random hex closes that.
+      const key = `${TEXT_SINK_PREFIX}/${state}/${day}/${TEXT_SINK_TAG}-${Date.now()}-${process.pid}-${randomBytes(3).toString("hex")}-${rows.length}.jsonl.gz`;
       const body = gzipSync(Buffer.from(rows.map((r) => JSON.stringify({ ...r, chars: r.text!.length, text_hash: sha(r.text!) })).join("\n") + "\n"));
       await s3().send(new PutObjectCommand({ Bucket: TEXT_SINK_BUCKET, Key: key, Body: body, ContentType: "application/x-ndjson", ContentEncoding: "gzip" }));
       this.counts.s3TextObjects = (this.counts.s3TextObjects ?? 0) + 1;

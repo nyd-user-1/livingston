@@ -153,6 +153,7 @@ async function drain(label, argsFor) {
   const totals = { rounds: 0, considered: 0, inserted: 0, updated: 0, unchanged: 0, chars: 0, failed: 0, skipped: 0 };
   let errors = 0;
   let zeroText = 0;
+  let stalled = 0;
   const t0 = Date.now();
   for (let round = 1; round <= MAX_ROUNDS; round += 1) {
     if (budgetSpent()) {
@@ -197,6 +198,19 @@ async function drain(label, argsFor) {
         return { ...totals, label, refused: true, errored: false, secs: (Date.now() - t0) / 1000 };
       }
     } else zeroText = 0;
+    // A round that considered rows and changed none of them, with nothing
+    // skipped or failed, means the selection is not advancing: the same rows
+    // will come back next round, and the round after. The s3-load did exactly
+    // that for 57 three-second rounds on 48 stubs whose object no longer held
+    // them (2026-08-30). Three in a row is the signal — the handler records the
+    // reason in "BillTexts" if it can; spinning here cannot learn anything more.
+    if (Number(b.considered ?? 0) > 0 && Number(b.inserted ?? 0) + Number(b.updated ?? 0) === 0 && Number(b.failed ?? 0) === 0 && skips === 0 && Number(b.orphanStubsDeleted ?? 0) === 0) {
+      stalled += 1;
+      if (stalled >= 3) {
+        log(`${label}: three consecutive rounds considered rows and changed none (last: ${b.considered} considered, ${b.unchanged ?? 0} unchanged) — the selection is not advancing; stopping this scope instead of spinning`);
+        return { ...totals, label, stalled: true, errored: false, secs: (Date.now() - t0) / 1000 };
+      }
+    } else stalled = 0;
     const dropped = Array.isArray(b.dropped) ? b.dropped : [];
     log(`${label} round ${round}: considered ${b.considered ?? 0} · inserted ${b.inserted ?? 0} · updated ${b.updated ?? 0} · unchanged ${b.unchanged ?? 0} · skipped ${skips} · ${((b.ms ?? 0) / 1000).toFixed(0)}s${dropped.length ? ` · DROPPED HOSTS ${dropped.join(",")}` : ""}`);
 

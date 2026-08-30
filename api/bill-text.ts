@@ -886,11 +886,11 @@ async function runPdfBatch(sql: Sql, state: string, limit: number, concurrency: 
  */
 async function runS3Load(sql: Sql, state: string, limit: number, counts: Counts) {
   const keys = (await sql.query(
-    `SELECT substring(error from 's3-text: (s3://.*)$') AS uri, count(*)::int AS n
+    `SELECT substring(error from 's3-text: (s3://.*)$') AS uri, count(*)::int AS n, array_agg(document_id)::bigint[] AS ids
        FROM "BillTexts" WHERE text IS NULL AND error LIKE 's3-text%' AND ($1 = '' OR state = $1)
       GROUP BY 1 ORDER BY 1 LIMIT $2`,
     [state, Math.max(1, Math.floor(limit / 50))],
-  )) as { uri: string; n: number }[];
+  )) as { uri: string; n: number; ids: (number | string)[] }[];
   counts.considered = keys.reduce((a, k) => a + k.n, 0);
   counts.objects = keys.length;
   if (!keys.length) return;
@@ -899,10 +899,33 @@ async function runS3Load(sql: Sql, state: string, limit: number, counts: Counts)
   for (const k of keys) {
     let rows: import("./_lib/text-shared.js").TextRow[];
     try { rows = await readSinkObject(k.uri); } catch (e) { counts.readErrors = (counts.readErrors ?? 0) + 1; console.log(`s3-load: ${k.uri}: ${String((e as Error).message).slice(0, 120)}`); continue; }
+    const present = new Set<number>();
     for (const r of rows) {
       if (!r.text) continue;
+      present.add(Number(r.document_id));
       await buf.add({ document_id: Number(r.document_id), bill_id: Number(r.bill_id), state: r.state, session_id: r.session_id, version: r.version ?? null, source: r.source, mime: r.mime ?? null, text: r.text, error: null }, r.text.length);
       best.set(Number(r.bill_id), Math.max(best.get(Number(r.bill_id)) ?? 0, r.text.length));
+    }
+    // A stub whose object does not hold its document can never be filled from
+    // here — the object was overwritten by another writer's same-millisecond key
+    // (48 Arizona rows, 2026-08-30) — and left in place it is re-selected every
+    // round for ever. Delete the stub so its absence puts the document back on
+    // the fetch path, and clear the bill's stamp if no text of it remains, so the
+    // census does not count text that is nowhere.
+    const orphans = k.ids.map(Number).filter((id) => !present.has(id));
+    if (orphans.length) {
+      const gone = (await sql.query(
+        `DELETE FROM "BillTexts" WHERE document_id = ANY($1::bigint[]) AND text IS NULL AND error = $2 RETURNING bill_id`,
+        [orphans, `s3-text: ${k.uri}`],
+      )) as { bill_id: number }[];
+      const bills = [...new Set(gone.map((g) => Number(g.bill_id)))];
+      if (bills.length) await sql.query(
+        `UPDATE "Bills" b SET text_chars = NULL, text_fetched_at = NULL
+          WHERE b.bill_id = ANY($1::bigint[]) AND NOT EXISTS (SELECT 1 FROM "BillTexts" t WHERE t.bill_id = b.bill_id AND t.text IS NOT NULL)`,
+        [bills],
+      );
+      counts.orphanStubsDeleted = (counts.orphanStubsDeleted ?? 0) + gone.length;
+      console.log(`s3-load: ${k.uri}: ${gone.length} stub(s) whose document is not in the object — deleted so the fetch path takes them again (documents ${orphans.slice(0, 8).join(",")}${orphans.length > 8 ? ",…" : ""})`);
     }
   }
   for (const [billId, chars] of best) buf.stamp(billId, chars);
