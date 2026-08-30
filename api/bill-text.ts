@@ -626,8 +626,30 @@ function rewriteIndiana(url: string, year?: number): string {
   return url;
 }
 
+/**
+ * Dead hosts go to the Internet Archive. www.in.gov/legislative (Indiana 2009–2013)
+ * redirects every old bill page to the new site's JavaScript shell; the pages
+ * themselves were captured while they were alive. `web.archive.org/web/<ts>id_/<url>`
+ * answers with the ORIGINAL bytes of the capture nearest <ts> (302 to the exact
+ * timestamp, which the fetcher follows), or 404 if the archive never saw the page —
+ * and that 404 is the honest verdict. The session year picks the capture. One host
+ * for every dead site means one pacing budget: archive.org sheds load past ~4–6
+ * concurrent (the forms lane measured it), so run with
+ * POLITE_HOST_OVERRIDES='web.archive.org=250:6'. Add a host here only after its
+ * live site has been probed dead from both a home IP and AWS.
+ */
+const WAYBACK_HOSTS = new Set(["www.in.gov"]);
+function rewriteDeadHostToWayback(url: string, year?: number): string {
+  let u: URL;
+  try { u = new URL(url); } catch { return url; }
+  if (!WAYBACK_HOSTS.has(u.host.toLowerCase())) return url;
+  const y = year && year >= 1996 && year <= 2030 ? year : 2012;
+  return `https://web.archive.org/web/${y}0701id_/${url}`;
+}
+
 export function rewriteLink(url: string, ctx?: { year?: number }): string {
   url = rewriteIndiana(url, ctx?.year);
+  url = rewriteDeadHostToWayback(url, ctx?.year);
   return url
     .replace(/^https?:\/\/(www\.)?ilga\.gov\/legislation\//i, "https://www.ilga.gov/documents/legislation/")
     // Michigan: the same path 404s over plain http and serves over https (6,000 older links).
