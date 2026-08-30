@@ -32,7 +32,7 @@ PDF_BUCKET=livingston-bill-pdfs-638175140432
 # The robots-refused states get Tennessee's treatment — Brendan, 2026-08-29 22:05: "all 50 minus
 # the 3-4 where you are blocked … you go at max speed." Fixed 4 lanes per IP, Disallow set aside,
 # by host name. PA and GA are AWS-range blocks and are not here; they need a human.
-OVERRIDES="webserver1.lsb.state.ok.us=0:4:norobots,www.oklegislature.gov=0:4:norobots,www3.oklegislature.gov=0:4:norobots,www.capitol.hawaii.gov=0:4:norobots,leg.colorado.gov=0:4:norobots,www.leg.state.co.us=0:4:norobots,lims.dccouncil.us=0:4:norobots,lims.dccouncil.gov=0:4:norobots,www.legis.state.ak.us=0:4:norobots,www.akleg.gov=0:4:norobots"
+OVERRIDES="webserver1.lsb.state.ok.us=0:4:norobots,www.oklegislature.gov=0:4:norobots,www3.oklegislature.gov=0:4:norobots,www.capitol.hawaii.gov=0:4:norobots,leg.colorado.gov=0:4:norobots,www.leg.state.co.us=0:4:norobots,lims.dccouncil.us=0:4:norobots,lims.dccouncil.gov=0:4:norobots,www.legis.state.ak.us=0:4:norobots,www.akleg.gov=0:4:norobots,www.flsenate.gov=1000:2,www.azleg.gov=1000:2,house.mo.gov=1000:2,documents.house.mo.gov=250:4,publications.tnsosfiles.com=0:4:norobots,content.leg.colorado.gov=0:4:norobots,gc.nh.gov=500:4,alison.legislature.state.al.us=250:4,olis.oregonlegislature.gov=250:4,apps.legislature.ky.gov=250:4"
 while [ $# -gt 0 ]; do case "$1" in
   --from) FROM="$2"; shift 2 ;; --bootstrap) BOOT=1; shift ;; --pdf-batch) PDFB=1; TYPE=c7g.4xlarge; shift ;; --type) TYPE="$2"; shift 2 ;; --skip-states) SKIP="$2"; shift 2 ;; --start) START="$2"; shift 2 ;; --max) MAX="$2"; shift 2 ;; --dry-run) DRY=1; shift ;;
   *) echo "unknown arg $1" >&2; exit 2 ;; esac; done
@@ -50,7 +50,7 @@ touch /home/ubuntu/.keep-up /home/ubuntu/.no-auto-jobs; chown ubuntu:ubuntu /hom
 systemctl disable --now run-due.timer run-due.service run-due-catchup.service 2>/dev/null || true
 if [ "$BOOT" = 1 ]; then
   export DEBIAN_FRONTEND=noninteractive
-  apt-get update -qq && apt-get install -y -qq poppler-utils unzip curl ca-certificates git >/dev/null 2>&1
+  apt-get update -qq && apt-get install -y -qq poppler-utils antiword unzip curl ca-certificates git >/dev/null 2>&1
   curl -fsSL https://deb.nodesource.com/setup_22.x | bash - >/dev/null 2>&1 && apt-get install -y -qq nodejs >/dev/null 2>&1
   curl -fsSL "https://awscli.amazonaws.com/awscli-exe-linux-aarch64.zip" -o /tmp/awscli.zip && (cd /tmp && unzip -q awscli.zip && ./aws/install >/dev/null 2>&1)
   sudo -u ubuntu -H bash -c 'cd /home/ubuntu && aws s3 cp --quiet s3://$BUCKET/_fleet/bootstrap/livingston.tgz /tmp/livingston.tgz --region $REGION && tar xzf /tmp/livingston.tgz && rm /tmp/livingston.tgz'
@@ -58,7 +58,7 @@ fi
 mkdir -p /home/ubuntu/logs; chown ubuntu:ubuntu /home/ubuntu/logs
 LOG=/home/ubuntu/logs/fleet-shard-$i.log
 ( while true; do sleep 300; aws s3 cp --quiet "\$LOG" s3://$BUCKET/_fleet/shard-$i-of-$COUNT.log --region $REGION 2>/dev/null || true; done ) &
-sudo -u ubuntu -H bash -c 'cd /home/ubuntu/livingston && (git pull -q --ff-only origin main 2>/dev/null || true); $( [ "$PDFB" = 1 ] && echo "node scripts/box/text-backfill.mjs --source pdf-batch --batch 1000 --concurrency 96 --max-errors 50" || echo "PDF_DEFER_BUCKET=$PDF_BUCKET POLITE_HOST_OVERRIDES=$OVERRIDES POLITE_AUTO_LANES=$START:$MAX node scripts/box/text-backfill.mjs --source state_link --all-states --skip-states $SKIP --shard $SHARD --parallel 4 --batch 4000 --since-session 2009 --max-errors 20" )' > "\$LOG" 2>&1
+sudo -u ubuntu -H bash -c 'cd /home/ubuntu/livingston && (git pull -q --ff-only origin main 2>/dev/null || true); $( [ "$PDFB" = 1 ] && echo "node scripts/box/text-backfill.mjs --source pdf-batch --batch 1000 --concurrency 96 --max-errors 50" || echo "PDF_DEFER_BUCKET=$PDF_BUCKET TEXT_SINK_BUCKET=$PDF_BUCKET POLITE_HOST_OVERRIDES=$OVERRIDES POLITE_AUTO_LANES=$START:$MAX node scripts/box/text-backfill.mjs --source state_link --all-states --skip-states $SKIP --shard $SHARD --parallel 4 --batch 4000 --since-session 2009 --max-errors 20" )' > "\$LOG" 2>&1
 echo "EXIT=\$? \$(date -u +%FT%TZ)" >> "\$LOG"
 aws s3 cp --quiet "\$LOG" s3://$BUCKET/_fleet/shard-$i-of-$COUNT.log --region $REGION || true
 shutdown -h now

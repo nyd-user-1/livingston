@@ -198,7 +198,7 @@ async function drain(label, argsFor) {
       }
     } else zeroText = 0;
     const dropped = Array.isArray(b.dropped) ? b.dropped : [];
-    log(`${label} round ${round}: considered ${b.considered ?? 0} · inserted ${b.inserted ?? 0} · unchanged ${b.unchanged ?? 0} · skipped ${skips} · ${((b.ms ?? 0) / 1000).toFixed(0)}s${dropped.length ? ` · DROPPED HOSTS ${dropped.join(",")}` : ""}`);
+    log(`${label} round ${round}: considered ${b.considered ?? 0} · inserted ${b.inserted ?? 0} · updated ${b.updated ?? 0} · unchanged ${b.unchanged ?? 0} · skipped ${skips} · ${((b.ms ?? 0) / 1000).toFixed(0)}s${dropped.length ? ` · DROPPED HOSTS ${dropped.join(",")}` : ""}`);
 
     // The only stop condition that means "done": the handler looked and found
     // nothing left in scope. Everything else is a reason to go round again.

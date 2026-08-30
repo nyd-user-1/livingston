@@ -140,10 +140,33 @@ export function pdfToText(buf: Uint8Array): Promise<string> {
   });
 }
 
+/** antiword over a temp file (it will not read stdin); `-w 0` = no line wrapping. Empty when it is not a Word file after all. */
+export async function docToText(buf: Uint8Array): Promise<string> {
+  const { mkdtemp, writeFile, rm } = await import("node:fs/promises");
+  const { tmpdir } = await import("node:os");
+  const { join } = await import("node:path");
+  const dir = await mkdtemp(join(tmpdir(), "doc-"));
+  const file = join(dir, "in.doc");
+  try {
+    await writeFile(file, buf);
+    return await new Promise<string>((resolve, reject) => {
+      const p = spawn("antiword", ["-w", "0", file], { stdio: ["ignore", "pipe", "pipe"] });
+      let out = ""; let err = "";
+      p.stdout.setEncoding("utf8"); p.stdout.on("data", (d) => { out += d; });
+      p.stderr.setEncoding("utf8"); p.stderr.on("data", (d) => { err += d; });
+      p.on("error", (e) => reject(new Error(`antiword: ${e.message}`)));
+      p.on("close", (code) => { if (code !== 0 && out.length === 0) return reject(new Error(`antiword exited ${code}: ${err.slice(0, 200)}`)); resolve(out); });
+    });
+  } finally { await rm(dir, { recursive: true, force: true }); }
+}
+
 export async function bodyToText(mime: string, buf: Uint8Array): Promise<{ text: string; how: string }> {
   const m = (mime || "").toLowerCase();
   const looksPdf = buf.length > 4 && buf[0] === 0x25 && buf[1] === 0x50 && buf[2] === 0x44 && buf[3] === 0x46;
   if (looksPdf || m.includes("pdf")) return { text: await pdfToText(buf), how: "pdftotext" };
+  // Word 97-2003 (OLE compound file: D0 CF 11 E0) — Kentucky's pre-2019 record is bill.doc. antiword on the box.
+  const looksOle = buf.length > 8 && buf[0] === 0xd0 && buf[1] === 0xcf && buf[2] === 0x11 && buf[3] === 0xe0;
+  if (looksOle || m.includes("msword")) return { text: tidy(await docToText(buf)), how: "antiword" };
   const s = new TextDecoder("utf-8", { fatal: false }).decode(buf);
   if (m.includes("xml") || /^\s*<\?xml/.test(s)) return { text: xmlToText(s), how: "xml" };
   if (m.includes("html") || /<html[\s>]/i.test(s)) return { text: htmlToText(s), how: "html" };

@@ -605,7 +605,53 @@ export function rewriteLink(url: string): string {
     //   solarapi/v1/general_assembly_134/bills/hb433/RH/01/hb433_01_RH?format=pdf
     //   -> api/v2/general_assembly_134/legislation/hb433/01_RH/html/
     .replace(/^https?:\/\/search-prod\.lis\.state\.oh\.us\/solarapi\/v1\/general_assembly_(\d+)\/(?:bills|resolutions)\/([a-z]+\d+)\/([A-Z]+)\/(\d+)\/.*$/i,
-      (_m, ga: string, num: string, code: string, ver: string) => `https://search-prod.lis.state.oh.us/api/v2/general_assembly_${ga}/legislation/${num.toLowerCase()}/${ver}_${code.toUpperCase()}/html/`);
+      (_m, ga: string, num: string, code: string, ver: string) => `https://search-prod.lis.state.oh.us/api/v2/general_assembly_${ga}/legislation/${num.toLowerCase()}/${ver}_${code.toUpperCase()}/html/`)
+    // ---- the 2026-08-30 morning census: hosts that died under the fleet and where each one went (all probed from AWS) ----
+    // West Virginia: www.legis.state.wv.us is gone; www.wvlegislature.gov serves the same bills_text.cfm paths.
+    .replace(/^https?:\/\/www\.legis\.state\.wv\.us\//i, "https://www.wvlegislature.gov/")
+    // Louisiana: legis.state.la.us/billdata/streamdocument.asp?did=N -> legis.la.gov/legis/ViewDocument.aspx?d=N
+    .replace(/^https?:\/\/(?:www\.)?legis\.state\.la\.us\/billdata\/streamdocument\.asp\?did=(\d+).*$/i, "https://legis.la.gov/legis/ViewDocument.aspx?d=$1")
+    // Maryland: mlis.state.md.us -> mgaleg.maryland.gov, same paths.
+    .replace(/^https?:\/\/mlis\.state\.md\.us\//i, "https://mgaleg.maryland.gov/")
+    // New Hampshire: gencourt.state.nh.us (with or without www) -> gc.nh.gov, same paths.
+    .replace(/^https?:\/\/(?:www\.)?gencourt\.state\.nh\.us\//i, "https://gc.nh.gov/")
+    // Alaska: www.legis.state.ak.us -> www.akleg.gov, same paths.
+    .replace(/^https?:\/\/www\.legis\.state\.ak\.us\//i, "https://www.akleg.gov/")
+    // Rhode Island: www.rilin.state.ri.us -> webserver.rilegislature.gov, same paths.
+    .replace(/^https?:\/\/www\.rilin\.state\.ri\.us\//i, "https://webserver.rilegislature.gov/")
+    // Kentucky: www.lrc.ky.gov/record/11RS/HB313/bill.doc -> apps.legislature.ky.gov/record/11rs/HB313/bill.doc (Word; antiword converts).
+    .replace(/^https?:\/\/www\.lrc\.ky\.gov\/record\/(\d+[A-Za-z]+)\//i, (_m, sess: string) => `https://apps.legislature.ky.gov/record/${sess.toLowerCase()}/`)
+    // Missouri: www.house.mo.gov rate-limits hard; the bare host is the same site and documents.house.mo.gov holds the hlrbillspdf tree.
+    .replace(/^https?:\/\/www\.house\.mo\.gov\/(billtracking\/bills\d+\/hlrbillspdf\/)/i, "https://documents.house.mo.gov/$1")
+    .replace(/^https?:\/\/www\.house\.mo\.gov\//i, "https://house.mo.gov/")
+    // Colorado: leg.colorado.gov/sites/default/files/documents/2017A/bills/2017A_029_01.pdf -> content.leg.colorado.gov, lower-cased file name.
+    .replace(/^https?:\/\/leg\.colorado\.gov\/sites\/default\/files\/documents\/([^/]+)\/bills\/([^/?#]+)$/i, (_m, sess: string, file: string) => `https://content.leg.colorado.gov/sites/default/files/documents/${sess}/bills/${file.toLowerCase()}`)
+    // Alabama: alisondb (dead) /ALISON/SearchableInstruments/2011RS/PrintFiles/HB120-int.pdf -> the new ALISON's
+    // files/pdf/SearchableInstruments/2011RS/PrintFiles/HB120-Int.pdf (its GraphQL hands out exactly these, version capitalised).
+    .replace(/^https?:\/\/alisondb\.legislature\.state\.al\.us\/ALISON\/SearchableInstruments\/([^/]+)\/PrintFiles\/([A-Za-z]+\d+)-([a-z]+)\.pdf$/i,
+      (_m, sess: string, bill: string, ver: string) => `https://alison.legislature.state.al.us/files/pdf/SearchableInstruments/${sess}/PrintFiles/${bill.toUpperCase()}-${ver[0].toUpperCase()}${ver.slice(1).toLowerCase()}.pdf`)
+    // Iowa: coolice (dead) .../Bills/HouseFiles/Introduced/HF10.html or /linc/84/external/HF194_Introduced.html
+    //   -> www.legis.iowa.gov/docs/publications/LGI/<ga>/<bill>.pdf (introduced text; other versions have no fixed path).
+    .replace(/^https?:\/\/coolice\.legis\.iowa\.gov\/Legislation\/(\d+)thGA\/Bills\/(?:House|Senate)Files\/Introduced\/([A-Z]+\d+)\.html$/i, "https://www.legis.iowa.gov/docs/publications/LGI/$1/$2.pdf")
+    .replace(/^https?:\/\/coolice\.legis\.state\.ia\.us\/linc\/(\d+)\/external\/([A-Z]+\d+)_Introduced\.html$/i, "https://www.legis.iowa.gov/docs/publications/LGI/$1/$2.pdf")
+    // Oregon: www.leg.state.or.us/11reg/measures/sb0200.dir/sb0233.intro.html -> OLIS
+    //   olis.oregonlegislature.gov/liz/2011R1/Downloads/MeasureDocument/SB233/Introduced (PDF). Versions: intro, a/b/c (engrossed), en (enrolled),
+    //   <n>ha / <n>sa (chamber amendments to introduced), a<n>sa / b<n>ha (amendments to an engrossment). Conference/minority reports are left alone.
+    .replace(/^https?:\/\/www\.leg\.state\.or\.us\/(\d\d)(reg|ss\d)\/measures\/[a-z]+\d+\.dir\/([a-z]+)0*(\d+)\.([a-z0-9]+)\.html$/i, (m, yy: string, kind: string, type: string, num: string, ver: string) => {
+      const sess = `20${yy}${kind === "reg" ? "R1" : `S${kind.slice(2)}`}`;
+      const v = ver.toLowerCase();
+      const eng = (c: string) => `${c.toUpperCase()}-Engrossed`;
+      let name: string | null = null;
+      if (v === "intro") name = "Introduced";
+      else if (v === "en") name = "Enrolled";
+      else if (/^[abc]$/.test(v)) name = eng(v);
+      else if (/^\d+ha$/.test(v)) name = "House Amendments to Introduced";
+      else if (/^\d+sa$/.test(v)) name = "Senate Amendments to Introduced";
+      else if (/^[abc]\d+ha$/.test(v)) name = `House Amendments to ${eng(v[0])}`;
+      else if (/^[abc]\d+sa$/.test(v)) name = `Senate Amendments to ${eng(v[0])}`;
+      if (!name) return m;
+      return `https://olis.oregonlegislature.gov/liz/${sess}/Downloads/MeasureDocument/${type.toUpperCase()}${num}/${encodeURIComponent(name)}`;
+    });
 }
 
 /**

@@ -242,9 +242,9 @@ async function inspectSource(name) {
     const pages = Number((/Pages:\s+(\d+)/.exec(info) || [])[1] || 0) || null;
     const title = ((/Title:\s+(.+)/.exec(info) || [])[1] || "").trim() || null;
     // AcroForm field names: pdftotext cannot; a cheap scan of the raw PDF for /T (name) entries covers most fillable forms.
-    const fields = [...new Set([...bytes.toString("latin1").matchAll(/\/T\s*\(([^)]{1,80})\)/g)].map((m) => m[1]))].slice(0, 500);
+    const fields = [...new Set([...bytes.toString("latin1").matchAll(/\/T\s*\(([^)]{1,80})\)/g)].map((m) => m[1].replace(/[\u0000-\u001f\\]/g, "").trim()).filter(Boolean))].slice(0, 500);
     const formNumber = ((/\b(LDSS-\d{3,5}[A-Z]?|OCFS-\d{3,5}[A-Z-]*|DOH-\d{3,5}[A-Z]?|IT-\d{3,4}[A-Z-]*|SSA-\d{2,5}[A-Z-]*|I-\d{3}[A-Z]?|N-\d{3}[A-Z]?|VA\s?\d{2}-\d{3,5}[A-Z]?|SF-?\d{2,4}[A-Z]?|HUD-?\d{3,5}[A-Z-]*|CMS-?\d{3,5}[A-Z-]*|f\d{3,5}[a-z]*)\b/i.exec(`${row.url} ${title ?? ""}`) || [])[1] || null);
-    await sql`UPDATE "Forms" SET pages = COALESCE(${pages}, pages), title = COALESCE(title, ${title}), form_number = COALESCE(form_number, ${formNumber}), fillable_fields = ${JSON.stringify(fields)}::jsonb, inspected_at = now() WHERE id = ${row.id}`;
+    await sql`UPDATE "Forms" SET pages = COALESCE(${pages}, pages), title = COALESCE(title, ${title ? title.replace(/[\u0000-\u001f]/g, "") : null}), form_number = COALESCE(form_number, ${formNumber}), fillable_fields = ${JSON.stringify(fields)}::jsonb, inspected_at = now() WHERE id = ${row.id}`;
     n += 1;
     if (n % 200 === 0) log(`  ${name}: ${n} inspected`);
   }
