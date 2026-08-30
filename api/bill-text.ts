@@ -579,7 +579,12 @@ export function rewriteLink(url: string): string {
   return url
     .replace(/^https?:\/\/(www\.)?ilga\.gov\/legislation\//i, "https://www.ilga.gov/documents/legislation/")
     // Michigan: the same path 404s over plain http and serves over https (6,000 older links).
-    .replace(/^http:\/\/(www\.)?legislature\.mi\.gov\//i, "https://www.legislature.mi.gov/");
+    .replace(/^http:\/\/(www\.)?legislature\.mi\.gov\//i, "https://www.legislature.mi.gov/")
+    // Ohio: LegiScan's older links are the retired solarapi v1; the v2 API serves the same version as HTML.
+    //   solarapi/v1/general_assembly_134/bills/hb433/RH/01/hb433_01_RH?format=pdf
+    //   -> api/v2/general_assembly_134/legislation/hb433/01_RH/html/
+    .replace(/^https?:\/\/search-prod\.lis\.state\.oh\.us\/solarapi\/v1\/general_assembly_(\d+)\/(?:bills|resolutions)\/([a-z]+\d+)\/([A-Z]+)\/(\d+)\/.*$/i,
+      (_m, ga: string, num: string, code: string, ver: string) => `https://search-prod.lis.state.oh.us/api/v2/general_assembly_${ga}/legislation/${num.toLowerCase()}/${ver}_${code.toUpperCase()}/html/`);
 }
 
 /** "2/8" → the third of eight shards: this worker takes documents whose id % 8 = 2. Several boxes, several IPs, no overlap, no chatter — the database is the coordinator. */
@@ -657,7 +662,15 @@ async function runStateLink(sql: Sql, state: string, since: number, limit: numbe
   const best = new Map<number, number>();
   const buf = new TextBuffer(sql, counts);
   const one = async (d: typeof rows[number]) => {
-    const got = await fetcher.get(rewriteLink(d.state_link));
+    const link = rewriteLink(d.state_link);
+    let got = await fetcher.get(link);
+    // LegiScan's older links are http://; many legislatures now answer only on
+    // https and do not redirect (Louisiana, Utah, New Hampshire, Michigan…).
+    // A network failure or a 404 on an http link gets one try over https.
+    if (!got.ok && !got.skipped && /^http:\/\//i.test(link) && (got.status === 0 || got.status === 404)) {
+      const retry = await fetcher.get(link.replace(/^http:\/\//i, "https://"));
+      if (retry.ok) { counts.httpsRescued = (counts.httpsRescued ?? 0) + 1; got = retry; }
+    }
     if (!got.ok) {
       counts[`skip_${got.skipped ?? "error"}`] = (counts[`skip_${got.skipped ?? "error"}`] ?? 0) + 1;
       await buf.add({
