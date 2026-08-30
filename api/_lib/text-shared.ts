@@ -31,6 +31,9 @@ export const s3 = () => (s3Shared ??= new S3Client({ region: process.env.AWS_REG
 
 export type Sql = NeonQueryFunction<false, false>;
 export type Counts = Record<string, number>;
+
+/** Postgres error 54000 from a generated tsvector column — see TextBuffer.fitForIndex. */
+const TSVECTOR_TOO_LONG = /too long for tsvector/i;
 export const MAX_TEXT_BYTES = 20 * 1024 * 1024;
 
 /**
@@ -248,26 +251,6 @@ export class TextBuffer {
     if (r.text && r.text.includes("\u0000")) { r.text = r.text.replace(/\u0000/g, ""); this.counts.nulStripped = (this.counts.nulStripped ?? 0) + 1; }
     if (r.error && r.error.includes("\u0000")) r.error = r.error.replace(/\u0000/g, "");
     if (r.version && r.version.includes("\u0000")) r.version = r.version.replace(/\u0000/g, "");
-    // "BillTexts".search_tsv is GENERATED from left(text, 1000000) — a million *characters* — and
-    // to_tsvector refuses inputs over 1,048,575 *bytes*. A million characters of curly quotes and
-    // em-dashes is more than that (an s3-load round failed on a 1,062,760-byte head, 2026-08-30 15:54Z),
-    // and one such row fails its whole batch. Fold the common non-ASCII punctuation to ASCII, then, if
-    // the head is still too wide, cut the text so its first million characters fit. Rare (only the
-    // budget-sized bills), counted, and the stored text is what the index can hold anyway.
-    if (r.text && r.text.length > 260_000) {   // 260k four-byte characters is already over the ceiling; below that no text can be
-      let head = r.text.slice(0, 1_000_000);
-      if (Buffer.byteLength(head, "utf8") > 1_040_000) {
-        r.text = r.text.replace(/[\u2018\u2019\u201a]/g, "'").replace(/[\u201c\u201d\u201e]/g, '"').replace(/[\u2013\u2014]/g, "-").replace(/\u00a0/g, " ").replace(/\u2026/g, "...");
-        head = r.text.slice(0, 1_000_000);
-        this.counts.punctuationFolded = (this.counts.punctuationFolded ?? 0) + 1;
-      }
-      if (Buffer.byteLength(head, "utf8") > 1_040_000) {
-        let n = 1_000_000;
-        while (n > 0 && Buffer.byteLength(r.text.slice(0, n), "utf8") > 1_040_000) n = Math.floor(n * 0.95);
-        r.text = r.text.slice(0, n);
-        this.counts.textCutForIndex = (this.counts.textCutForIndex ?? 0) + 1;
-      }
-    }
     this.rows.push(r);
     this.bytes += (r.text?.length ?? 0) + 200;
     if (chars && chars > 0) this.stamp(r.bill_id, chars);
@@ -281,7 +264,51 @@ export class TextBuffer {
 
   private async writeBatch(batch: TextRow[]) {
     if (!batch.length) return;
-      if (TEXT_SINK_BUCKET) batch = await this.sinkToS3(batch);
+    if (TEXT_SINK_BUCKET) batch = await this.sinkToS3(batch);
+    try { await this.insertBatch(batch); }
+    catch (e) {
+      if (!TSVECTOR_TOO_LONG.test(String((e as Error).message))) throw e;
+      await this.fitForIndex(batch);
+      await this.insertBatch(batch);
+    }
+  }
+
+  /**
+   * Postgres refuses a tsvector whose lexemes and positions add up to more than
+   * 1,048,575 bytes — `54000: string is too long for tsvector`. That is a limit
+   * on the *vector*, not on the input: an Ohio budget bill whose first million
+   * characters are mostly unique 15-digit appropriation line numbers (document
+   * 2450951, 2026-08-30) makes a 1,062,760-byte vector out of a 1,000,000-byte
+   * head, and ten s3-load rounds in a row died on that one row. No byte or
+   * character count on our side predicts it (a guard on head bytes was tried
+   * first and never fired), so Postgres is asked directly: every large text in
+   * the failed batch is probed with the column's own expression at shrinking
+   * prefixes until one is accepted, the text is cut there, and the batch is
+   * written again. Rare — only the budget-sized bills — logged per document
+   * with both sizes, and counted as `textCutForIndex`. The sink object, where
+   * the row came from one, still holds the full text.
+   */
+  private async fitForIndex(batch: TextRow[]) {
+    for (const r of batch) {
+      if (!r.text || r.text.length < 250_000) continue;
+      let n = Math.min(r.text.length, 1_000_000);
+      for (;;) {
+        try { await this.sql.query(`SELECT to_tsvector('english', left($1::text, $2::int)) IS NOT NULL AS ok`, [r.text, n]); break; }
+        catch (e) {
+          if (!TSVECTOR_TOO_LONG.test(String((e as Error).message))) throw e;
+          n = Math.floor(n * 0.9);
+          if (n < 100_000) throw e;
+        }
+      }
+      if (n < r.text.length && n < 1_000_000) {
+        console.log(`text-cut-for-index: ${r.state} document ${r.document_id} bill ${r.bill_id}: ${r.text.length} -> ${n} chars`);
+        r.text = r.text.slice(0, n);
+        this.counts.textCutForIndex = (this.counts.textCutForIndex ?? 0) + 1;
+      }
+    }
+  }
+
+  private async insertBatch(batch: TextRow[]) {
       const text = batch.map((r) => r.text);
       const hash = batch.map((r) => (r.text ? sha(r.text) : r.text_hash ?? null));
       const chars = batch.map((r) => (r.text ? r.text.length : r.chars ?? 0));
