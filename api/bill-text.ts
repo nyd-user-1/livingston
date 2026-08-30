@@ -71,6 +71,18 @@ const LEGISCAN_MONTHLY_STOP = 25_000;
 /* ---- schema -------------------------------------------------------------- */
 
 async function prepareSchema(sql: Sql) {
+  // Look before altering. ALTER TABLE … ADD COLUMN IF NOT EXISTS takes an
+  // ACCESS EXCLUSIVE lock even when the column exists, and with 320 fleet
+  // processes each running this on start, Neon showed 338 sessions waiting on
+  // "Lock: relation" — the whole fleet queued behind schema no-ops, every
+  // writer blocked while they waited. Measured 2026-08-29 22:45 ET.
+  const have = (await sql.query(
+    `SELECT (SELECT count(*) FROM pg_attribute WHERE attrelid = '"BillTexts"'::regclass AND attname = 'search_tsv' AND NOT attisdropped)::int AS tsv,
+            (SELECT count(*) FROM pg_indexes WHERE tablename = 'BillTexts' AND indexname IN ('billtexts_bill_idx','billtexts_state_session_idx','billtexts_source_idx','billtexts_search_idx'))::int AS idx,
+            (SELECT count(*) FROM pg_attribute WHERE attrelid = '"Bills"'::regclass AND attname IN ('text_fetched_at','text_chars') AND NOT attisdropped)::int AS bills,
+            (SELECT count(*) FROM pg_indexes WHERE tablename = 'Bills' AND indexname = 'bills_text_fetched_idx')::int AS bidx`,
+  ).catch(() => [{ tsv: 0, idx: 0, bills: 0, bidx: 0 }])) as { tsv: number; idx: number; bills: number; bidx: number }[];
+  if (have[0] && have[0].tsv === 1 && have[0].idx === 4 && have[0].bills === 2 && have[0].bidx === 1) return;
   await sql.query(`CREATE TABLE IF NOT EXISTS "BillTexts" (
     document_id bigint PRIMARY KEY,
     bill_id bigint NOT NULL,
