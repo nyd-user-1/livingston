@@ -115,7 +115,7 @@ export default async function handler(req: any, res: any) {
     if (!/^\d{4}-\d{2}-\d{2}$/.test(since)) {
       // A LegiScan row with a future last_action_date once put `since` in October and this
       // sync fetched nothing for weeks — ignore dates past today, and never start in the future.
-      const [row] = await sql.query(`SELECT max(last_action_date) AS d FROM "Bills" WHERE session_id = $1 AND last_action_date <= current_date`, [session]);
+      const [row] = await sql.query(`SELECT max(last_action_date) AS d FROM "Bills" WHERE session_id = $1 AND last_action_date ~ '^\\d{4}-\\d{2}-\\d{2}$' AND last_action_date::date <= current_date`, [session]);
       const d = row?.d ? new Date(row.d) : new Date(Date.now() - 30 * 86_400_000);
       d.setUTCDate(d.getUTCDate() - 1);
       const yesterday = new Date(Date.now() - 86_400_000);
