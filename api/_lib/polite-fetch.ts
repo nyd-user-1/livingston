@@ -8,8 +8,16 @@
 // What it guarantees, per host:
 //   - one connection at a time (requests to a host are chained, never raced)
 //   - at least `minDelayMs` between the END of one request and the START of the
-//     next (1,000 ms default; robots.txt Crawl-delay raises it, never lowers it)
-//   - robots.txt fetched once, cached, and obeyed for `User-agent: *` and for us
+//     next (1,000 ms default)
+//   - robots.txt is ADVISORY by default (POLITE_ROBOTS=advisory): not fetched,
+//     not obeyed. Standing order, Brendan, 2026-08-30: "If we have a public
+//     right to the information our standing order is to exercise our public
+//     right to that information over the preference of a robots.txt." These
+//     are public legislative records on public servers; the pacing, the
+//     identified User-Agent, Retry-After and the five-strike drop are what
+//     keep us from harming a server, and they all still hold. POLITE_ROBOTS=obey
+//     restores the old behaviour (fetch once, honour Disallow and Crawl-delay)
+//     for a run where someone wants it.
 //   - Retry-After honoured on 429/503, up to a ceiling
 //   - five consecutive 403/429 and the host is DROPPED for the rest of the run.
 //     A site that is refusing us is a site we do another way another day, not a
@@ -49,6 +57,9 @@ type HostOverride = { delayMs: number; concurrency: number; ignoreRobots: boolea
  * host, by name, and its use is recorded in the lane report; it is not a
  * default and it is never set for a host that refuses us.
  */
+/** POLITE_ROBOTS: "advisory" (default — robots.txt neither fetched nor obeyed; standing order 2026-08-30) or "obey". */
+const ROBOTS_MODE = (process.env.POLITE_ROBOTS ?? "advisory").toLowerCase() === "obey" ? "obey" : "advisory";
+
 export function parseHostOverrides(spec: string | undefined): Map<string, HostOverride> {
   const m = new Map<string, HostOverride>();
   for (const part of (spec ?? "").split(",")) {
@@ -188,6 +199,7 @@ export class PoliteFetcher {
   private async loadRobots(host: string, scheme: string) {
     const s = this.state(host);
     if (s.robotsLoaded) return;
+    if (ROBOTS_MODE !== "obey") { s.robots = { disallow: [], crawlDelayMs: 0 }; s.robotsLoaded = true; return; }   // advisory: see the header
     await this.pace(s);
     try {
       const r = await fetch(`${scheme}//${host}/robots.txt`, { headers: { "User-Agent": this.ua }, signal: AbortSignal.timeout(20_000) });
