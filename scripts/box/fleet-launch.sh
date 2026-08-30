@@ -20,7 +20,7 @@
 # at exit (that bucket is the one the worker role can already write).
 set -euo pipefail
 AMI="${1:?ami-id}"; COUNT="${2:?count}"; shift 2
-TYPE=t4g.medium; SKIP="NJ,CA,IL,VA,MA,TN,MI"; START=4; MAX=16; DRY=0
+TYPE=t4g.medium; SKIP="NJ,CA,IL,VA,MA,TN"; START=4; MAX=16; DRY=0
 # The PDF bucket: every PDF the fleet meets is parked here and converted later in one pass.
 PDF_BUCKET=livingston-bill-pdfs-638175140432
 # The robots-refused states get Tennessee's treatment — Brendan, 2026-08-29 22:05: "all 50 minus
