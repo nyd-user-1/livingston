@@ -628,61 +628,62 @@ async function runStateLink(sql: Sql, state: string, since: number, limit: numbe
   // Each branch gets its OWN parameter list. A shared one left $1 and $2 unused in
   // the bill-ids branch, and Postgres cannot infer the type of a parameter that
   // never appears in the statement — "could not determine data type of parameter $1".
-  const rows = (await sql.query(
-    billIds.length
-      // An explicit list of bills, NO session filter. Lane MB's curated CPI
-      // matches are 2003-2019 bills and this walker is scoped to session_id >=
-      // 2023, so the labels and the text sat in different halves of the corpus.
-      // 545 named documents is a minute of fetching, not a change of scope.
-      ? `SELECT d.document_id, d.bill_id, d.state_link, d.document_mime, d.document_desc, d.document_size, b.state, b.session_id
-           FROM "Documents" d
-           JOIN "Bills" b ON b.bill_id = d.bill_id
+  type Row = { document_id: number; bill_id: number; state_link: string; document_mime: string; document_desc: string; state: string; session_id: number };
+  const docTypes = includeAmendments ? ["text", "amendment"] : ["text"];
+  let rows: Row[];
+  if (billIds.length) {
+    rows = (await sql.query(
+      // An explicit list of bills, NO session filter (lane MB's curated matches are 2003-2019).
+      `SELECT d.document_id, d.bill_id, d.state_link, d.document_mime, d.document_desc, d.document_size, b.state, b.session_id
+         FROM "Documents" d JOIN "Bills" b ON b.bill_id = d.bill_id
+         LEFT JOIN "BillTexts" t ON t.document_id = d.document_id
+        WHERE d.document_type = ANY($1::text[]) AND d.state_link <> '' AND d.bill_id = ANY($2::bigint[])
+          AND t.document_id IS NULL AND d.state_link NOT LIKE '%legiscan.com%'
+          AND (d.document_size IS NULL OR d.document_size <= ${MAX_TEXT_BYTES})
+        ORDER BY d.bill_id, d.document_id LIMIT $3`,
+      [docTypes, billIds, limit],
+    )) as Row[];
+  } else if (requeueErrors) {
+    rows = (await sql.query(
+      `SELECT d.document_id, d.bill_id, d.state_link, d.document_mime, d.document_desc, d.document_size, b.state, b.session_id
+         FROM "BillTexts" t JOIN "Documents" d ON d.document_id = t.document_id JOIN "Bills" b ON b.bill_id = d.bill_id
+        WHERE t.text IS NULL AND t.error IS NOT NULL AND t.error !~* '^(robots|host-dropped|pdf-deferred)'
+          AND t.error ~* '(connection|too many|permit|timeout|ETIMEDOUT|ECONNRESET|fetch failed|HTTP 5)'
+          AND ($1 = '' OR b.state = $1) AND b.session_id >= $2 AND d.document_type = ANY($4::text[])
+        ORDER BY b.session_id DESC, d.document_id LIMIT $3`,
+      [state, since, limit, docTypes],
+    )) as Row[];
+  } else {
+    // Two steps, on purpose. One joined query let the planner pick a parallel
+    // seq scan of all 4.4M "Documents" rows per round (188 s each with the fleet
+    // on it, 2026-08-30 04:45Z) and no CTE or ordering talked it out of that.
+    // Bill ids of the state first (an index scan of "Bills"), then documents by
+    // id array in chunks (the documents_bill_idx index, nothing else possible),
+    // most recent session first, stopping when the round is full.
+    const bills = (await sql.query(
+      `SELECT bill_id FROM "Bills" WHERE ($1 = '' OR state = $1) AND session_id >= $2 ORDER BY session_id DESC, bill_id`,
+      [state, since],
+    )) as { bill_id: number }[];
+    counts.billsInScope = bills.length;
+    rows = [];
+    const CHUNK = 5000;
+    for (let i = 0; i < bills.length && rows.length < limit; i += CHUNK) {
+      const ids = bills.slice(i, i + CHUNK).map((b) => Number(b.bill_id));
+      const part = (await sql.query(
+        `SELECT d.document_id, d.bill_id, d.state_link, d.document_mime, d.document_desc, d.document_size, b.state, b.session_id
+           FROM "Documents" d JOIN "Bills" b ON b.bill_id = d.bill_id
            LEFT JOIN "BillTexts" t ON t.document_id = d.document_id
-          WHERE d.document_type = ANY($1::text[])
-            AND d.state_link <> ''
-            AND d.bill_id = ANY($2::bigint[])
-            AND t.document_id IS NULL
-            AND d.state_link NOT LIKE '%legiscan.com%'
+          WHERE d.bill_id = ANY($1::bigint[]) AND d.document_type = ANY($2::text[]) AND d.state_link <> ''
+            AND t.document_id IS NULL AND d.state_link NOT LIKE '%legiscan.com%'
             AND (d.document_size IS NULL OR d.document_size <= ${MAX_TEXT_BYTES})
-          ORDER BY d.bill_id, d.document_id
-          LIMIT $3`
-    : requeueErrors
-      ? `SELECT d.document_id, d.bill_id, d.state_link, d.document_mime, d.document_desc, d.document_size, b.state, b.session_id
-           FROM "BillTexts" t
-           JOIN "Documents" d ON d.document_id = t.document_id
-           JOIN "Bills" b ON b.bill_id = d.bill_id
-          WHERE t.text IS NULL
-            AND t.error IS NOT NULL
-            AND t.error !~* '^(robots|host-dropped)'
-            AND t.error ~* '(connection|too many|permit|timeout|ETIMEDOUT|ECONNRESET|fetch failed|HTTP 5)'
-            AND ($1 = '' OR b.state = $1)
-            AND b.session_id >= $2
-            AND d.document_type = ANY($4::text[])
-          ORDER BY b.session_id DESC, d.document_id
-          LIMIT $3`
-      // Bills of the state FIRST (a materialised CTE), then their documents. Left
-      // to itself the planner chose a parallel seq scan of all 4.4M "Documents"
-      // rows per round and applied the state filter after the join — 188 s a
-      // select with the fleet on it (2026-08-30 04:45Z). The CTE pins the plan
-      // to the state index and the documents' bill_id index.
-      : `WITH bs AS MATERIALIZED (
-           SELECT bill_id, state, session_id FROM "Bills" WHERE ($1 = '' OR state = $1) AND session_id >= $2)
-         SELECT d.document_id, d.bill_id, d.state_link, d.document_mime, d.document_desc, d.document_size, bs.state, bs.session_id
-           FROM bs
-           JOIN "Documents" d ON d.bill_id = bs.bill_id
-           LEFT JOIN "BillTexts" t ON t.document_id = d.document_id
-          WHERE d.document_type = ANY($4::text[])
-            AND d.state_link <> ''
-            AND t.document_id IS NULL
-            AND d.state_link NOT LIKE '%legiscan.com%'
-            AND (d.document_size IS NULL OR d.document_size <= ${MAX_TEXT_BYTES})
-            AND (d.document_id % $5::int) = $6::int
-          ${shard.of > 1 ? "" : "ORDER BY bs.session_id DESC, d.bill_id, d.document_id"}
-          LIMIT $3`,
-    billIds.length
-      ? [includeAmendments ? ["text", "amendment"] : ["text"], billIds, limit]
-      : [state, since, limit, includeAmendments ? ["text", "amendment"] : ["text"], shard.of, shard.index],
-  )) as { document_id: number; bill_id: number; state_link: string; document_mime: string; document_desc: string; state: string; session_id: number }[];
+            AND (d.document_id % $3::int) = $4::int
+          ORDER BY d.bill_id, d.document_id LIMIT $5`,
+        [ids, docTypes, shard.of, shard.index, limit - rows.length],
+      )) as Row[];
+      rows.push(...part);
+      counts.selectChunks = (counts.selectChunks ?? 0) + 1;
+    }
+  }
   counts.considered = rows.length;
 
   const best = new Map<number, number>();
