@@ -248,6 +248,26 @@ export class TextBuffer {
     if (r.text && r.text.includes("\u0000")) { r.text = r.text.replace(/\u0000/g, ""); this.counts.nulStripped = (this.counts.nulStripped ?? 0) + 1; }
     if (r.error && r.error.includes("\u0000")) r.error = r.error.replace(/\u0000/g, "");
     if (r.version && r.version.includes("\u0000")) r.version = r.version.replace(/\u0000/g, "");
+    // "BillTexts".search_tsv is GENERATED from left(text, 1000000) — a million *characters* — and
+    // to_tsvector refuses inputs over 1,048,575 *bytes*. A million characters of curly quotes and
+    // em-dashes is more than that (an s3-load round failed on a 1,062,760-byte head, 2026-08-30 15:54Z),
+    // and one such row fails its whole batch. Fold the common non-ASCII punctuation to ASCII, then, if
+    // the head is still too wide, cut the text so its first million characters fit. Rare (only the
+    // budget-sized bills), counted, and the stored text is what the index can hold anyway.
+    if (r.text && r.text.length > 900_000) {
+      let head = r.text.slice(0, 1_000_000);
+      if (Buffer.byteLength(head, "utf8") > 1_040_000) {
+        r.text = r.text.replace(/[\u2018\u2019\u201a]/g, "'").replace(/[\u201c\u201d\u201e]/g, '"').replace(/[\u2013\u2014]/g, "-").replace(/\u00a0/g, " ").replace(/\u2026/g, "...");
+        head = r.text.slice(0, 1_000_000);
+        this.counts.punctuationFolded = (this.counts.punctuationFolded ?? 0) + 1;
+      }
+      if (Buffer.byteLength(head, "utf8") > 1_040_000) {
+        let n = 1_000_000;
+        while (n > 0 && Buffer.byteLength(r.text.slice(0, n), "utf8") > 1_040_000) n = Math.floor(n * 0.95);
+        r.text = r.text.slice(0, n);
+        this.counts.textCutForIndex = (this.counts.textCutForIndex ?? 0) + 1;
+      }
+    }
     this.rows.push(r);
     this.bytes += (r.text?.length ?? 0) + 200;
     if (chars && chars > 0) this.stamp(r.bill_id, chars);
