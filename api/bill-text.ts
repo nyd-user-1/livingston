@@ -599,7 +599,14 @@ export function rewriteLink(url: string): string {
       (_m, ga: string, num: string, code: string, ver: string) => `https://search-prod.lis.state.oh.us/api/v2/general_assembly_${ga}/legislation/${num.toLowerCase()}/${ver}_${code.toUpperCase()}/html/`);
 }
 
-/** "2/8" → the third of eight shards: this worker takes documents whose id % 8 = 2. Several boxes, several IPs, no overlap, no chatter — the database is the coordinator. */
+/**
+ * "2/8" → the third of eight shards: this worker takes documents whose id % 8 = 2.
+ * Several boxes, several IPs, no overlap, no chatter — the database is the
+ * coordinator. In shard mode the selection is NOT ordered: with 300 fleet
+ * processes each asking Neon to sort a state's whole document set before
+ * handing back 400, the selects ran 80–300 s each and the fleet did 38k/hour
+ * (measured 2026-08-29 22:55 ET). Without the sort the scan stops at LIMIT.
+ */
 export function parseShard(spec: string): { index: number; of: number } {
   const m = /^(\d+)\s*\/\s*(\d+)$/.exec(spec.trim());
   if (!m) return { index: 0, of: 1 };
@@ -663,7 +670,7 @@ async function runStateLink(sql: Sql, state: string, since: number, limit: numbe
             AND d.state_link NOT LIKE '%legiscan.com%'
             AND (d.document_size IS NULL OR d.document_size <= ${MAX_TEXT_BYTES})
             AND (d.document_id % $5::int) = $6::int
-          ORDER BY b.session_id DESC, d.bill_id, d.document_id
+          ${shard.of > 1 ? "" : "ORDER BY b.session_id DESC, d.bill_id, d.document_id"}
           LIMIT $3`,
     billIds.length
       ? [includeAmendments ? ["text", "amendment"] : ["text"], billIds, limit]
