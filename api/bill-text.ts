@@ -621,6 +621,7 @@ export function rewriteLink(url: string): string {
     .replace(/^https?:\/\/www\.rilin\.state\.ri\.us\//i, "https://webserver.rilegislature.gov/")
     // Kentucky: www.lrc.ky.gov/record/11RS/HB313/bill.doc -> apps.legislature.ky.gov/record/11rs/HB313/bill.doc (Word; antiword converts).
     .replace(/^https?:\/\/www\.lrc\.ky\.gov\/record\/(\d+[A-Za-z]+)\//i, (_m, sess: string) => `https://apps.legislature.ky.gov/record/${sess.toLowerCase()}/`)
+    .replace(/^https?:\/\/www\.lrc\.ky\.gov\//i, "https://apps.legislature.ky.gov/")   // the rest of the host (recorddocuments/…/bill.pdf) moved as-is
     // Missouri: www.house.mo.gov rate-limits hard; the bare host is the same site and documents.house.mo.gov holds the hlrbillspdf tree.
     .replace(/^https?:\/\/www\.house\.mo\.gov\/(billtracking\/bills\d+\/hlrbillspdf\/)/i, "https://documents.house.mo.gov/$1")
     .replace(/^https?:\/\/www\.house\.mo\.gov\//i, "https://house.mo.gov/")

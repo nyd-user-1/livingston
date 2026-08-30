@@ -76,7 +76,9 @@ type HostState = {
 export type PoliteStats = { host: string; requests: number; strikes: number; dropped: boolean; delayMs: number; lanes?: number };
 
 const DEFAULT_UA =
-  "livingston-bill-text/1.0 (legislative full-text archive; +https://github.com/nyd-user-1/livingston; contact: brendan@nysgpt.com)";
+  // The "Mozilla/5.0 (compatible; …)" form the big crawlers use: still fully identified (name, URL, contact), and the
+  // WAFs that 403 anything not starting with "Mozilla/" (Tennessee's tnsosfiles, 2026-08-30) let it through.
+  "Mozilla/5.0 (compatible; livingston-bill-text/1.0; legislative full-text archive; +https://github.com/nyd-user-1/livingston; contact: brendan@nysgpt.com)";
 
 /**
  * POLITE_AUTO_LANES="4:16" — adaptive concurrency for every host that has no
@@ -281,7 +283,9 @@ export class PoliteFetcher {
 
 /** The `User-agent: *` group, plus any group naming us. */
 function parseRobots(txt: string, ua: string): { disallow: string[]; crawlDelayMs: number } {
-  const me = ua.split("/")[0].toLowerCase();
+  // Our own name in robots.txt: the token after "compatible;" when the UA is in that form, else the product before "/".
+  const compat = /compatible;\s*([^/;\s)]+)/i.exec(ua);
+  const me = (compat ? compat[1] : ua.split("/")[0]).toLowerCase();
   const disallow: string[] = [];
   let crawlDelayMs = 0;
   let applies = false;
