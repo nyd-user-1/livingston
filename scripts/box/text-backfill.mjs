@@ -191,7 +191,9 @@ async function drain(label, argsFor) {
     // existed. Two consecutive batches that yield no text at all is the signal:
     // two, not one, so a transient blip cannot close a state that is merely
     // having a bad minute.
-    if (Number(b.considered ?? 0) > 0 && Number(b.chars ?? 0) === 0) {
+    // Parked PDFs are text in waiting, not "no text": a PDF-only state (Indiana,
+    // 2026-08-30) would otherwise close itself after two rounds of parking.
+    if (Number(b.considered ?? 0) > 0 && Number(b.chars ?? 0) === 0 && Number(b.pdfDeferred ?? 0) === 0) {
       zeroText += 1;
       if (zeroText >= 2) {
         log(`${label}: two consecutive batches produced no text at all (last: ${skips} skipped${dropped2(b).length ? `, hosts dropped ${dropped2(b).join(",")}` : ""}) — stopping this scope, the verdict is recorded in "BillTexts"`);

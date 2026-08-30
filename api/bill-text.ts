@@ -588,7 +588,46 @@ async function byHostPool<T extends { state_link: string }>(rows: T[], concurren
  * rewrite is per host, explicit, and verified by hand before it was added; the
  * stored row keeps LegiScan's document_id, so nothing else changes.
  */
-export function rewriteLink(url: string): string {
+/**
+ * Indiana. iga.in.gov serves every document since the 2014 session at one path:
+ *   /pdf-documents/<GA>/<year>/<house|senate>/<bills|resolutions>/<BILL>/<BILL>.<vv>.<CODE>.pdf
+ * (GA is 118 for 2013–14 and one more every two years; BILL is HB1001 / SB0001 /
+ * HR0001 / HC0001 / HJ0001 / SR… / SC… / SJ…; CODE is INTR, COMH, COMS, ENGH,
+ * ENGS, ENRH, ENRS…; fiscal notes keep their .FN001 suffix). LegiScan's links
+ * come in two other shapes, and to a fetcher both are the site's JavaScript
+ * shell: the bill PAGE with the version in the fragment
+ * (/legislative/2023/bills/house/1001/#1.INTR, 2023–2026, ~8.9k) and the retired
+ * static-documents path whose FILE NAME carries everything but the year
+ * (/static-documents/…/SB0191.04.ENRH.pdf, 2014–2022, ~31.6k) — the year is the
+ * bill's session, which the caller knows. 49,700 rows were recorded "js-shell"
+ * before this existed (2026-08-30); the direct PDF path answered every probe:
+ * bills, all three resolution kinds, later versions, 2014 and 2015. The 2009–2013
+ * documents on www.in.gov are not on the new site (its archive begins with 2014).
+ */
+function rewriteIndiana(url: string, year?: number): string {
+  const ga = (y: number) => 118 + Math.floor((y - 2013) / 2);
+  const page = /^https?:\/\/iga\.in\.gov\/legislative\/(\d{4})\/bills\/(house|senate)\/(\d+)\/?#(\d+)\.([A-Za-z0-9]+)$/i.exec(url);
+  if (page) {
+    const [, y, ch, num, v, code] = page;
+    const bill = (ch[0].toLowerCase() === "h" ? "HB" : "SB") + num.padStart(4, "0");
+    return `https://iga.in.gov/pdf-documents/${ga(Number(y))}/${y}/${ch.toLowerCase()}/bills/${bill}/${bill}.${v.padStart(2, "0")}.${code.toUpperCase()}.pdf`;
+  }
+  const res = /^https?:\/\/iga\.in\.gov\/legislative\/(\d{4})\/resolutions\/(house|senate)\/(simple|concurrent|joint)\/(\d+)\/?#(\d+)\.([A-Za-z0-9]+)$/i.exec(url);
+  if (res) {
+    const [, y, ch, kind, num, v, code] = res;
+    const bill = (ch[0].toLowerCase() === "h" ? "H" : "S") + ({ simple: "R", concurrent: "C", joint: "J" } as Record<string, string>)[kind.toLowerCase()] + num.padStart(4, "0");
+    return `https://iga.in.gov/pdf-documents/${ga(Number(y))}/${y}/${ch.toLowerCase()}/resolutions/${bill}/${bill}.${v.padStart(2, "0")}.${code.toUpperCase()}.pdf`;
+  }
+  const stat = /^https?:\/\/iga\.in\.gov\/static-documents\/(?:[^/]+\/)+(([HS])([BRCJ])\d{4})\.(\d{2}\.[A-Za-z0-9.]+\.pdf)$/i.exec(url);
+  if (stat && year && year >= 2014) {
+    const [, bill, ch, kind, rest] = stat;
+    return `https://iga.in.gov/pdf-documents/${ga(year)}/${year}/${ch.toUpperCase() === "H" ? "house" : "senate"}/${kind.toUpperCase() === "B" ? "bills" : "resolutions"}/${bill.toUpperCase()}/${bill.toUpperCase()}.${rest.toUpperCase().replace(/\.PDF$/, ".pdf")}`;
+  }
+  return url;
+}
+
+export function rewriteLink(url: string, ctx?: { year?: number }): string {
+  url = rewriteIndiana(url, ctx?.year);
   return url
     .replace(/^https?:\/\/(www\.)?ilga\.gov\/legislation\//i, "https://www.ilga.gov/documents/legislation/")
     // Michigan: the same path 404s over plain http and serves over https (6,000 older links).
@@ -749,7 +788,7 @@ async function runStateLink(sql: Sql, state: string, since: number, limit: numbe
   const best = new Map<number, number>();
   const buf = new TextBuffer(sql, counts);
   const one = async (d: typeof rows[number]) => {
-    const link = rewriteLink(d.state_link);
+    const link = rewriteLink(d.state_link, { year: Number(d.session_id) || undefined });
     // LegiScan's older links are http://; most legislatures answer only on https
     // now, and some (Louisiana) let the http port hang for the full 60 s timeout
     // before anything happens. So https FIRST, and the original http only if
