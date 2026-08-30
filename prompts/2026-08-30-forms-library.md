@@ -1,0 +1,63 @@
+# Lane FL — the forms library: every significant NYS and federal PDF form, in S3, catalogued
+
+**Written:** 2026-08-30 02:10 ET, by the lead (Fable), as a kick-off + hand-off — the lead started it and may not finish it. **Window:** `/rename forms-library`, `/color yellow`. **Model:** Opus. **Repo:** `~/Code/livingston`.
+**Read first:** this file end to end; `/Code/scripts/FLEET-DOCTRINE.md` §3 (operating rules) and §2 (the database rules); `scripts/forms/forms-harvest.mjs` (the tool, built tonight); `docs/TEXT-FLEET.md`.
+
+## Why (Brendan, 02:00 ET)
+
+> "New York State and the Federal government both hand out PDFs for a lot, and I mean a lot of things … find all significant PDF forms relied upon by the state and federal government for benefits, grants, and programs. Livingston began as an effort (v1) to assist one individual in filling out a 28-page NYS public assistance/benefits form. With what you've built we can probably get the full NYS library. Get all of NYS and get the most common federal forms to start."
+
+The 28-page form is OTDA's **LDSS-2921** (Application for Certain Benefits and Services). The goal is the *catalogue* as much as the files: agency, form number, title, program, revision, languages, page count, fillable fields — the raw material for Penny (forms-as-a-service, the keeper from 2026-08-28) and for the interview/fill engine that already exists three times over in this portfolio.
+
+## What the lead found in the first hour (2026-08-30 02:00–02:30 ET)
+
+**The live indexes are mostly hostile or JS-rendered; the files usually are not.** Probed with curl (plain and browser UA):
+
+| Source | Index page | Files | Route |
+|---|---|---|---|
+| **OTDA** (`otda.ny.gov/programs/applications/`) | connection refused at the TLS handshake — a fingerprint wall, browser UA does not help | same wall | **Wayback CDX + archive fetch** (24,655 PDF URLs indexed) |
+| **OCFS** (`ocfs.ny.gov/forms/`) | same wall | same | Wayback (25,955) |
+| **DTF / tax.ny.gov** (`/forms/current-forms/`) | 403 to any bot | direct PDF 404 under the guessed path | Wayback (1,751 under `/pdf/current_forms`) — the catalogue gives the real paths |
+| **DOH** (`health.ny.gov/forms/`) | 200, 51 category links | 200 | live crawl, depth 2 (Wayback has 1,681) |
+| **DOL** (`dol.ny.gov/forms-and-publications`) | 200, JS list | ? | Wayback (10,250) then live fetch |
+| **DMV** (`dmv.ny.gov/forms`) | 200, 12 links on page 1 | 200 | live crawl (paginated) |
+| **OMH** (`omh.ny.gov/omhweb/forms/`) | 200, 78 PDFs | 200 | live |
+| HESC, HCR, OCFS-childcare, OASAS, Ag&Mkts, DEC, Civil Service, Grants Gateway | not yet probed | | Wayback first, always |
+| **NYC HRA** (`nyc.gov/assets/hra`) | index 404 (moved) | | Wayback (6,134) |
+| **IRS** (`irs.gov/pub/irs-pdf/`) | **200, a plain directory, 63 pages × 50 = ~3,100 PDFs** | 200 | live, trivial |
+| **VA** | **`https://api.va.gov/v0/forms` — 800 forms as JSON with URL, title, pages, revision date** | 200 | the API, then live fetch |
+| **USCIS** (`uscis.gov/forms/all-forms`) | 200, 103 form pages | 200 (`/sites/default/files/document/forms/i-485.pdf`) | live, depth 2 |
+| **SSA** (`ssa.gov/forms/`) | 403 index and 403 files | | Wayback (529) |
+| GSA forms library, grants.gov repository, HUD HUDCLIPS, CMS, OPM, DOL-ETA, USDA-FNS, Dept of Ed | JS-rendered; grants.gov/HUD/CMS/OPM not yet probed | | Wayback CDX for each host's PDF space, then live fetch |
+
+**The Wayback CDX is the master catalogue.** `http://web.archive.org/cdx/search/cdx?url=<host>/<path>*&filter=mimetype:application/pdf&fl=original,timestamp,digest,length&collapse=urlkey` returns every PDF URL the archive has ever captured for a site, with a timestamp and a content digest. Where the live host serves it, fetch live (fresher); where it walls us, `https://web.archive.org/web/<timestamp>id_/<url>` serves the archived bytes as-is. Filter by path/name to forms (`/forms/`, `/applications/`, `LDSS-`, `OCFS-`, `DOH-`, `IT-`, `SSA-`, `f1040`, …) and keep the rest catalogued but unfetched.
+
+## The tool — `scripts/forms/forms-harvest.mjs`
+
+```
+node scripts/forms/forms-harvest.mjs catalog [--source otda|ocfs|…|all]      # CDX + live indexes → "Forms" rows + s3://…/forms-catalog/<source>.jsonl
+node scripts/forms/forms-harvest.mjs fetch   [--source …] [--lanes 4] [--limit N]   # live → archive fallback → s3://livingston-bill-pdfs-638175140432/forms/<gov>/<agency>/<file>
+node scripts/forms/forms-harvest.mjs inspect [--source …]                     # pdfinfo pages + AcroForm field names → the row
+```
+Sources are declared in `SOURCES` at the top of the file (gov, agency, CDX patterns, live index URLs, include/exclude path regexes). Adding an agency is adding an entry. Politeness: 4 lanes per host, browser-style UA, `Retry-After` honoured; archive.org at ≤ 4 in flight (they publish no limit; be a good citizen — the archive is the fallback for everything).
+
+**Storage.** Files: `s3://livingston-bill-pdfs-638175140432/forms/<gov>/<agency>/<basename>` (originals, never converted in place). Table `"Forms"` in the policy Neon (created by the tool): `id, gov, agency, source, url, wayback_ts, s3_key, form_number, title, bytes, sha256, pages, fillable_fields (jsonb), status, error, fetched_at`. Idempotent by `url`; a re-run refreshes changed digests only.
+
+## Do, in order
+
+1. `git pull`; read `SOURCES`; run `catalog --source otda` and look at the rows — the include/exclude regexes are the lead's first guess and the LDSS forms must all be there (`LDSS-2921`, `LDSS-3174`, `LDSS-4826`, `LDSS-3421` are the sanity set).
+2. `fetch --source otda --limit 50` → check S3 and the rows (status, bytes, pages). Then the full OTDA fetch.
+3. NYS in this order: OTDA, OCFS, DOH, DOL, DTF, DMV, OMH/OASAS, HESC, HCR, NYC HRA. Catalogue each, fetch each. Report per source: catalogued / fetched live / fetched from archive / failed.
+4. Federal, most common first: IRS (directory), VA (API), USCIS, SSA (archive), then grants.gov SF-424 family, HUD, CMS, DOL-ETA, USDA-FNS (SNAP/WIC), Dept of Ed (FAFSA), OPM, SBA. Probe each index the way the lead did (curl plain, curl browser UA, CDX count) and add the `SOURCES` entry before fetching.
+5. `inspect` everything fetched: page counts and AcroForm field names — the field list is what Penny needs.
+6. Report: the table of sources with counts; the ten largest forms by pages; how many have fillable fields; what the catalogue is missing that a human would expect (compare against `otda.ny.gov`'s own applications page as seen in a real browser).
+
+## Hard rules
+
+Originals to S3 untouched; never overwrite a different digest (versions accumulate under `<basename>` + `-<sha8>` when they differ) · 4 lanes per host, archive.org included · no `DELETE`/`DROP` · `"Forms"` is this lane's only table · no push — commit by pathspec, the lead pushes after Q/A · report into this file under **Report**, heartbeat per source.
+
+## Report
+
+*(lane writes here)*
+
+### Heartbeats
