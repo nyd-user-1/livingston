@@ -3,6 +3,9 @@
 #
 #   fleet-launch.sh <ami-id> <count> [--from i] [--type t4g.medium] [--skip-states A,B] [--start 4] [--max 16] [--dry-run]
 #   --from i launches shards i..count-1 only (a box already running shard 0 by hand counts as a member).
+#   --bootstrap  the AMI is stock Ubuntu 24.04 arm64: user-data installs node 22 + poppler and unpacks
+#                s3://livingston-fec-bulk-638175140432/_fleet/bootstrap/livingston.tgz (box 1's repo with
+#                node_modules and .env.local, packed by the lead) — no snapshot to wait for.
 #
 # Brendan, 2026-08-29: "run 4 per instance for as many instances as you can …
 # different IPs … dial up from 4 to 8 … staggered." Every rate limit we have met
@@ -21,7 +24,7 @@
 # at exit (that bucket is the one the worker role can already write).
 set -euo pipefail
 AMI="${1:?ami-id}"; COUNT="${2:?count}"; shift 2
-TYPE=t4g.medium; SKIP="NJ,CA,IL,VA,MA,TN"; START=4; MAX=16; DRY=0; FROM=0
+TYPE=t4g.medium; SKIP="NJ,CA,IL,VA,MA,TN"; START=4; MAX=16; DRY=0; FROM=0; BOOT=0
 # The PDF bucket: every PDF the fleet meets is parked here and converted later in one pass.
 PDF_BUCKET=livingston-bill-pdfs-638175140432
 # The robots-refused states get Tennessee's treatment — Brendan, 2026-08-29 22:05: "all 50 minus
@@ -29,7 +32,7 @@ PDF_BUCKET=livingston-bill-pdfs-638175140432
 # by host name. PA and GA are AWS-range blocks and are not here; they need a human.
 OVERRIDES="webserver1.lsb.state.ok.us=0:4:norobots,www.oklegislature.gov=0:4:norobots,www3.oklegislature.gov=0:4:norobots,www.capitol.hawaii.gov=0:4:norobots,leg.colorado.gov=0:4:norobots,www.leg.state.co.us=0:4:norobots,lims.dccouncil.us=0:4:norobots,lims.dccouncil.gov=0:4:norobots,www.legis.state.ak.us=0:4:norobots,www.akleg.gov=0:4:norobots"
 while [ $# -gt 0 ]; do case "$1" in
-  --from) FROM="$2"; shift 2 ;; --type) TYPE="$2"; shift 2 ;; --skip-states) SKIP="$2"; shift 2 ;; --start) START="$2"; shift 2 ;; --max) MAX="$2"; shift 2 ;; --dry-run) DRY=1; shift ;;
+  --from) FROM="$2"; shift 2 ;; --bootstrap) BOOT=1; shift ;; --type) TYPE="$2"; shift 2 ;; --skip-states) SKIP="$2"; shift 2 ;; --start) START="$2"; shift 2 ;; --max) MAX="$2"; shift 2 ;; --dry-run) DRY=1; shift ;;
   *) echo "unknown arg $1" >&2; exit 2 ;; esac; done
 REGION=us-east-1
 SUBNET=subnet-09e840612db030382; SG=sg-0d89f5998e3415eb0; KEY=44b-worker
@@ -43,10 +46,17 @@ for i in $(seq "$FROM" $((COUNT - 1))); do
 # fleet worker: shard $SHARD of $COUNT
 touch /home/ubuntu/.keep-up /home/ubuntu/.no-auto-jobs; chown ubuntu:ubuntu /home/ubuntu/.keep-up /home/ubuntu/.no-auto-jobs
 systemctl disable --now run-due.timer run-due.service run-due-catchup.service 2>/dev/null || true
+if [ "$BOOT" = 1 ]; then
+  export DEBIAN_FRONTEND=noninteractive
+  apt-get update -qq && apt-get install -y -qq poppler-utils unzip curl ca-certificates git >/dev/null 2>&1
+  curl -fsSL https://deb.nodesource.com/setup_22.x | bash - >/dev/null 2>&1 && apt-get install -y -qq nodejs >/dev/null 2>&1
+  curl -fsSL "https://awscli.amazonaws.com/awscli-exe-linux-aarch64.zip" -o /tmp/awscli.zip && (cd /tmp && unzip -q awscli.zip && ./aws/install >/dev/null 2>&1)
+  sudo -u ubuntu -H bash -c 'cd /home/ubuntu && aws s3 cp --quiet s3://$BUCKET/_fleet/bootstrap/livingston.tgz /tmp/livingston.tgz --region $REGION && tar xzf /tmp/livingston.tgz && rm /tmp/livingston.tgz'
+fi
 mkdir -p /home/ubuntu/logs; chown ubuntu:ubuntu /home/ubuntu/logs
 LOG=/home/ubuntu/logs/fleet-shard-$i.log
 ( while true; do sleep 300; aws s3 cp --quiet "\$LOG" s3://$BUCKET/_fleet/shard-$i-of-$COUNT.log --region $REGION 2>/dev/null || true; done ) &
-sudo -u ubuntu -H bash -c 'cd /home/ubuntu/livingston && git pull -q --ff-only origin main; PDF_DEFER_BUCKET=$PDF_BUCKET POLITE_HOST_OVERRIDES=$OVERRIDES POLITE_AUTO_LANES=$START:$MAX node scripts/box/text-backfill.mjs --source state_link --all-states --skip-states $SKIP --shard $SHARD --parallel 16 --batch 400 --since-session 2009 --max-errors 20' > "\$LOG" 2>&1
+sudo -u ubuntu -H bash -c 'cd /home/ubuntu/livingston && (git pull -q --ff-only origin main 2>/dev/null || true); PDF_DEFER_BUCKET=$PDF_BUCKET POLITE_HOST_OVERRIDES=$OVERRIDES POLITE_AUTO_LANES=$START:$MAX node scripts/box/text-backfill.mjs --source state_link --all-states --skip-states $SKIP --shard $SHARD --parallel 16 --batch 400 --since-session 2009 --max-errors 20' > "\$LOG" 2>&1
 echo "EXIT=\$? \$(date -u +%FT%TZ)" >> "\$LOG"
 aws s3 cp --quiet "\$LOG" s3://$BUCKET/_fleet/shard-$i-of-$COUNT.log --region $REGION || true
 shutdown -h now
