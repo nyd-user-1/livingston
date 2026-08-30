@@ -574,7 +574,10 @@ async function byHostPool<T extends { state_link: string }>(rows: T[], concurren
  * stored row keeps LegiScan's document_id, so nothing else changes.
  */
 export function rewriteLink(url: string): string {
-  return url.replace(/^https?:\/\/(www\.)?ilga\.gov\/legislation\//i, "https://www.ilga.gov/documents/legislation/");
+  return url
+    .replace(/^https?:\/\/(www\.)?ilga\.gov\/legislation\//i, "https://www.ilga.gov/documents/legislation/")
+    // Michigan: the same path 404s over plain http and serves over https (6,000 older links).
+    .replace(/^http:\/\/(www\.)?legislature\.mi\.gov\//i, "https://www.legislature.mi.gov/");
 }
 
 async function runStateLink(sql: Sql, state: string, since: number, limit: number, includeAmendments: boolean, concurrency: number, requeueErrors: boolean, billIds: number[], counts: Counts, fetcher: PoliteFetcher) {
