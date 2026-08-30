@@ -3,6 +3,8 @@
 #
 #   fleet-launch.sh <ami-id> <count> [--from i] [--type t4g.medium] [--skip-states A,B] [--start 4] [--max 16] [--dry-run]
 #   --from i launches shards i..count-1 only (a box already running shard 0 by hand counts as a member).
+#   --pdf-batch  not a walker: one many-core box (default c7g.4xlarge) that converts the PDFs parked in
+#                S3 by PDF_DEFER_BUCKET (`--source pdf-batch --batch 500 --concurrency 32`) and shuts down.
 #   --bootstrap  the AMI is stock Ubuntu 24.04 arm64: user-data installs node 22 + poppler and unpacks
 #                s3://livingston-fec-bulk-638175140432/_fleet/bootstrap/livingston.tgz (box 1's repo with
 #                node_modules and .env.local, packed by the lead) — no snapshot to wait for.
@@ -24,7 +26,7 @@
 # at exit (that bucket is the one the worker role can already write).
 set -euo pipefail
 AMI="${1:?ami-id}"; COUNT="${2:?count}"; shift 2
-TYPE=t4g.medium; SKIP="NJ,CA,IL,VA,MA,TN"; START=4; MAX=16; DRY=0; FROM=0; BOOT=0
+TYPE=t4g.medium; SKIP="NJ,CA,IL,VA,MA,TN"; START=4; MAX=16; DRY=0; FROM=0; BOOT=0; PDFB=0
 # The PDF bucket: every PDF the fleet meets is parked here and converted later in one pass.
 PDF_BUCKET=livingston-bill-pdfs-638175140432
 # The robots-refused states get Tennessee's treatment — Brendan, 2026-08-29 22:05: "all 50 minus
@@ -32,7 +34,7 @@ PDF_BUCKET=livingston-bill-pdfs-638175140432
 # by host name. PA and GA are AWS-range blocks and are not here; they need a human.
 OVERRIDES="webserver1.lsb.state.ok.us=0:4:norobots,www.oklegislature.gov=0:4:norobots,www3.oklegislature.gov=0:4:norobots,www.capitol.hawaii.gov=0:4:norobots,leg.colorado.gov=0:4:norobots,www.leg.state.co.us=0:4:norobots,lims.dccouncil.us=0:4:norobots,lims.dccouncil.gov=0:4:norobots,www.legis.state.ak.us=0:4:norobots,www.akleg.gov=0:4:norobots"
 while [ $# -gt 0 ]; do case "$1" in
-  --from) FROM="$2"; shift 2 ;; --bootstrap) BOOT=1; shift ;; --type) TYPE="$2"; shift 2 ;; --skip-states) SKIP="$2"; shift 2 ;; --start) START="$2"; shift 2 ;; --max) MAX="$2"; shift 2 ;; --dry-run) DRY=1; shift ;;
+  --from) FROM="$2"; shift 2 ;; --bootstrap) BOOT=1; shift ;; --pdf-batch) PDFB=1; TYPE=c7g.4xlarge; shift ;; --type) TYPE="$2"; shift 2 ;; --skip-states) SKIP="$2"; shift 2 ;; --start) START="$2"; shift 2 ;; --max) MAX="$2"; shift 2 ;; --dry-run) DRY=1; shift ;;
   *) echo "unknown arg $1" >&2; exit 2 ;; esac; done
 REGION=us-east-1
 SUBNET=subnet-09e840612db030382; SG=sg-0d89f5998e3415eb0; KEY=44b-worker
@@ -56,7 +58,7 @@ fi
 mkdir -p /home/ubuntu/logs; chown ubuntu:ubuntu /home/ubuntu/logs
 LOG=/home/ubuntu/logs/fleet-shard-$i.log
 ( while true; do sleep 300; aws s3 cp --quiet "\$LOG" s3://$BUCKET/_fleet/shard-$i-of-$COUNT.log --region $REGION 2>/dev/null || true; done ) &
-sudo -u ubuntu -H bash -c 'cd /home/ubuntu/livingston && (git pull -q --ff-only origin main 2>/dev/null || true); PDF_DEFER_BUCKET=$PDF_BUCKET POLITE_HOST_OVERRIDES=$OVERRIDES POLITE_AUTO_LANES=$START:$MAX node scripts/box/text-backfill.mjs --source state_link --all-states --skip-states $SKIP --shard $SHARD --parallel 4 --batch 4000 --since-session 2009 --max-errors 20' > "\$LOG" 2>&1
+sudo -u ubuntu -H bash -c 'cd /home/ubuntu/livingston && (git pull -q --ff-only origin main 2>/dev/null || true); $( [ "$PDFB" = 1 ] && echo "node scripts/box/text-backfill.mjs --source pdf-batch --batch 500 --concurrency 32 --max-errors 50" || echo "PDF_DEFER_BUCKET=$PDF_BUCKET POLITE_HOST_OVERRIDES=$OVERRIDES POLITE_AUTO_LANES=$START:$MAX node scripts/box/text-backfill.mjs --source state_link --all-states --skip-states $SKIP --shard $SHARD --parallel 4 --batch 4000 --since-session 2009 --max-errors 20" )' > "\$LOG" 2>&1
 echo "EXIT=\$? \$(date -u +%FT%TZ)" >> "\$LOG"
 aws s3 cp --quiet "\$LOG" s3://$BUCKET/_fleet/shard-$i-of-$COUNT.log --region $REGION || true
 shutdown -h now
@@ -66,7 +68,7 @@ EOF
   ID=$(aws ec2 run-instances --region $REGION --image-id "$AMI" --instance-type "$TYPE" --subnet-id $SUBNET --security-group-ids $SG --key-name $KEY \
         --iam-instance-profile Arn=$PROFILE --instance-initiated-shutdown-behavior terminate \
         --block-device-mappings '[{"DeviceName":"/dev/sda1","Ebs":{"VolumeSize":100,"VolumeType":"gp3","DeleteOnTermination":true}}]' \
-        --tag-specifications "ResourceType=instance,Tags=[{Key=Name,Value=lv-text-fleet-$i},{Key=project,Value=livingston},{Key=fleet,Value=text},{Key=shard,Value=$SHARD}]" \
+        --tag-specifications "ResourceType=instance,Tags=[{Key=Name,Value=lv-text-$( [ "$PDFB" = 1 ] && echo pdfbatch || echo fleet )-$i},{Key=project,Value=livingston},{Key=fleet,Value=$( [ "$PDFB" = 1 ] && echo pdf || echo text )},{Key=shard,Value=$SHARD}]" \
         --user-data "$USERDATA" --query 'Instances[0].InstanceId' --output text)
   echo "shard $SHARD -> $ID"
   sleep 3   # staggered, as asked; also keeps the API happy
