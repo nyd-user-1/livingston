@@ -10,6 +10,24 @@
 import type { NeonQueryFunction } from "@neondatabase/serverless";
 import { createHash } from "node:crypto";
 import { spawn } from "node:child_process";
+import { gzipSync, gunzipSync } from "node:zlib";
+import { S3Client, PutObjectCommand, GetObjectCommand } from "@aws-sdk/client-s3";
+
+/**
+ * TEXT_SINK_BUCKET: when set, a batch's TEXT goes to S3 as gzipped JSONL and
+ * the database gets only the stub — ids, version, hash, chars, and an error
+ * column that says where the text is (`s3-text: s3://bucket/key`). Brendan,
+ * 2026-08-30 01:20 ET: "store the rows in S3 and we'll add the outputs to Neon
+ * in an orderly fashion instead of all at once." A serial loader
+ * (`?source=s3-load`) fills `text` in later at the database's own pace; the
+ * corpus meanwhile exists as files, which is what a training rig reads anyway.
+ * Keys: <prefix>/<state>/<yyyymmdd>/<tag>-<epoch>-<n>.jsonl.gz.
+ */
+export const TEXT_SINK_BUCKET = process.env.TEXT_SINK_BUCKET || "";
+export const TEXT_SINK_PREFIX = process.env.TEXT_SINK_PREFIX || "text";
+const TEXT_SINK_TAG = (process.env.TEXT_SINK_TAG || process.env.HOSTNAME || "box").replace(/[^A-Za-z0-9_-]/g, "");
+let s3Shared: S3Client | null = null;
+export const s3 = () => (s3Shared ??= new S3Client({ region: process.env.AWS_REGION || "us-east-1" }));
 
 export type Sql = NeonQueryFunction<false, false>;
 export type Counts = Record<string, number>;
@@ -138,6 +156,8 @@ export async function bodyToText(mime: string, buf: Uint8Array): Promise<{ text:
 export type TextRow = {
   document_id: number; bill_id: number; state: string; session_id: number | null;
   version: string | null; source: string; mime: string | null; text: string | null; error: string | null;
+  /** Set on an S3-sink stub: the real text's size and hash, so the row stays idempotent without the text. */
+  chars?: number; text_hash?: string;
 };
 
 /**
@@ -211,9 +231,10 @@ export class TextBuffer {
 
   private async writeBatch(batch: TextRow[]) {
     if (!batch.length) return;
+      if (TEXT_SINK_BUCKET) batch = await this.sinkToS3(batch);
       const text = batch.map((r) => r.text);
-      const hash = batch.map((r) => (r.text ? sha(r.text) : null));
-      const chars = batch.map((r) => (r.text ? r.text.length : 0));
+      const hash = batch.map((r) => (r.text ? sha(r.text) : r.text_hash ?? null));
+      const chars = batch.map((r) => (r.text ? r.text.length : r.chars ?? 0));
       const out = (await this.sql.query(
         `INSERT INTO "BillTexts" (document_id, bill_id, state, session_id, version, source, mime, chars, text, text_hash, error, fetched_at)
          SELECT *, now() FROM unnest($1::bigint[], $2::bigint[], $3::text[], $4::int[], $5::text[], $6::text[], $7::text[], $8::int[], $9::text[], $10::text[], $11::text[])
@@ -234,6 +255,26 @@ export class TextBuffer {
       this.counts.unchanged = (this.counts.unchanged ?? 0) + (batch.length - out.length);
       this.counts.chars = (this.counts.chars ?? 0) + chars.reduce((n, c) => n + c, 0);
       this.counts.writes = (this.counts.writes ?? 0) + 1;
+  }
+
+  /** Text rows → one JSONL.gz object per batch (grouped by state); each row comes back as a stub pointing at it. */
+  private async sinkToS3(batch: TextRow[]): Promise<TextRow[]> {
+    const withText = batch.filter((r) => r.text);
+    if (!withText.length) return batch;
+    const byState = new Map<string, TextRow[]>();
+    for (const r of withText) { const l = byState.get(r.state); if (l) l.push(r); else byState.set(r.state, [r]); }
+    const out = batch.filter((r) => !r.text);
+    const day = new Date().toISOString().slice(0, 10).replace(/-/g, "");
+    for (const [state, rows] of byState) {
+      const key = `${TEXT_SINK_PREFIX}/${state}/${day}/${TEXT_SINK_TAG}-${Date.now()}-${rows.length}.jsonl.gz`;
+      const body = gzipSync(Buffer.from(rows.map((r) => JSON.stringify({ ...r, chars: r.text!.length, text_hash: sha(r.text!) })).join("\n") + "\n"));
+      await s3().send(new PutObjectCommand({ Bucket: TEXT_SINK_BUCKET, Key: key, Body: body, ContentType: "application/x-ndjson", ContentEncoding: "gzip" }));
+      this.counts.s3TextObjects = (this.counts.s3TextObjects ?? 0) + 1;
+      this.counts.s3TextRows = (this.counts.s3TextRows ?? 0) + rows.length;
+      this.counts.s3TextBytes = (this.counts.s3TextBytes ?? 0) + body.byteLength;
+      for (const r of rows) out.push({ ...r, text: null, chars: r.text!.length, text_hash: sha(r.text!), error: `s3-text: s3://${TEXT_SINK_BUCKET}/${key}` });
+    }
+    return out;
   }
 
   async flush() {
@@ -271,4 +312,14 @@ export class TextBuffer {
       this.counts.writes = (this.counts.writes ?? 0) + 1;
     }
   }
+}
+
+
+/** Read one sink object back: the rows it holds, text included. */
+export async function readSinkObject(uri: string): Promise<TextRow[]> {
+  const m = /^s3:\/\/([^/]+)\/(.+)$/.exec(uri);
+  if (!m) throw new Error(`not an s3 uri: ${uri}`);
+  const obj = await s3().send(new GetObjectCommand({ Bucket: m[1], Key: m[2] }));
+  const bytes = await obj.Body!.transformToByteArray();
+  return gunzipSync(Buffer.from(bytes)).toString("utf8").split("\n").filter(Boolean).map((l) => JSON.parse(l) as TextRow);
 }

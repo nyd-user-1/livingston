@@ -15,6 +15,7 @@
 //   node scripts/box/text-backfill.mjs --source va-lis [--batch 2000] [--api-parallel 8]      # Virginia 2026 via the LIS API (VA_LIS_API_KEY)
 //   node scripts/box/text-backfill.mjs --source ma-api [--batch 2000] [--api-parallel 12]     # Massachusetts via malegislature.gov/api
 //   node scripts/box/text-backfill.mjs --source pdf-batch [--state XX] --batch 500 --concurrency 24   # convert the S3-parked PDFs
+//   node scripts/box/text-backfill.mjs --source s3-load [--state XX] --batch 2000                     # fill text from the S3 sink, serially
 //   node scripts/box/text-backfill.mjs --source ca-pubinfo --all-sessions --since-session 2009
 //   node scripts/box/text-backfill.mjs --source ca-pubinfo --session 2025 --zip pubinfo_Sat.zip --sample 5 --keep   # the cheap test
 //
@@ -335,6 +336,16 @@ if (SOURCE === "ma-api") {
   log(`ma-api: Massachusetts through malegislature.gov/api · batch ${BATCH} · ${par} in flight`);
   const s = await drain("MA api", () => ["source=ma-api", `limit=${BATCH}`, `parallel=${par}`]);
   log(`ma-api done: ${s.considered} considered · ${s.inserted} stored · ${(s.secs / 60).toFixed(1)} min`);
+  process.exit(s.errored ? 1 : 0);
+}
+
+/* ---- s3-load ------------------------------------------------------------- */
+
+if (SOURCE === "s3-load") {
+  // The orderly load: one process, one sink object at a time.
+  log(`s3-load: ${STATE || "all states"} · ~${BATCH} rows per round`);
+  const s = await drain(`s3-load ${STATE || "all"}`, () => ["source=s3-load", ...(STATE ? [`state=${STATE}`] : []), `limit=${BATCH}`]);
+  log(`s3-load done: ${s.considered} rows · ${(s.secs / 60).toFixed(1)} min`);
   process.exit(s.errored ? 1 : 0);
 }
 

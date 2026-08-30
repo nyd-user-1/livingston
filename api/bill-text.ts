@@ -31,6 +31,7 @@
 //        LegiScan's links for that session are a React shell; the text is behind the API.
 //   ?source=ma-api[&limit=&parallel=12]         Massachusetts, from malegislature.gov/api — DocumentText inline, no key.
 //   ?source=pdf-batch[&state=][&limit=][&concurrency=]   convert the PDFs parked in S3 by PDF_DEFER_BUCKET.
+//   ?source=s3-load[&state=][&limit=]           fill `text` from the S3 sink objects (TEXT_SINK_BUCKET rows), serially.
 //   ?mode=delta[&days=7]                      nightly. state_link first (free);
 //        LegiScan getBillText only as the fallback, because that one is metered:
 //        30,000 queries a month for the whole key, and this route stops at 25,000.
@@ -49,7 +50,7 @@ import { neon } from "@neondatabase/serverless";
 import { Unzip, UnzipInflate } from "fflate";
 import fs from "node:fs";
 import { PoliteFetcher, type PoliteStats } from "./_lib/polite-fetch.js";
-import { TextBuffer, bodyToText, htmlToText, xmlToText, poolerUrl, withRetry, MAX_TEXT_BYTES, type Sql, type Counts } from "./_lib/text-shared.js";
+import { TextBuffer, bodyToText, htmlToText, xmlToText, poolerUrl, withRetry, readSinkObject, MAX_TEXT_BYTES, type Sql, type Counts } from "./_lib/text-shared.js";
 import { runCaPubinfo } from "./_lib/text-sources/ca-pubinfo.js";
 import { runTxFtp, defaultCacheDir as txCacheDir } from "./_lib/text-sources/tx-ftp.js";
 import { runVaLis } from "./_lib/text-sources/va-lis.js";
@@ -819,6 +820,37 @@ async function runPdfBatch(sql: Sql, state: string, limit: number, concurrency: 
   counts.bills = best.size;
 }
 
+/**
+ * The orderly load: rows whose error says `s3-text: s3://…` get their text back
+ * from the sink object, one object at a time, one process, at whatever pace the
+ * database likes. Idempotent — a row already filled is skipped by the hash.
+ */
+async function runS3Load(sql: Sql, state: string, limit: number, counts: Counts) {
+  const keys = (await sql.query(
+    `SELECT substring(error from 's3-text: (s3://.*)$') AS uri, count(*)::int AS n
+       FROM "BillTexts" WHERE text IS NULL AND error LIKE 's3-text%' AND ($1 = '' OR state = $1)
+      GROUP BY 1 ORDER BY 1 LIMIT $2`,
+    [state, Math.max(1, Math.floor(limit / 50))],
+  )) as { uri: string; n: number }[];
+  counts.considered = keys.reduce((a, k) => a + k.n, 0);
+  counts.objects = keys.length;
+  if (!keys.length) return;
+  const buf = new TextBuffer(sql, counts);
+  const best = new Map<number, number>();
+  for (const k of keys) {
+    let rows: import("./_lib/text-shared.js").TextRow[];
+    try { rows = await readSinkObject(k.uri); } catch (e) { counts.readErrors = (counts.readErrors ?? 0) + 1; console.log(`s3-load: ${k.uri}: ${String((e as Error).message).slice(0, 120)}`); continue; }
+    for (const r of rows) {
+      if (!r.text) continue;
+      await buf.add({ document_id: Number(r.document_id), bill_id: Number(r.bill_id), state: r.state, session_id: r.session_id, version: r.version ?? null, source: r.source, mime: r.mime ?? null, text: r.text, error: null }, r.text.length);
+      best.set(Number(r.bill_id), Math.max(best.get(Number(r.bill_id)) ?? 0, r.text.length));
+    }
+  }
+  for (const [billId, chars] of best) buf.stamp(billId, chars);
+  await buf.flush();
+  counts.bills = best.size;
+}
+
 /* ---- source 5: the nightly delta ----------------------------------------- */
 
 async function legiscanMonthToDate(sql: Sql): Promise<number> {
@@ -1023,13 +1055,16 @@ export default async function handler(req: { headers?: Record<string, string>; q
       await runVaLis(sql, { key, limit, parallel: Math.min(16, Math.max(1, Number(req.query?.parallel ?? 8) || 8)), ua: fetcher.ua }, counts);
     } else if (source === "ma-api") {
       await runMaApi(sql, { limit, parallel: Math.min(24, Math.max(1, Number(req.query?.parallel ?? 12) || 12)), ua: fetcher.ua }, counts);
+    } else if (source === "s3-load") {
+      if (process.env.TEXT_SINK_BUCKET) return res.status(400).json({ error: "unset TEXT_SINK_BUCKET for the loader — it must write text to the database, not back to the sink" });
+      await runS3Load(sql, state, limit, counts);
     } else if (source === "pdf-batch") {
       // Conversion is bound by S3 and Neon round-trips, not CPU: a 16-core box at 24 in flight idled at load 0.4.
       await runPdfBatch(sql, state, limit, Math.min(128, Math.max(1, Number(req.query?.concurrency ?? 32) || 32)), counts);
     } else if (source === "state_link") {
       await runStateLink(sql, state, since, limit, Boolean(req.query?.amendments), concurrency, Boolean(req.query?.requeueErrors), billIds, counts, fetcher, parseShard(String(req.query?.shard ?? "")));
     } else {
-      return res.status(400).json({ error: "pass ?source=nysenate|govinfo|govinfo-billsum|state_link|ca-pubinfo|tx-ftp|va-lis|ma-api|pdf-batch, or ?mode=delta, or ?census=1" });
+      return res.status(400).json({ error: "pass ?source=nysenate|govinfo|govinfo-billsum|state_link|ca-pubinfo|tx-ftp|va-lis|ma-api|pdf-batch|s3-load, or ?mode=delta, or ?census=1" });
     }
 
     const hosts: PoliteStats[] = fetcher.stats();
