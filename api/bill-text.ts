@@ -592,6 +592,8 @@ export function rewriteLink(url: string): string {
     .replace(/^https?:\/\/(www\.)?ilga\.gov\/legislation\//i, "https://www.ilga.gov/documents/legislation/")
     // Michigan: the same path 404s over plain http and serves over https (6,000 older links).
     .replace(/^http:\/\/(www\.)?legislature\.mi\.gov\//i, "https://www.legislature.mi.gov/")
+    // Hawaii: www.capitol.hawaii.gov 403s everyone now (a browser too); the same paths serve on data.capitol.hawaii.gov.
+    .replace(/^https?:\/\/www\.capitol\.hawaii\.gov\//i, "https://data.capitol.hawaii.gov/")
     // Ohio: LegiScan's older links are the retired solarapi v1; the v2 API serves the same version as HTML.
     //   solarapi/v1/general_assembly_134/bills/hb433/RH/01/hb433_01_RH?format=pdf
     //   -> api/v2/general_assembly_134/legislation/hb433/01_RH/html/
