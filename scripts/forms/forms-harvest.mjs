@@ -111,7 +111,9 @@ async function get(url, { timeoutMs = 60_000, accept = "*/*" } = {}) {
       catch (e) { if (attempt === 2) return { ok: false, status: 0, error: String(e.cause?.code || e.message) }; continue; }
       if (r.status === 429 || r.status === 503) { const ra = Number(r.headers.get("retry-after") || 0); await new Promise((ok) => setTimeout(ok, Math.min(120_000, (ra > 0 ? ra : 15) * 1000))); continue; }
       if (!r.ok) return { ok: false, status: r.status, error: `HTTP ${r.status}` };
-      return { ok: true, status: r.status, mime: (r.headers.get("content-type") || "").split(";")[0], body: new Uint8Array(await r.arrayBuffer()) };
+      // The body read can time out too (a 200,000-line CDX answer from archive.org) — inside the try, or it kills the process.
+      try { return { ok: true, status: r.status, mime: (r.headers.get("content-type") || "").split(";")[0], body: new Uint8Array(await r.arrayBuffer()) }; }
+      catch (e) { if (attempt === 2) return { ok: false, status: r.status, error: `body: ${String(e.cause?.code || e.name || e.message)}` }; continue; }
     }
     return { ok: false, status: 429, error: "retried" };
   });
@@ -126,7 +128,7 @@ function looksLikeForm(url, src) {
 }
 async function cdxList(pattern) {
   const u = `http://web.archive.org/cdx/search/cdx?url=${encodeURIComponent(pattern)}&filter=mimetype:application/pdf&fl=original,timestamp,digest,length&collapse=urlkey&limit=200000`;
-  const r = await get(u, { timeoutMs: 180_000 });
+  const r = await get(u, { timeoutMs: 600_000 });
   if (!r.ok) { log(`  cdx ${pattern}: ${r.error}`); return []; }
   return Buffer.from(r.body).toString("utf8").split("\n").filter(Boolean).map((l) => { const [original, timestamp, digest, length] = l.split(" "); return { original, timestamp, digest, length: Number(length) }; });
 }
@@ -247,11 +249,18 @@ async function inspectSource(name) {
 }
 
 await ensureTable();
+let failures = 0;
 for (const name of chosen) {
   log(`== ${CMD} ${name} (${SOURCES[name].gov} ${SOURCES[name].agency})`);
-  if (CMD === "catalog") await catalogSource(name);
-  else if (CMD === "fetch") await fetchSource(name);
-  else if (CMD === "inspect") await inspectSource(name);
-  else { console.error(`unknown command ${CMD}`); process.exit(2); }
+  try {
+    if (CMD === "catalog") await catalogSource(name);
+    else if (CMD === "fetch") await fetchSource(name);
+    else if (CMD === "inspect") await inspectSource(name);
+    else { console.error(`unknown command ${CMD}`); process.exit(2); }
+  } catch (e) {
+    // One source's failure is one source's failure; the rest of the list still runs.
+    failures += 1; log(`${name} FAILED: ${String(e.message ?? e).slice(0, 200)}`);
+  }
 }
+if (failures) log(`${failures} source(s) failed`);
 log("done");
