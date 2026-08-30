@@ -1,3 +1,7 @@
+# ⚠ 22:35 ET — THE FLEET IS ALREADY RUNNING. DO NOT LAUNCH ANOTHER.
+
+Brendan handed the launch back to the lead at 22:20 ("no more stopping to wait"). The lead launched **20 shards** at 22:28 ET: shard 0 on box 1 (`lv-text-shard0`), shards 1–19 as `t4g.medium` instances from stock Ubuntu via `fleet-launch.sh --bootstrap` (the AMIs were still `pending` after an hour). If you are the Opus window that received this brief: **do not run step 4.** Your job is now steps 5–7 only — watch, census, retry sweeps, report — against the fleet that exists (`aws ec2 describe-instances --filters Name=tag:fleet,Values=text`). Shard logs: `s3://livingston-fec-bulk-638175140432/_fleet/shard-<i>-of-20.log`; box 1's is `~/logs/lv-text-shard0.log`.
+
 # Lane FT — the bill-text fleet: one box per IP, every remaining state at once
 
 **Written:** 2026-08-29 20:45 ET, by the lead (Fable). **Window:** `/rename text-fleet`, `/color magenta`. **Model:** Opus. **Repo:** `~/Code/livingston` (pull `main` first — `98386d3` or later).
