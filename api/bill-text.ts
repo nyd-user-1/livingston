@@ -595,6 +595,12 @@ export function rewriteLink(url: string): string {
     .replace(/^http:\/\/(www\.)?legislature\.mi\.gov\//i, "https://www.legislature.mi.gov/")
     // Hawaii: www.capitol.hawaii.gov 403s everyone now (a browser too); the same paths serve on data.capitol.hawaii.gov.
     .replace(/^https?:\/\/www\.capitol\.hawaii\.gov\//i, "https://data.capitol.hawaii.gov/")
+    // Oklahoma: webserver1.lsb.state.ok.us is retired ("Invalid Hostname"); www.oklegislature.gov serves the
+    // same cf_pdf paths (case-insensitively), and the pre-2013 .rtf links map to the cf_pdf PDFs the site links:
+    //   /2011-12bills/HB/HB1421_int.rtf -> /cf_pdf/2011-12%20int/hb/HB1421%20int.pdf
+    .replace(/^https?:\/\/webserver1\.lsb\.state\.ok\.us\/(\d{4}-\d{2})bills\/([A-Za-z]+)\/([A-Za-z]+\d+)_([A-Za-z0-9]+)\.rtf$/i,
+      (_m, sess: string, type: string, bill: string, ver: string) => `https://www.oklegislature.gov/cf_pdf/${sess}%20${ver.toLowerCase()}/${type.toLowerCase()}/${bill.toUpperCase()}%20${ver.toLowerCase()}.pdf`)
+    .replace(/^https?:\/\/webserver1\.lsb\.state\.ok\.us\//i, "https://www.oklegislature.gov/")
     // Ohio: LegiScan's older links are the retired solarapi v1; the v2 API serves the same version as HTML.
     //   solarapi/v1/general_assembly_134/bills/hb433/RH/01/hb433_01_RH?format=pdf
     //   -> api/v2/general_assembly_134/legislation/hb433/01_RH/html/
