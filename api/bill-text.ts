@@ -684,13 +684,16 @@ async function runStateLink(sql: Sql, state: string, since: number, limit: numbe
   const buf = new TextBuffer(sql, counts);
   const one = async (d: typeof rows[number]) => {
     const link = rewriteLink(d.state_link);
-    let got = await fetcher.get(link);
-    // LegiScan's older links are http://; many legislatures now answer only on
-    // https and do not redirect (Louisiana, Utah, New Hampshire, Michigan…).
-    // A network failure or a 404 on an http link gets one try over https.
-    if (!got.ok && !got.skipped && /^http:\/\//i.test(link) && (got.status === 0 || got.status === 404)) {
-      const retry = await fetcher.get(link.replace(/^http:\/\//i, "https://"));
-      if (retry.ok) { counts.httpsRescued = (counts.httpsRescued ?? 0) + 1; got = retry; }
+    // LegiScan's older links are http://; most legislatures answer only on https
+    // now, and some (Louisiana) let the http port hang for the full 60 s timeout
+    // before anything happens. So https FIRST, and the original http only if
+    // https fails outright.
+    const isHttp = /^http:\/\//i.test(link);
+    let got = await fetcher.get(isHttp ? link.replace(/^http:\/\//i, "https://") : link);
+    if (isHttp && got.ok) counts.httpsFirst = (counts.httpsFirst ?? 0) + 1;
+    if (isHttp && !got.ok && !got.skipped) {
+      const retry = await fetcher.get(link);
+      if (retry.ok) { counts.httpFallback = (counts.httpFallback ?? 0) + 1; got = retry; }
     }
     if (!got.ok) {
       counts[`skip_${got.skipped ?? "error"}`] = (counts[`skip_${got.skipped ?? "error"}`] ?? 0) + 1;

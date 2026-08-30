@@ -222,7 +222,19 @@ export class PoliteFetcher {
           r = await fetch(u.href, { headers: { "User-Agent": this.ua, Accept: "*/*" }, redirect: "follow", signal: AbortSignal.timeout(this.timeoutMs) });
         } catch (e) {
           s.nextAt = Date.now() + s.delayMs;
-          if (attempt === 2) return { ok: false, status: 0, mime: "", body: null, bytes: 0, error: String((e as Error).message) };
+          if (attempt === 2) {
+            // A host that never answers is refusing us as surely as a 403 —
+            // Pennsylvania and Georgia black-hole the AWS range and a 4,000-document
+            // round of 60 s timeouts held a fleet slot for hours (2026-08-30 04:30Z).
+            // Consecutive network failures count as strikes; five and the host is dropped.
+            s.strikes += 1;
+            this.adapt(s, true);
+            if (s.strikes >= this.maxStrikes) {
+              s.dropped = true;
+              return { ok: false, status: 0, mime: "", body: null, bytes: 0, skipped: "host-dropped" as PoliteSkip, error: `${host} dropped after ${s.strikes} consecutive failures (${String((e as Error).message).slice(0, 60)})` };
+            }
+            return { ok: false, status: 0, mime: "", body: null, bytes: 0, error: String((e as Error).message) };
+          }
           continue;
         }
         s.requests += 1;
