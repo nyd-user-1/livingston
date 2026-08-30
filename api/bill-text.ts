@@ -1015,7 +1015,8 @@ export default async function handler(req: { headers?: Record<string, string>; q
     } else if (source === "ma-api") {
       await runMaApi(sql, { limit, parallel: Math.min(24, Math.max(1, Number(req.query?.parallel ?? 12) || 12)), ua: fetcher.ua }, counts);
     } else if (source === "pdf-batch") {
-      await runPdfBatch(sql, state, limit, concurrency, counts);
+      // Conversion is bound by S3 and Neon round-trips, not CPU: a 16-core box at 24 in flight idled at load 0.4.
+      await runPdfBatch(sql, state, limit, Math.min(128, Math.max(1, Number(req.query?.concurrency ?? 32) || 32)), counts);
     } else if (source === "state_link") {
       await runStateLink(sql, state, since, limit, Boolean(req.query?.amendments), concurrency, Boolean(req.query?.requeueErrors), billIds, counts, fetcher, parseShard(String(req.query?.shard ?? "")));
     } else {
