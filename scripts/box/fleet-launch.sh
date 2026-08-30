@@ -58,7 +58,7 @@ fi
 mkdir -p /home/ubuntu/logs; chown ubuntu:ubuntu /home/ubuntu/logs
 LOG=/home/ubuntu/logs/fleet-shard-$i.log
 ( while true; do sleep 300; aws s3 cp --quiet "\$LOG" s3://$BUCKET/_fleet/shard-$i-of-$COUNT.log --region $REGION 2>/dev/null || true; done ) &
-sudo -u ubuntu -H bash -c 'cd /home/ubuntu/livingston && (git pull -q --ff-only origin main 2>/dev/null || true); $( [ "$PDFB" = 1 ] && echo "node scripts/box/text-backfill.mjs --source pdf-batch --batch 500 --concurrency 32 --max-errors 50" || echo "PDF_DEFER_BUCKET=$PDF_BUCKET POLITE_HOST_OVERRIDES=$OVERRIDES POLITE_AUTO_LANES=$START:$MAX node scripts/box/text-backfill.mjs --source state_link --all-states --skip-states $SKIP --shard $SHARD --parallel 4 --batch 4000 --since-session 2009 --max-errors 20" )' > "\$LOG" 2>&1
+sudo -u ubuntu -H bash -c 'cd /home/ubuntu/livingston && (git pull -q --ff-only origin main 2>/dev/null || true); $( [ "$PDFB" = 1 ] && echo "node scripts/box/text-backfill.mjs --source pdf-batch --batch 1000 --concurrency 96 --max-errors 50" || echo "PDF_DEFER_BUCKET=$PDF_BUCKET POLITE_HOST_OVERRIDES=$OVERRIDES POLITE_AUTO_LANES=$START:$MAX node scripts/box/text-backfill.mjs --source state_link --all-states --skip-states $SKIP --shard $SHARD --parallel 4 --batch 4000 --since-session 2009 --max-errors 20" )' > "\$LOG" 2>&1
 echo "EXIT=\$? \$(date -u +%FT%TZ)" >> "\$LOG"
 aws s3 cp --quiet "\$LOG" s3://$BUCKET/_fleet/shard-$i-of-$COUNT.log --region $REGION || true
 shutdown -h now
