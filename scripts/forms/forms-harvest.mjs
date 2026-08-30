@@ -195,6 +195,8 @@ async function fetchOne(row, src) {
   if (!isPdf(got)) {
     if (!row.wayback_ts) return { status: "failed", error: `live: ${got.error ?? got.mime ?? "not a pdf"}; no archive capture` };
     got = await get(`https://web.archive.org/web/${row.wayback_ts}id_/${row.url}`, { timeoutMs: 120_000 });
+    // archive.org sheds load with ECONNREFUSED; wait and ask once more before calling it failed.
+    if (!got.ok && /ECONNREFUSED|ECONNRESET|ETIMEDOUT/i.test(got.error || "")) { await new Promise((ok) => setTimeout(ok, 30_000)); got = await get(`https://web.archive.org/web/${row.wayback_ts}id_/${row.url}`, { timeoutMs: 120_000 }); }
     via = "archive";
     if (!isPdf(got)) return { status: "failed", error: `archive: ${got.error ?? got.mime ?? "not a pdf"}` };
   }
@@ -210,10 +212,11 @@ async function fetchOne(row, src) {
 }
 async function fetchSource(name) {
   const src = SOURCES[name];
-  const rows = await sql`SELECT id, url, wayback_ts FROM "Forms" WHERE source = ${name} AND status = 'catalogued' ORDER BY id ${LIMIT ? sql`LIMIT ${LIMIT}` : sql``}`;
+  // Fresh rows, plus earlier failures that look transient (the archive refusing a connection is not a verdict).
+  const rows = await sql`SELECT id, url, wayback_ts FROM "Forms" WHERE source = ${name} AND (status = 'catalogued' OR (status = 'failed' AND error ~* 'ECONNREFUSED|ECONNRESET|ETIMEDOUT|HTTP 5|retried')) ORDER BY id ${LIMIT ? sql`LIMIT ${LIMIT}` : sql``}`;
   log(`${name}: ${rows.length} to fetch (${src.walled ? "archive" : "live, archive fallback"})`);
   let done = 0, ok = 0, failed = 0; const t0 = Date.now();
-  await Promise.all(Array.from({ length: LANES * 2 }, async () => {
+  await Promise.all(Array.from({ length: LANES }, async () => {
     for (;;) {
       const row = rows[done++]; if (!row) return;
       const r = await fetchOne(row, src);
