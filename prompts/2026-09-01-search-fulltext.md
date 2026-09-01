@@ -519,3 +519,74 @@ the lead would rather own that list.
 
 Composite GIN ~60%. The four-case verification and §4's timings table are waiting
 on it.
+
+### HEARTBEAT 6 — 17:52 ET · the brief's own test case, live
+
+Amplify job 65 (`13d3d4f`, this lane's head) **SUCCEED**. Verified against
+https://policy.nysgpt.com, not localhost.
+
+**The gate holds, on the deployed build.** Same route, two callers:
+
+```
+menu    ?q=climate&limit=8            bills: ['NY']            texts: 0
+/search ?q=climate&limit=8&all=1      bills: ['AK','AZ','CA','CT','DC','DE','HI','IA','IL',
+                                              'LA','MA','MD','ME','MI','MN','NE','NH','NJ',
+                                              'NY','PA','RI','SD','TN','TX','US']   n=32
+```
+
+**§2's named test case, answered on production.** `/search?state=NY&q=holmes`,
+Members section, in order:
+
+```
+Adam Holmes      Ohio · R · House · HD-097
+Linda Holmes     Illinois · D · Senate · SD-042
+Marvin Holmes    Maryland · D · House · HD-023
+Russell Holmes   Massachusetts · D · House · HD-06-SUF
+Eleanor Norton   Congress · D · House · HD-DC          ← the row that could not be found this morning
+Alvin Holmes (Ret.)  Alabama · D · House · HD-078
+```
+
+Six jurisdictions, sitting members above the retired one, and Eleanor Holmes
+Norton reachable by the name she is known by.
+
+**The Text section renders.** `/search?state=NY&q=climate+resiliency` at 1714 px:
+Bills (10) over 8 jurisdictions, then Text (32) over 20 — each snippet with the
+match marked, each row flying its own flag. The stemmer is doing real work:
+`CLIMATIC`, `RESILIENCY`, `RESILIENCE` and `resilient` are all highlighted from
+a query of `climate resiliency`. Screenshot saved.
+
+**Lane X's endpoint, live and returning rows:**
+
+```
+GET /api/policy/lobbying?state=US&bill=2032901
+  → count 9156, clients 2919, registrants 1525
+    CHAMBER OF COMMERCE OF THE U.S.A. | 2025 second_quarter …
+GET /api/policy/lobbying?state=TX&bill=2032901
+  → {"error":"lobbying is a Congress dataset. Nothing for Texas.","resource":"lobbying"}
+GET /api/policy/fec?state=US&member=9100
+  → totals: 2026 receipts 53,774.80 · 2024 receipts 307,917.00 …
+```
+
+The `#text` anchor the Text rows link to is real: `<H2>Text</H2>` on the bill
+page slugs to `id="text"` through `headingId`, so a Text result lands on the
+bill's text and not its top.
+
+**Still failing, and still the predicted failure.** `WY/"health"` renders nothing
+in 28.5 s — the 979,526-row term outrunning the function timeout. That is the
+one thing the composite GIN exists to fix; it is at 76% and is the last item
+before §4.
+
+**Named, for §4's honest list — the bills the 1 MB tsvector ceiling actually
+bites.** 296 current-session documents run past a million characters, and they
+are not obscure:
+
+```
+ OH  HB96    11,429,601 chars   Make state operating appropriations for FY 2026-27
+ OH  HB96    10,797,926
+ OH  HB775    6,735,788         Regards state agencies' authority to adopt rules
+ NY  S09003   5,071,155         Makes appropriations for the support of government
+```
+
+The state budget is the single bill most likely to contain the line a reader is
+hunting for, and it is the bill we index least completely — the first megabyte
+only. Worth saying plainly rather than burying.
