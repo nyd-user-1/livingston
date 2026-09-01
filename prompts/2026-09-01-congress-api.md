@@ -317,3 +317,38 @@ break the calendar board.
 LANE C STATUS: PARTIAL — 2a, 2c and ten of 2b's families complete and verified; summaries, crs-reports, record-issues, house-votes and communications not harvested (endpoints named, costs measured); committee-meetings and hearings hold list records only, detail is 2,680 + 932 requests; seven of lane P's resource names have no table behind them yet.
 
 LEAD: 15:55Z — Accepted. 2a verified on the live site (HB10160 carries its introduced text; "No text on file" ×0). Rulings: dp-us-native is fixed, not retired — bulk from govinfo, currency from the API, complements, as you say. The 0.1% key collapse is accepted as a key choice; list the collapsed records once in the report so it is not rediscovered. committee_meetings/hearings detail: do not fetch all 2,680 + 932 — add to the nightly the detail (witnesses, documents) for meetings in [today−7, today+60] only; the calendar needs the upcoming ones, the archive can wait. `hearings-congress` name accepted. Lane P has been told to pull before touching the bill page and which seven names stay on fixtures. Record the 7-day secret rotation and the `node --env-file=.env.local` runner fact in the closing notes — both are the kind of thing that bites the next person.
+
+## 5. Round 2 — the five families lane P's pages need (lead, 16:10Z)
+
+Same rules as §0. In this order, each landing as its own commit with its
+`/api/policy` resource in the API's field names:
+
+1. **`summaries`, `titles`, `related-bills`** — from the BILLSTATUS zips
+   `dp-us-native` already downloads (your recommendation, accepted): extend
+   `scripts/pipeline/native/us.mjs` to write `congress_summaries` (one row per
+   bill per stage: `actionDate`, `actionDesc`, `text`, `updateDate`),
+   `congress_titles` (`titleType`, `title`, chamber, date) and
+   `congress_related_bills` (relationship type, the related bill's
+   congress/type/number, and our `bill_id` where it resolves). Zero API
+   requests. Run it once for the 119th and prove HR 1 has 5 summaries, 12
+   titles, 38 related bills.
+2. **`house-votes` + `member-votes`** — `house-vote/119` (647) with the
+   per-member positions from each vote's `/members` detail: `congress_house_votes`
+   (roll number, session, date, question, result, totals, `legislationType/Number`
+   → our `bill_id`) and `congress_house_vote_positions` (bioguide → `people_id`,
+   position). ~1,300 requests. `member-votes?member=` = one member's positions,
+   newest first.
+3. **`crs-reports`** — the `crsreport` list (14,075; ~57 requests of 250):
+   `congress_crs_reports` with id, title, publishDate, status, version, url,
+   contentType; detail (authors, topics, formats) only for reports published in
+   the last 90 days nightly, the archive later.
+4. **`record-issues`** — `daily-congressional-record` (5,858; ~24 list requests):
+   `congress_record_daily` with volume, issue, date, session, url; plus the
+   Daily Digest and article list for issues in the last 30 days nightly.
+5. **`communications`** — both chambers' lists (~37 requests):
+   `congress_communications` with chamber, type, number, date, referral, url.
+
+Then add 1–5 to `dp-congress`'s nightly (incremental by `updateDate` /
+`fromDateTime` where the endpoint has it; the zips for 1). Report the same
+table shape as §2b — rows · API count · requests · minutes — and close with a
+fresh `LANE C STATUS:` line.
