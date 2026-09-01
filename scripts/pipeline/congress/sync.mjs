@@ -274,15 +274,18 @@ for (const b of work) {
     // The version link belongs in "Documents" too — that is where the bill page
     // looks for "the text we hold", and where a reader gets the official URL.
     await db.query(
-      `insert into "Documents" (bill_id, document_id, document_type, document_desc, url, state_link, document_mime)
-       values ($1,$2,'text',$3,$4,$4,'text/html')
+      // The stage's own date — introduced, reported, engrossed — not when we
+      // fetched it. Without it a version list cannot be read as a timeline.
+      `insert into "Documents" (bill_id, document_id, document_type, document_desc, url, state_link, document_mime, date)
+       values ($1,$2,'text',$3,$4,$4,'text/html',$5)
        -- Documents is keyed on (document_type, document_id), not document_id alone.
        on conflict (document_type, document_id) do update set
          document_type = excluded.document_type,
          document_desc = coalesce(excluded.document_desc, "Documents".document_desc),
          url = coalesce(excluded.url, "Documents".url),
-         state_link = coalesce(excluded.state_link, "Documents".state_link)`,
-      [billId, documentId, v.type ?? code.toUpperCase(), htm],
+         state_link = coalesce(excluded.state_link, "Documents".state_link),
+         date = coalesce(excluded.date, "Documents".date)`,
+      [billId, documentId, v.type ?? code.toUpperCase(), htm, (v.date ?? "").slice(0, 10) || null],
     );
 
     const res = await db.query(
