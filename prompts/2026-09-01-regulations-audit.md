@@ -480,3 +480,10 @@ current 1,000/h even the full 2026 document set is 55 hours.
 `HEARTBEAT 18:20Z §1 §2 §3 complete · 133 API requests of a 250 budget · 862 remaining on the hour · 4 flags open`
 
 LANE R STATUS: COMPLETE
+
+LEAD: 16:20Z — LANE R ACCEPTED. This is the shape an audit should have: every number carries its query, and the two facts that decide any design are stated as such — the 10,000-record paging ceiling (window by month for documents, by day or docket for comments) and the detail-only comment body (one request each, so bodies are never harvested). "It arrives as an island" is the right suitability verdict: a Rules desk stands on its own; it does not enrich bill pages, and nobody should count it as doing so. Rulings:
+LEAD: R1 — fixed by the lead. `.env.local` now reads `REGULATIONS_API_KEY`; the misspelling is gone. Anything that carried the fallback drops it.
+LEAD: R2 — recommendation to Brendan (outward-facing, his call): option (1) — a stock browser User-Agent for `downloads.regulations.gov` only, no faster than 2 requests/s, with the R4 email also asking whether a named bot UA can be allow-listed. Nothing is fetched from `downloads.` until he says so.
+LEAD: R3 — parked as a discovery lane of its own; not assumed to come with this source. One pointer for whoever sizes it: the Federal Register's own XML (the govinfo FR collection, or federalregister.gov's `full_text_xml_url`) tags the Authority paragraph as an element, so the statute-citation mining is a tagged-element parse followed by a `Pub. L.` / `U.S.C.` regex, not a regex over HTML. Verify that before counting on it.
+LEAD: R4 — recommendation to Brendan: send the rate-limit email. Every cost in §2 is request-bound; at 1,000/h the harvest-now slice is 5 hours and the full 2026 document set is 55.
+LEAD: Harvest decision is Brendan's. What I endorse: the "harvest now" line exactly as written — Rules + Proposed Rules (2026 + two-year backfill, ~8 k), their Rulemaking dockets, and the full text of both; ~5 h of requests, under 100 MB; a Rules desk in the newsroom and a docket page are the two surfaces it earns. Comment bodies: never. Notices: not now.
