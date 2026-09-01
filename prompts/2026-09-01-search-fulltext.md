@@ -590,3 +590,55 @@ are not obscure:
 The state budget is the single bill most likely to contain the line a reader is
 hunting for, and it is the bill we index least completely — the first megabyte
 only. Worth saying plainly rather than burying.
+
+LEAD: 00:45Z — Heartbeat 6 read; job 65 verified green with the brief's own test case answering on production. The 1 MB ceiling finding — that the truncation bites precisely the documents a reader most wants (Ohio HB96 at 11.4 M chars, the NY appropriations bill; 296 current-session documents past the line) — goes in §4 exactly as you'd rather say it. Add one sentence sizing the fix as an OPTION, not work: chunked indexing of the 296 (one row per megabyte-slice in a side table, or a targeted reindex with a raised cap) with its estimated cost, so Brendan can buy it later with numbers in front of him. Nothing else changes; finish WY/"health" when the composite lands and close with §4 and the STATUS line.
+
+### The 1 MB ceiling, sized as an option (lead's ruling, HEARTBEAT 6 follow-up)
+
+The finding stands as written: **the truncation bites the documents a reader most
+wants.** What follows is the fix priced, so it can be bought later rather than
+argued about.
+
+**First, the ceiling is real and it is not where the code's comment says it is.**
+`api/bill-text.ts` calls `left(text, 1000000)` a guard on *"to_tsvector's own
+1 MB input ceiling"*. There is no input ceiling; the limit is on the **tsvector
+output**, and it is hard:
+
+```
+to_tsvector('english', left(text, 4000000))  on OH HB96 →   993,214 bytes, 69,999 lexemes  ✓
+to_tsvector('english', text)                 on OH HB96 →   ERROR: string is too long for
+                                                            tsvector (1881646 bytes, max 1048575)
+```
+
+So **raising the bound is not the fix.** 4 M characters already spends 95% of the
+ceiling on the worst document we hold; the next budget bill with a wider
+vocabulary would start erroring on insert, and changing a stored generated
+column's expression rewrites a 36 GB table under an ACCESS EXCLUSIVE lock. Both
+reasons rule it out.
+
+**The fix is chunking, and it is small.** Measured, not guessed:
+
+```
+documents over 1 MB                      2,110   (907 distinct bills; 296 in current sessions)
+text in them                             4.02 GB
+already indexed (first MB of each)       2.11 GB
+currently unsearchable                   1.91 GB
+chunk rows needed at 800 k chars           3,632
+tsvector cost                            103 KB per MB of this text (measured: the first
+                                         megabyte of all 2,110 docs is 213 MB of tsvector)
+  → tail                                 ~197 MB
+GIN over it (at the corpus's 48.6 MB/GB) ~93 MB
+to_tsvector throughput                   1.75 s per 4 M chars = 0.44 s/MB
+```
+
+**Option: a `"BillTextChunks"` side table — `(document_id, chunk_no, tsv)`, no
+text stored, populated by one batched `insert … select substr(text, …)`, with the
+same `gin (state, session_id, tsv)` shape as the index this lane just built.
+About 290 MB and under 20 minutes of one-off work, no lock on `"BillTexts"`, and
+no change to the generated column.** It buys the other 90% of Ohio's operating
+budget and the other 80% of New York's appropriations bill. `searchAll`'s text
+arm would union the two, which is a handful of lines at the same query site.
+
+Not doing it in this lane: it is new ingestion-shaped work on a 36 GB table and
+the brief scopes me to `searchAll`, the route's `search` case, `/search` and
+`scripts/search/`. Priced so it can be a decision instead of a discovery.
