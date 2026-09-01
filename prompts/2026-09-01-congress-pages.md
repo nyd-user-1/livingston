@@ -269,3 +269,87 @@ the same terms `useCongress` already uses for rows. Re-verification below.
 `congress_house_votes` row, aggregated from the positions table lane C already
 has. With it the board reads all 647 roll calls from Aurora instead of the six
 committed here.
+
+### Verified on the deploy — jobs 32–47
+
+`HEARTBEAT 20:40Z page 5/5 commit 1d634ff job 47 next nothing`
+
+**SB1** (job 44) — `/docs/committees/hsif14` is "Subcommittee on Health", and
+"Subcommittee of Energy and Commerce Committee" links from the line beneath.
+
+**SB2** (job 45) — every section renders under `?state=TX`, headless at 1714 px:
+
+| page under `?state=TX` | sections rendered |
+|---|---|
+| `/docs/committees/hsvr00` | Bills · Subcommittees · Meetings · Reports · Transcripts |
+| `/docs/bills/2032901` | Summary · Sponsors · History · Committee reports · Votes · Amendments · Related bills · Titles · Text |
+| `/docs/directory/24031` | Record · Terms · Votes · Contact |
+
+**Page 5, and why it had never worked.** The board read "Every vote 120 · House
+76 · Senate 44" through the 16:40Z review and after the merge landed, because
+`house-votes` was never registered in the fixture map — `member-votes` was,
+pointing at the same file, and the line for `house-votes` itself was lost when
+the map was trimmed page by page. The board asked for the committed record and
+got nothing. One line, job 46.
+
+Then the dedupe was wrong in the other direction: keyed on bill and date, and
+the House votes on one bill three times in an afternoon, so six Clerk cards
+displaced nine LegiScan ones and the total fell to 117. Both sources number a
+chamber's roll calls the same way and LegiScan prints the number in its
+description, so the key is the number and the day. Job 47, and the board now
+reads **Every vote 120 · House 76 · Senate 44** — 114 LegiScan roll calls plus
+six of the Clerk's, one displacing one:
+
+```
+HCR113  On Agreeing to the Resolution     216 aye · 214 nay · Jul 22 · House Clerk · Passed
+HB7008  On Passage                        232 aye · 198 nay · Jul 22 · House Clerk · Passed
+HB7008  On Motion to Recommit             211 aye · 218 nay · Jul 22 · House Clerk · Failed
+HB8800  On Passage                        216 aye · 212 nay · Jul 22 · House Clerk · Passed
+HB8800  On Motion to Recommit             213 aye · 216 nay · Jul 22 · House Clerk · Failed
+HB8800  On Agreeing to the Amendment      175 aye · 254 nay · Jul 22 · House Clerk · Failed
+```
+
+Every tally is counted from the positions themselves rather than reported, and
+they are the same rows the member page's Votes section reads, so a card and a
+member's position cannot disagree. Shot: `p5-clerk-cards.png`. Note for anyone
+verifying this board: it renders inside the block preview iframe, so `curl` and
+a top-level `innerText` both see nothing — read the `sidebar-08` frame.
+
+### Amplify jobs
+
+| job | commit | what |
+|---|---|---|
+| 32 | `0206e9f` | page 1 — the bill's federal record |
+| 34 | `8826162` | page 1 — the text timeline's dates and links |
+| 35 | `c5686af` | page 2 — the member page |
+| 36 | `82888bf` | the ordering rule |
+| 37 | `e4439c3` | page 3 — the committee page |
+| 38 | `992a0df` | page 4 — nominations, reports, the Record, laws |
+| 39 | `611d813` | page 5 — the House floor on the Vote board |
+| 40–41 | `b42cf08` `760ba8e` | list sorting; the shell stops naming a jurisdiction |
+| 42–43 | `760226f` `4f4bc4c` | House card copy; following lane C's landed shapes |
+| 44–45 | `b50f1b8` `9b78d44` `e4f67c9` | **SB1**, **SB2** |
+| 46–47 | `58cb10c` `1d634ff` | the unregistered fixture; dedupe by roll call |
+
+### What is owed, and by whom
+
+Nothing in this lane. Six asks sit with lane C, each visible on the deploy and
+each of which retires a fallback rather than fixing a defect:
+
+1. `sponsors` on the amendment payload — H.R. 1's Sponsor column is 493 dashes.
+2. `policyArea` on the law row — the status callout can print the citation but
+   not the policy area.
+3. the bill→report and committee→report links, and the meeting and hearing
+   *records* rather than their list stubs — witnesses and documents are what a
+   committee page shows, and Aurora holds neither yet.
+4. `text-versions.date` on a govinfo row is the night of the backfill.
+5. a yea/nay count on `congress_house_votes`, aggregated from the positions
+   table — with it the board reads all 647 roll calls from Aurora instead of
+   the six committed here.
+6. `cosponsors` — already ruled on; the fixture answers until the table lands.
+
+The committee roster is the one thing this lane was asked for and could not
+build: neither source publishes membership. `PARKED-committee-rosters.md` is
+the lane that fixes it, and it has a method that needs no fetch at all.
+
+LANE P STATUS: COMPLETE
