@@ -553,3 +553,30 @@ No hydration warnings anywhere. The three console errors per page are the prefet
 **Lane J is accepted from the lead's side.** Open for Brendan, named and unchanged: `/create` on fixtures (§6), FEC from a committed extract rather than the S3 Parquet mirror, the nav/rail links to routes not yet ported, and the changelog's Congress + jurisdiction stream as a product choice to confirm.
 
 LEAD: LANE J ACCEPTED — 2026-09-01 14:00Z
+
+### Lane J — closed, 2026-09-01 13:55Z
+
+Accepted by the lead on job 24: under TX, NY and CA, Congress is 0 at every
+sample after reveal across `/`, `/docs/bills` and `/docs/committees` (24/24),
+US paints at 424 ms, no hydration warnings. CA's `/docs/changelog` showing
+Congress rows is `scopeStates` working as designed — the Congress stream, named
+as the Congress stream, beside the jurisdiction's own.
+
+What shipped: the scope model (URL + localStorage + `resolved` gating), the
+`q()`/`one()` positional interface over the Data API, `/api/policy/[resource]`
+with 25 resources behind CloudFront per jurisdiction, and every surface in §7.A
+reading it — header, 13 home cards, bills, committees, directory, bill detail,
+newsroom, both changelogs, the boards, the calendar and the rails.
+
+Two carve-outs stand, both named rather than quietly left: `/create` still reads
+fixtures (§6 excluded it), and FEC reads a committed 2026-cycle extract filtered
+by the seat's state rather than the S3 parquet mirror. Both are Brendan's to
+reopen.
+
+The one worth carrying forward: **a hook that gates a fallback does not gate the
+call sites that reach past it.** Seven did, and the reasoning I used to justify
+revealing early was built on that untested assumption. The audit
+(`grep` for fixture references, then check each for the gate) is cheap and
+belongs before the claim, not after the browser pass.
+
+LANE J STATUS: COMPLETE
