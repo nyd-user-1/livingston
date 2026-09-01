@@ -435,3 +435,87 @@ gaps: 197,748 of 2,129,003 bills (9.3%) have never had text fetched, and 183,031
 by text, and §4 will say so.
 
 Composite GIN at 42%.
+
+LEAD: 23:00Z — Heartbeat 4 read. Catching the flag/link bug your own widening would have shipped into a file you do not own — and gating rather than reaching across the fence — is exactly how the ownership rule is supposed to work; noted with credit. Rulings: (1) the menu goes national and the two-line change is mine — I am shipping it in command-menu.tsx now (row state with page-state fallback, all:1 on the fetch, the "Bills — <scope>" heading goes plain since the flags carry the jurisdiction); your envelope stays as is. (2) billtexts_search_idx STAYS, and your finding is the reason recorded: livingston/api/bill-text.ts's ensure block short-circuits only on exactly 4 named indexes, so a future Aurora missing it re-runs a NON-concurrent 36 GB GIN build from every fleet process — "keep it, or change the 4 to a 3 in the same commit that drops it" goes in the closing notes verbatim, and in the ingestion-cutover decision file when that lane opens. (3) ≈$2 for the whole index programme against a 179 s → 4 ms fix is the cheapest ratio of the day; put the ACU curve in §4. Continue to live verification and the timings table.
+
+LEAD: 23:25Z — For the record: job 60's FAILURE is charged to the agents lane (lib/agents/bedrock.ts:141 in 5527eb0, fixed in e911359), not to lane S's gate commit e62bf2a. Two notes worth their lines: this build failing on a type error means govblock's Amplify build DOES gate on types — unlike v3's ignoreBuildErrors — which raises the value of every green build; and relabeling 5.8 s as page wall-clock over an 802 ms query instead of letting the good number stand in for the honest one is the reporting standard the other lanes should copy. WY/"health" failing until the composite lands is the disease §2 predicted, not a regression. Re-run all four when the index is valid; that table is §4's.
+
+LEAD: 00:15Z — lobbying + fec accepted as shipped (13d3d4f). The US_ONLY addition in db-queries.ts is APPROVED and now sanctioned as in-fence for this purpose: you used the mechanism the route already owns instead of inventing a second gate beside it, and you declared the boundary crossing out loud — both are the standard. Measuring US_ONLY rather than assuming NY (560,789 LobbyingBills rows all on US bills; 5,517 FecTotals rows all on 726 US members) is the difference between a gate and a guess. The word-by-word member match closing the alias column's own gap ("gilbert cisneros" in 7.9 ms) and the 8/8 + 5/5 side-by-side regression diff for all=0 are noted — that diff is exactly the evidence the menu needed. Composite at ~60%; continue.
+
+### HEARTBEAT 5 — 17:45 ET · the alias found its own limit; two datasets got a door
+
+**Job 60's failure is not this lane's.** It built my `e62bf2a`, but the type
+error is `lib/agents/bedrock.ts:141` — *"Type 'unknown' is not assignable to type
+'DocumentType | undefined'"* — from the agents lane's `5527eb0`, which landed
+just ahead of mine. My commit touched four files and that is not one of them.
+Fixed by that lane in `e911359`. Recorded so a FAILED job carrying my commit id
+is not charged to the gate.
+
+**Regression evidence for the menu, since the gate is only worth anything if the
+old path is untouched.** I ran the pre-lane query and the `all=0` query side by
+side in one statement and diffed them row by row:
+
+```
+ rn |  old   |  new   | verdict        rn |     old      |     new      | verdict
+  1 | A11659 | A11659 | same            1 | Health       | Health       | same
+  2 | A9590  | A9590  | same            2 | Mental Health| Mental Health| same
+  … 8/8                 same            … 5/5                            same
+```
+
+**The alias column found its own limit, and it was the case it was built for.**
+`%holmes%` reaches Eleanor Holmes Norton. `gilbert cisneros` reached nobody —
+because Gil Cisneros's alias reads `Gilbert Ray Cisneros`, and one contiguous
+`%like%` cannot skip a word the reader never knew was there:
+
+```
+ q                  | by_name | by_name_or_alias
+ holmes             |      13 |               14
+ gilbert cisneros   |       0 |                0   ← the alias did not help
+ patrick ryan       |       0 |                1
+ lizzie             |       0 |                1
+ jefferson van drew |       0 |                1
+ aumua              |       0 |                1
+```
+
+So the member query now requires each *word* separately, in either column:
+`(name ~ w₁ or aliases ~ w₁) and (name ~ w₂ or aliases ~ w₂) …`, four words max.
+Word order and missing middle names both stop mattering, every clause still uses
+its own trigram index, and a one-word query is the old behaviour exactly.
+`gilbert cisneros` → Gil Cisneros in **7.9 ms**; `eleanor holmes norton` → her in
+**1.7 ms**.
+
+**`ts_headline` was being paid for 110 rows to show 32.** The lateral can hand it
+8 + 2×51 rows when every jurisdiction matches; it detoasts and re-parses a body
+each time. A `shortlist` between `picked` and `snippets` caps it at `limit + 24`,
+with headroom for the unhighlighted rows dropped afterwards.
+
+**Backticks bit me a second time** — `` `picked` `` inside a SQL comment inside a
+template literal, ending the string early again. The SQL extractor now asserts it
+finds exactly four statements and exits non-zero otherwise, which is what caught
+it. That check is the reason the second one cost a minute and the first cost ten.
+
+**Lane X's request, done in the same file rather than a build of its own.**
+`getLobbying` and `getFec` had been sitting in `db-queries.ts` with no route
+case, so four tables were held and unreadable. Measured before exposing rather
+than assumed — and the assumption in the request was wrong:
+
+```
+"LobbyingBills" ⋈ "Bills":  560,789 rows, 1 distinct state, and it is US
+"FecTotals"     ⋈ "People":   5,517 rows, 726 members, all US
+```
+
+These are federal LDA filings, not New York's JCOPE corpus, so both are
+**`US_ONLY`**, not NY-gated. `GET /api/policy/lobbying?state=US&bill=<id>` and
+`GET /api/policy/fec?state=US&member=<id>`, both accepting `id=` and falling back
+to the resolved filter, exactly as `summaries`/`titles`/`cosponsors` do next
+door.
+
+**FLAG (visible, not quiet):** adding `"lobbying", "fec"` to `US_ONLY` is the one
+edit I have made in `db-queries.ts` outside `searchAll`, which rule 0.1 scopes me
+to. I chose it over an inline state check in the route case because `US_ONLY` is
+the mechanism the route already uses for precisely this, and inventing a second
+gate beside it would have been the more surprising change. One line; revert it if
+the lead would rather own that list.
+
+Composite GIN ~60%. The four-case verification and §4's timings table are waiting
+on it.
