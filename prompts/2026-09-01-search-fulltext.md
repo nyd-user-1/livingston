@@ -662,3 +662,88 @@ of the two copies, and §4 will date text coverage at **2026-09-01 15:12Z**
 rather than hedge about a cutover.
 
 Composite GIN at 87%.
+
+### HEARTBEAT 8 — 18:15 ET · the index landed, and it did what the sample said
+
+```
+--- billtexts_scope_search_idx built in 2949s size=1919 MB valid=t   21:51:55Z
+```
+
+**`indisvalid = t`** — the lead's first condition. Projected ~2 GB / 15–20 min;
+actual **1919 MB / 49 min**. The size projection was right to 4%; the time was
+2.5× out, because I priced the index work from the sample and forgot
+`CONCURRENTLY` scans the heap twice and detoasts a tsvector column out of a
+36 GB table to do it. The sample method sizes storage well and wall clock badly.
+
+**The 179-second query, re-measured:**
+
+```
+before   179,435 ms   (bitmap 979,526 rows → 36 GB heap)
+after        419 ms   Bitmap Index Scan on billtexts_scope_search_idx
+                      Index Cond: state = … AND session_id = … AND search_tsv @@ 'health'
+                      2,061 rows per jurisdiction slice, 52 slices
+```
+
+**428×.** The cut moved inside the index exactly as the 5-state sample predicted.
+
+**Warm SQL, every group, three runs, all jurisdictions unless noted:**
+
+| query | term | warm |
+|---|---|---|
+| bills, all jurisdictions | `%climate%` | **37 ms** |
+| bills, all jurisdictions | `%health%` | **307 ms** |
+| committees, all jurisdictions | `%health%` | **40 ms** |
+| texts, all jurisdictions | `climate resiliency` | **283 ms** |
+| texts, all jurisdictions | `health` | **296 ms** |
+| texts, all jurisdictions, from Wyoming | `health` | **379 ms** |
+| texts, all jurisdictions | `artificial intelligence` | **172 ms** |
+| bills, **menu path** (`all=0`) | `%health%` | **77 ms** |
+| committees, **menu path** (`all=0`) | `%health%` | **29 ms** |
+
+The four groups run in one `Promise.all`, so the envelope is the **max**, not the
+sum: ~380 ms of database for the worst case measured.
+
+**All four verification cases pass, on production, at 1714 px:**
+
+```
+ok  1322 ms  NY/"climate resiliency"  [Bills (10), Text (32)]                          flags=13
+ok   427 ms  NY/"holmes"              [Bills (16), Text (32), Members (14)]            flags=27
+ok  1288 ms  WY/"health"              [Bills (60), Text (32), Members (28), Comm (18)] flags=52
+ok   590 ms  TX/"HB10"                [Bills (60), Text (3)]                           flags=25
+all cases rendered
+```
+
+`WY/"health"` was **28,539 ms and nothing on screen** four hours ago. It is now
+1.29 s with every section populated and **52 distinct flags on one page** —
+every jurisdiction we hold, answering a question asked from Wyoming.
+
+**And the screenshot showed a bug the numbers could not.** That Members (28) is
+wrong: about twenty of those rows are committees. `"People"` carries 487 rows
+with a null `committee_id` and a committee's name — Florida's *Health and Human
+Services Committee*, Oregon's *Committee On Human Services* — and 266 of them
+carry no such word at all (California's *Utilities and Energy*, Kansas's
+*Agriculture*, South Carolina's *Judiciary*), so no name pattern finds them.
+
+Pre-existing, not introduced here — the member arm was already national — but
+this lane is what made it visible, so this lane fixes it. The discriminator is a
+name in two parts. Every one of the 487 has an empty `last_name`; the only one
+with a party and district (Oregon's *Transportation Reinvestment*, HD-061) is a
+committee too. A further 24 have a surname but no given name, because LegiScan
+copied the committee's name into both fields:
+
+```
+Administration IA · Appropriations SD ×2 · Barnes OR · Commerce SD ×2 · Economic MD
+Education MD · Environment IA · George DE ×2 · Health MD ×2 · Labor IA · Mental MD
+Nelson ND · Rice RI · Rules IA · Rules NY ×2 · Somerset MD · Taxation SD · Ways MD · Young IN
+```
+
+Not one of the 24 has a party, district, photo, email, bio, VoteSmart id or
+Ballotpedia entry; none is sitting; and `George DE` is filed as both Rep and Sen,
+which no person is. So both halves of a name are required — **511 of 22,193 rows
+leave the member search and no sitting legislator does.** `health` now returns
+zero members instead of twenty committees; `holmes` is unchanged, Eleanor Norton
+included. `a765520`, job 72 building.
+
+**Backticks in a SQL comment inside a template literal broke the build a third
+time.** There is now a one-line check for it (`grep -n '^\s*--.*\`'`) alongside
+the extractor's four-statement assertion, and both run before every commit.
