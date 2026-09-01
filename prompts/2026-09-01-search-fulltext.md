@@ -86,3 +86,81 @@ honest list of what still cannot be found (with why). Then the STATUS line.
 ---
 
 ## Report — worker appends below this line
+
+### HEARTBEAT 1 — 12:45 ET · discovery
+
+**The premise is half wrong, in our favour.** The prompt says "pg_trgm and any
+tsvector are both absent." pg_trgm was absent. A tsvector was not:
+
+```
+ search_tsv | tsvector | generated always as
+              (to_tsvector('english'::regconfig, left(coalesce(text,''), 1000000))) stored
+Indexes:
+    "billtexts_search_idx" gin (search_tsv)   -- 1895 MB, indisvalid = t
+```
+
+`"BillTexts"` has carried a stored, generated `search_tsv` and a **valid** GIN
+index over it all along (migrated from Neon with the table). Full text over
+bill bodies therefore costs **zero index build** — the enabling work §1 asked
+for on the 36 GB table is already paid for. Measured, cold:
+
+```
+select bill_id from "BillTexts" where search_tsv @@ websearch_to_tsquery('english','climate resiliency') limit 20
+  Bitmap Index Scan on billtexts_search_idx — 11,893 matching rows
+  Execution Time: 64.6 ms   (planning 38.6 ms)
+```
+
+**FLAG (informational, not blocking):** §1's third bullet — "choose a generated
+tsvector column + GIN, or an expression index; report the cost either way
+before building" — is already answered by the database. I am not rebuilding it.
+The one thing I will not get for free is the `left(..., 1000000)` truncation
+baked into the generated column: bills longer than 1 M characters are indexed
+through their first megabyte only. At `avg(chars) = 12,145` that bites a
+handful of bills (`max(chars) = 11,429,601`), and I will name them in §4's
+honest list rather than rebuild a 36 GB column to catch them.
+
+**Measured volumes** (Aurora `aurora-2525`, db `policy`, 58 GB):
+
+| table | rows | table | indexes |
+|---|---|---|---|
+| `"BillTexts"` | 3,486,788 (3,303,757 with text) | 36 GB | 2077 MB |
+| `"Bills"` | 2,129,003 | 1519 MB | 244 MB |
+| `"People"` | 22,723 | 6120 kB | 696 kB |
+
+`sum(chars)` = 39 GB of bill text; `avg 12,145`, `max 11,429,601`.
+
+**Trap found, worth more than the index:** `default_text_search_config` on this
+cluster is `pg_catalog.simple`, but the generated column is built with
+`'english'::regconfig`. Any query that writes `to_tsquery(q)` instead of
+`to_tsquery('english', q)` gets a *simple*-parsed tsquery that will not match
+the stemmed lexemes in the index — no error, just silently zero rows. Every
+statement I write names `'english'`.
+
+**pg_trgm: installed (1.6), and measured before it goes near the big table.**
+Built on a materialised 5% sample of `"Bills"` (106,458 rows, `bill_id % 20 = 0`):
+
+| index | sample size | sample build | ×20 projection |
+|---|---|---|---|
+| `gin (title gin_trgm_ops)` | 19 MB | 2.09 s | ~380 MB, ~40–90 s |
+| `gin (bill_number gin_trgm_ops)` | 2064 kB | 0.15 s | ~41 MB, ~3 s |
+| `gin ("People".name)` | — | — | 22,723 rows, ~5 MB, <1 s |
+
+Sample dropped. `bill_number` carries no spaces in any row sampled, so the
+existing space-squeeze on the *term* is all the normalisation a prefix match
+needs.
+
+**Aliases: no new source needed.** `"People"` already holds the missing token —
+`people_id 9100` is `name='Eleanor Norton', first='Eleanor', middle='Holmes',
+last='Norton'`. 9,334 rows carry a middle name and 2,294 a nickname. On top of
+that, `congress_members` (553 rows, not `congress_member_detail` — that table
+does not exist) carries the bioguide form `"Norton, Eleanor Holmes"` and joins
+to `"People".bioguide_id` for 552 of 553. So the alias column is populated from
+what we hold, exactly as §2 asks.
+
+**Worst case that will shape the query:** `websearch_to_tsquery('english','health')`
+matches ~979,526 rows. Unordered with a LIMIT the planner seq-scans and returns
+in 8 ms; add an ORDER BY over that match set and it is a disaster. Every text
+query I write is therefore bounded by scope *before* it is ranked.
+
+Next: build the three trgm indexes on the real tables (lock window measured and
+reported), then `searchAll`.
