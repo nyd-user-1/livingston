@@ -131,3 +131,57 @@ from it.
 ---
 
 ## Report — worker appends below this line
+
+### Lane C — 2026-09-01
+
+`HEARTBEAT 15:12Z step 2a requests ~900 tables 0/16 next finish the 7-day text run, then verify HB10160`
+
+**2a is running.** `scripts/pipeline/congress/sync.mjs`, on box 2, writing to
+Aurora: 849 bills changed in the last 7 days (§1 measured ~927 on Aug 25–Sep 1;
+the window is now Aug 25 15:09Z). It reuses rather than reinvents two things —
+`htmlToText` is esbuild-bundled from `api/_lib/text-shared.ts`, because two
+strippers that disagree would put two renderings of the same bill in one column;
+and the synthetic `document_id` is `api/bill-text.ts`'s own
+`-(bill_id * 100 + slot + 1)`, negative so it cannot collide with LegiScan's and
+shared with govinfo so the same version from either source is one row. A govinfo
+row is never replaced — it came from the XML, which carries the amendment marks
+the .htm has flattened — only gaps filled, counted as `kept`.
+
+**Two structural findings, both bigger than the ticket. Please read.**
+
+**FLAG (already acted on, tell me if you want it reverted): the Aurora
+credentials on box 2 were stale and every box-side job that talks to Aurora
+directly has been failing since 12:21Z.** Aurora's master credentials are
+RDS-managed and **rotate automatically every 7 days**. The migration staged them
+into `~/.govblock/aurora.env` at 08:06Z; `describe-secret` says they rotated at
+**12:21Z the same day**. Since then `psql "$AURORA_POLICY_URL"` on the box has
+answered `password authentication failed`. Nothing surfaced it because **the
+site is immune** — it reaches Aurora through the Data API with the secret's
+*ARN*, so it always sees the current value, and `/api/health` stayed green
+throughout. This is the exact failure shape the migration report warned about in
+a different guise: green where you look, broken where you do not.
+
+Fixed structurally rather than by re-staging: `scripts/box/refresh-aurora-env.sh`
+rewrites the file from the cluster's own `MasterUserSecret` (asked for by
+cluster id, not a hard-coded ARN) and belongs at the top of any job that uses
+psql or `pg`. That needed two IAM grants on `livingston-worker-2-selfstop`,
+which I made and am flagging: `secretsmanager:GetSecretValue` on that one
+secret, and `rds:DescribeDBClusters` on that one cluster. Narrow, read-only,
+reversible.
+
+**Second, and mine: the `AURORA_POLICY_URL` the migration staged was never a
+valid URL.** It expanded to `postgresql://postgres:@:5432/policy?sslmode=require`
+— **empty password, empty host**. It worked for four months of wave-2 loading
+only because psql falls through to `PGHOST`/`PGPASSWORD`, which the same file
+exports. Anything that actually *parses* it — node `pg`, any URL-based client —
+got nothing. The refresh script now writes it correctly, with the password
+percent-encoded, because the RDS password contains `? ] ( * !` and `pg` answers
+`Invalid URL` on a raw one where libpq shrugs. The operating instructions in
+`prompts/2026-09-01-aws-migration.md` §8 say `psql "$AURORA_POLICY_URL"` — that
+line was right by accident and is right on purpose now.
+
+**Also fixed, §0.4:** `pg`, `esbuild` and `fast-xml-parser` are declared.
+`fast-xml-parser` is the undeclared import `dp-us-native` dies on; `esbuild` was
+resolving transitively through a devDependency a production install would not
+carry. All three resolve on box 2 now, so `dp-us-native` can run again — I will
+say whether it should in the 2c report.
