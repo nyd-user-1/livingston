@@ -244,3 +244,69 @@ errors early. `/api/health` and §5's grep are the truth — a 200 proves nothin
 ---
 
 ## Report — worker appends below this line
+
+### 2026-09-01 — lane J
+
+`HEARTBEAT 11:35Z step 4/5 build 15 health aurora next scoping the server-rendered pages`
+
+**Landed so far.** Steps 1–3 plus the hook repoint (step 4 partial):
+
+- `db.ts` gained `q()`/`one()`. The `$1 → :p0` rewrite is a scanner, not a regex:
+  `'$1'` inside a literal is data, `"$1"` is an identifier, `$$…$$` is a quoted
+  body, and `$10` must survive as one number. All nine cases tested green.
+- `db-queries.ts` is v3's `queries.ts` ported. **One** type error in 1,273 lines
+  (`Resolved` collapsing `session` to `never`, same collision as the migration
+  hit) — the schema really is identical.
+- `/api/policy/[resource]` live, 24 resources, v3's edge cache header.
+- `jurisdiction.tsx` + `url-state.ts` ported, provider mounted, switcher wired.
+  **The 14 existing `useJurisdiction()` consumers needed no changes**, which was
+  the stated test of the port.
+- `use-policy` now fetches instead of resolving fixtures; on failure only
+  Congress stands in a snapshot.
+- `DEFAULT_STATE` → `US` (ruling approved).
+
+**Jurisdictions genuinely differ** (`/api/policy/committees|members|sessions`):
+
+| | US | NY | TX | CA |
+|---|---|---|---|---|
+| committees | 61 | 82 | 53 | 41 |
+| people (sitting) | 1273 (553) | 516 (219) | 439 (181) | 383 (121) |
+| 2025 bills | 18,470 | 25,313 | 12,788 | 5,060 |
+
+**§7.C timings**, seconds, cache-busted, through the deploy:
+
+| resource | US | NY | TX | CA |
+|---|---|---|---|---|
+| states | 0.14 | 0.13 | 0.18 | 0.52 |
+| sessions | 0.17 | 0.16 | 0.15 | 0.11 |
+| options | 0.15 | 0.17 | 0.12 | 0.15 |
+| subjects | 0.23 | 0.21 | 0.22 | 0.20 |
+| committees | 0.16 | 0.19 | 0.15 | 0.14 |
+| members | 0.45 | 0.26 | 0.29 | 0.22 |
+| rollcalls | 0.47 | 0.51 | 0.49 | 0.22 |
+| hearings | 0.14 | 0.14 | 0.11 | 0.85 |
+| texts | 0.20 | 0.20 | 0.20 | 0.21 |
+| bills | 0.35 | 0.24 | 0.21 | 0.34 |
+| **newsroom** | **3.08** | 0.49 | 0.52 | 0.56 |
+| stream | 0.26 | 0.16 | 0.52 | 0.16 |
+| seats / tallies / sponsors / activity | ≤0.43 | ≤0.61 | ≤0.47 | ≤0.46 |
+
+One over 1 s, and it is now fixed (build 15). `EXPLAIN` said the planner walked
+`bills_last_action_idx` backwards and stopped at the limit — right where matches
+are dense, catastrophic where they are not. **Congress's 2025 session holds two
+enacted bills, so it scanned the whole index looking for six: 2.9 s vs 3 ms for
+NY.** Two rewrites failed before the third worked (both let the ordered index
+scan back in; details in the commit). **US 2.9 s → 28 ms**, worst case now NY at
+400 ms and bounded by match count rather than open-ended.
+
+FLAG: `hearings` returns `[]` for every jurisdiction in the default −30/+60 day
+window, because on 2026-09-01 the legislatures are between sessions — TX over
+2025-01-01..2026-12-31 returns 3,000. So the calendar and hearings surfaces will
+render empty and *correct*. v3 carries `latestHearingDate` for exactly this. Do
+you want the default window to follow the data (last hearing date backwards)
+rather than today, or is an honest empty calendar right for the morning? Not
+blocking; I am scoping the pages meanwhile.
+
+FLAG: `tallies` is New York's `member_vote_tallies` and returns `[]` elsewhere
+rather than erroring, so it is honest but silent. It is not in v3's `NY_ONLY`.
+Adding it would make the emptiness *named* per §0.2. Say the word and I will.
