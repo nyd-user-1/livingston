@@ -479,3 +479,57 @@ From reveal at 1151 ms until past 4.5 s the page shows eight "Congress" strings 
 **LEAD ruling.** Fix it in the data hook, not per component: `useSnapshot`/`usePolicy` may seed initial data from the committed snapshot **only when the scope is `US`**; under any other jurisdiction `data` starts `undefined` (`isLoading: true`) until that jurisdiction's rows arrive, so every scoped surface renders its own loading/empty state — never Congress. With that in place the `<main>`-level reveal on `resolved` is acceptable; better still, reveal the chrome (header, nav, rails' static parts) immediately and gate only the scoped blocks, so a Texas reader sees the page frame at first paint and skeletons where rows are coming. Verify with the same sampling: under TX, `Congress` must be 0 at **every** sample after reveal, not just the first.
 
 Noted, not yours: prefetch 404s for `/changelog`, `/charts/area`, `/docs/components`, `/docs/money` — nav and rail links to routes not yet ported.
+
+### Lane J — the Congress-under-Texas seeding, 2026-09-01 13:45Z
+
+`HEARTBEAT 13:45Z step 5/5 build 24 health aurora next awaiting your sampling`
+
+You were right and my last report was wrong. I wrote that "the committed
+fixtures only ever stand in under Congress" and used it to justify revealing on
+`resolved`. The hook did gate its own fallback — but **seven call sites reached
+past the hook and read the fixture themselves**, which is where your Congress ×8
+came from. The claim was untested; the audit that would have caught it is the
+one I ran afterwards, not before.
+
+**Fixed in the hook, as ruled.** `useScoped` now returns `congress` — true only
+under Congress — and it is the only thing entitled to decide whether a committed
+fixture may stand in. Under any other jurisdiction `data` is `undefined` until
+that jurisdiction's own rows arrive.
+
+The seven that bypassed it:
+
+| site | what it did | now |
+|---|---|---|
+| `cards/sessions` | `: F.sessions` | `congress ? F.sessions : []` |
+| `cards/topics` | `: F.topics.rows` | gated |
+| `cards/chambers` | `if (!options) return F.chambers` | gated |
+| `cards/bills` | `if (!options) return F.bills` | gated |
+| `cards/committees` | `: F.committees.map(…)` | gated |
+| `changelog-body` | `if (!scoped \|\| !data) return initial` | `if (!scoped) return initial; if (!data) return []` |
+| `changelog-v2-body` | same | same |
+
+Both changelogs now say which stream they are reading rather than showing an
+unexplained blank. And one more the audit turned up after your list: the bills
+card's **Session picker** listed Congress's sessions whatever the scope — a
+Texas card offering "119th Con…" — now read from the jurisdiction's own ledger.
+
+The other `F.*` references that survive the audit are the fixture passed *as the
+hook's `fallback` argument* (bills-list, committees-list, directory-rail, party,
+calendar, members, votes — all gated by the hook), the two national cards
+labelled as national, the static Connect card, and `/create`, which §6 excludes.
+
+**On the reveal.** With the seeding fixed, the `<main>`-level reveal on
+`resolved` should hold: after it, no scoped surface can render Congress at all.
+I did not split the chrome out of the gate — your "better still" — because with
+seeding fixed the gate only has to cover the pre-hydration paint, and moving it
+to per-page content wrappers is the per-component threading the hook change was
+meant to avoid. Say if you want it anyway.
+
+Deployed in job 24, zero fallbacks, `/api/health` green, all pages 200 under
+`?state=TX`.
+
+**Yours to check:** 250 ms sampling on a cold `/?state=TX` — Congress must be 0
+at sample 1 *and* at every sample after reveal, which is the half I got wrong
+last time.
+
+LANE J STATUS: PARTIAL — seeding fixed and deployed (job 24) but the post-reveal sampling is yours to run; the chrome/scoped-block split of the reveal gate is declined-with-reasons pending your call; /create and FEC unchanged.
