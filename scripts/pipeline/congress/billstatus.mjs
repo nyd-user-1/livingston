@@ -94,10 +94,20 @@ for (const [table, cols] of [
   ["congress_summaries", `bill_id bigint, bill_number text, action_date text, action_desc text, version_code text, text text`],
   ["congress_titles", `bill_id bigint, bill_number text, title_type text, title text, chamber text`],
   ["congress_related_bills", `bill_id bigint, bill_number text, related_bill_id bigint, related_bill_number text, relationship text`],
+  // Cosponsors: 8 requests a congress from the zips, against 18,500 for
+  // /bill/{congress}/{type}/{number}/cosponsors — the same arithmetic that
+  // refused the titles top-up.
+  ["congress_cosponsors", `bill_id bigint, bill_number text, bioguide_id text, people_id bigint, full_name text, party text, state text, sponsorship_date text, is_original_cosponsor text, sponsorship_withdrawn_date text`],
 ]) {
   await db.query(`create table if not exists ${table} (
     key text primary key, congress int, payload jsonb, updated_at timestamptz not null default now(), ${cols})`);
   await db.query(`create index if not exists ${table}_bill_idx on ${table} (bill_id)`);
+}
+
+// bioguide -> our people_id, so a cosponsor lands on the member the app links to.
+const byBioguide = new Map();
+for (const r of (await db.query(`select people_id, bioguide_id from "People" where bioguide_id is not null and bioguide_id <> ''`)).rows) {
+  byBioguide.set(String(r.bioguide_id).toUpperCase(), Number(r.people_id));
 }
 
 const known = new Map();
@@ -134,7 +144,7 @@ for (const type of ONLY_TYPE ? [ONLY_TYPE] : TYPES) {
   const files = unzipSync(buf);
   const names = Object.keys(files).filter((n) => n.endsWith(".xml"));
 
-  const sums = [], titles = [], related = [];
+  const sums = [], titles = [], related = [], cosponsors = [];
   const amendLinks = [], reportLinks = [];
 
   for (const name of names) {
@@ -165,6 +175,17 @@ for (const type of ONLY_TYPE ? [ONLY_TYPE] : TYPES) {
         bill_number: bn, related_bill_id: known.get(rbn.toUpperCase()) ?? null, related_bill_number: rbn,
         relationship: (items(rb.relationshipDetails)[0] ? txt(items(rb.relationshipDetails)[0].type) : null) ?? "related" });
     }
+    // <cosponsors> holds <item>, unlike <summaries>. Checked, not assumed.
+    for (const cs of items(b.cosponsors)) {
+      const bio = String(txt(cs.bioguideId) ?? "").toUpperCase();
+      if (!bio) continue;
+      cosponsors.push({ key: `${CONGRESS}-${bn}-${bio}`, congress: CONGRESS, payload: JSON.stringify(cs),
+        bill_id: billId, bill_number: bn, bioguide_id: bio, people_id: byBioguide.get(bio) ?? null,
+        full_name: txt(cs.fullName), party: txt(cs.party), state: txt(cs.state),
+        sponsorship_date: txt(cs.sponsorshipDate), is_original_cosponsor: txt(cs.isOriginalCosponsor),
+        sponsorship_withdrawn_date: txt(cs.sponsorshipWithdrawnDate) });
+    }
+
     // The linkage the API list endpoints do not carry.
     for (const a of kids(b.amendments, "amendment")) {
       const at = String(txt(a.type) ?? "").toUpperCase();
@@ -180,6 +201,7 @@ for (const type of ONLY_TYPE ? [ONLY_TYPE] : TYPES) {
   await flush("congress_summaries", ["key", "congress", "payload", "bill_id", "bill_number", "action_date", "action_desc", "version_code", "text"], sums.splice(0));
   await flush("congress_titles", ["key", "congress", "payload", "bill_id", "bill_number", "title_type", "title", "chamber"], titles.splice(0));
   await flush("congress_related_bills", ["key", "congress", "payload", "bill_id", "bill_number", "related_bill_id", "related_bill_number", "relationship"], related.splice(0));
+  await flush("congress_cosponsors", ["key", "congress", "payload", "bill_id", "bill_number", "bioguide_id", "people_id", "full_name", "party", "state", "sponsorship_date", "is_original_cosponsor", "sponsorship_withdrawn_date"], cosponsors.splice(0));
 
   for (let i = 0; i < amendLinks.length; i += 500) {
     const chunk = amendLinks.slice(i, i + 500);
@@ -207,12 +229,12 @@ for (const type of ONLY_TYPE ? [ONLY_TYPE] : TYPES) {
 
 const counts = await db.query(`select
   (select count(*) from congress_summaries) s, (select count(*) from congress_titles) t,
-  (select count(*) from congress_related_bills) r,
+  (select count(*) from congress_related_bills) r, (select count(*) from congress_cosponsors) cs,
   (select count(*) from congress_amendments where amended_bill_id is not null) a,
   (select count(*) from congress_committee_reports where bill_id is not null) cr`);
 const c = counts.rows[0];
 log(`billstatus done: ${tally.bills} bills · ${tally.zips} zips · ${(tally.bytes / 1e6).toFixed(0)} MB · 0 API requests`);
-log(`  congress_summaries ${c.s} · congress_titles ${c.t} · congress_related_bills ${c.r} · amendments linked ${c.a} · reports linked ${c.cr}`);
+log(`  congress_summaries ${c.s} · congress_titles ${c.t} · congress_related_bills ${c.r} · congress_cosponsors ${c.cs} · amendments linked ${c.a} · reports linked ${c.cr}`);
 
 await db.end();
 process.exit(0);
