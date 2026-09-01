@@ -18,39 +18,10 @@
 import fs from "node:fs"
 import process from "node:process"
 import { connect, lakeName, parquetType, qualify } from "./_lib.mjs"
+import { domainFor, outOfScopeReason } from "./domains.mjs"
 
 const args = process.argv.slice(2)
 const jsonPath = args.includes("--json") ? args[args.indexOf("--json") + 1] : null
-
-// Domain per §2 (legislative · money · reference · text) plus the ruled fifth,
-// `derived` (§7.C). Matched in order: first hit wins.
-const DOMAIN_RULES = [
-  [/^mv_/, "derived"],
-  [/^(bill_chunks|.*_chunks|.*_embeddings?)$/, "text"],
-  [/(text|fulltext|summary|summaries|abstract)/i, "text"],
-  [/^(forms?|form_.*)$/i, "reference"],
-  [/(committee|sponsor|vote|roll|bill|session|progress|calendar|history|amendment|supplement|document|subject|people|legislator|member|action|law|statute|chamber|jurisdiction)/i, "legislative"],
-  [/(fec|contribution|donor|committee_fin|lobby|lda|expenditure|candidate|filing|money|disclosure|independent)/i, "money"],
-  [/(state|party|district|agency|code|lookup|reference|dictionary|taxonomy|source|dataset)/i, "reference"],
-]
-
-// Tables that hold app state, user content or harvest bookkeeping rather than
-// policy facts. Listed in the inventory, never exported (§6.1).
-const OUT_OF_SCOPE = [
-  /^(chat|conversation|message|thread)/i,
-  /^(user|account|session_token|auth|profile)/i,
-  /^(upload|file|attachment)/i,
-  /^(form_answer|answer|submission|response)/i,
-  /^archive/i,
-  /^(sync_run|job|queue|cron|run_log|harvest|ingest_log|_migration|migrations?)$/i,
-  /(_log|_audit|_tmp|_temp|_staging|_scratch|_backup|_bak|_old)$/i,
-]
-
-const domainFor = (name) => {
-  for (const [re, d] of DOMAIN_RULES) if (re.test(name)) return d
-  return null
-}
-const outOfScope = (name) => OUT_OF_SCOPE.some((re) => re.test(name))
 
 const RELKIND = { r: "table", p: "partitioned table", m: "matview", v: "view", f: "foreign table" }
 
@@ -149,11 +120,12 @@ async function main() {
     const key = `${r.schema}.${r.name}`
     const columns = colsBy.get(key) ?? []
     const isView = r.kind === "v"
-    const scoped = !isView && !outOfScope(r.name)
+    const excluded = outOfScopeReason(r.schema, r.name)
+    const scoped = !isView && !excluded
     let domain = null
-    let unmapped = []
+    const unmapped = []
     if (scoped) {
-      domain = r.schema === "openstates" ? "legislative" : domainFor(r.name)
+      domain = domainFor(r.schema, r.name)
       for (const c of columns) {
         try { parquetType(c.pg_type, c.is_array) } catch { unmapped.push(`${c.column}:${c.pg_type}`) }
       }
@@ -170,8 +142,8 @@ async function main() {
       in_scope: scoped && !!domain && unmapped.length === 0,
       skip_reason: isView
         ? "view — a query, not data (§7.C)"
-        : outOfScope(r.name)
-          ? "app/mutable table — out of scope (§6.1)"
+        : excluded
+          ? `out of scope (§6.1) — ${excluded}`
           : !domain
             ? "UNCLASSIFIED — needs a ruling"
             : unmapped.length
