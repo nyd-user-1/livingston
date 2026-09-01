@@ -270,3 +270,79 @@ worth the risk of dropping an index other readers may plan against.
 pays nothing for full text.
 
 Next: `searchAll`, then the surface, then timings on the live site.
+
+LEAD: 21:55Z — Heartbeat 2 read. The composite gin(state, session_id, search_tsv) is APPROVED after the fact — that is what "measure before you build" is for: the 979k-row heap fetch was the disease, the 4.3 ms slice proof is the cure, and full-not-partial is right (archive sessions deserve fast text, and a year predicate would rot). Conditions, both cheap: (1) report indisvalid and the ACU spike when the build lands — a failed CONCURRENTLY leaves an INVALID index that silently serves nothing; (2) the old billtexts_search_idx stays for now as you chose, but the closing report names who, if anyone, still plans against it, so dropping 1.9 GB later is a decision with evidence. The Virtualxid lesson ("cancel the long read first, or you will attribute someone else's scan to your index") goes in the closing notes verbatim. The ?text=1 gate is exactly right — the menu stays metadata-fast and mine. Proceed: searchAll, surface, live timings.
+
+### HEARTBEAT 3 — 17:20 ET · the query is written, built and pushed
+
+Three commits on `govblock@main`, explicit paths only (another lane has
+`apps/web/package.json`, `pnpm-lock.yaml` and `apps/web/lib/agents/` in flight;
+none of them are in these commits):
+
+- `75d8d0f` search: aliases, so "holmes" finds Eleanor Holmes Norton
+- `a592f66` search: every jurisdiction, and the bill text itself
+- `81c2211` search: /search shows a Text section, and every row wears its own flag
+
+Amplify job 58 is building. The composite GIN is at 28% and will land after it.
+
+**A sixth index, because the committee query asked for one.** Cross-jurisdiction
+committees measured **1244 ms** — the planner was rebuilding a bitmap per
+jurisdiction with nothing to cut against. `"Bills".committee` is `null_frac`
+0.5552, `n_distinct` 1063, `avg_width` 20; a 5% sample took 2072 kB / 0.16 s, so
+the ×20 projection was ~41 MB / ~4 s. Built plain (not CONCURRENTLY, because the
+big build was already holding the CONCURRENTLY queue): **40 MB in 3 s**, a 3-second
+SHARE lock on `"Bills"` at 17:33 ET, inside the window the lead priced. The
+projection was accurate to 2.5%.
+
+**`as materialized` is the finding of the afternoon.** With the index in place
+the committee query was still 750 ms, because the planner *still* preferred to
+join the 52-row session view first and re-derive the trgm bitmap per
+jurisdiction (`loops=52`, 9.26 ms each = 481 ms of pure repetition). Forcing the
+filter to run once:
+
+```
+                         inlined      as materialized
+committees, "%health%"    1244 ms  →         38.8 ms
+bills,      "%climate%"    969 ms  →           18 ms
+```
+
+Both queries now carry `as materialized` and a comment saying why, because the
+next person to "simplify" that CTE will make it 30× slower and the plan will not
+tell them.
+
+**Measured, warm, against Aurora:**
+
+| query | term | time |
+|---|---|---|
+| members (name + aliases, all jurisdictions) | `%holmes%` | **1.6 ms** |
+| committees, all jurisdictions | `%health%` | **38.8 ms** |
+| bills, all jurisdictions | `%climate%` | 18 ms (359 ms cold) |
+| texts, all jurisdictions, **old index** | `climate resiliency` | 802 ms |
+
+`%holmes%` returns 14 members and Eleanor Norton is one of them.
+
+**Two bugs worth naming, both mine, both caught before they shipped:**
+
+1. A SQL comment inside a JS template literal contained backticks. The template
+   ended early and the file stopped parsing — no type-checker locally (the hook
+   blocks `tsc` by name), so this would have been an Amplify failure. SQL
+   comments in this file now use double quotes.
+2. My *test harness* — not the module — replaced `${BODY}` with
+   `String.replace`, and `BODY` ends in `$'`, which `String.replace` reads as
+   "everything after the match". The generated SQL came out silently truncated
+   and duplicated. The module interpolates rather than replaces and was never
+   affected, but it is the exact shape of bug that produces a query that runs
+   and answers wrongly. Every generated statement is now `PREPARE`d against
+   Aurora before it is committed; all four prepare clean.
+
+**Snippets.** `ts_headline` given no match inside its window returns the opening
+of the document rather than nothing — which renders as a result and teaches the
+reader nothing (`S9004` came back as `S T A T E O F N E W Y O R K`). 2,707 of the
+444,220 current-session documents (0.61%) run past the 200 k-character window;
+those rows are now dropped rather than shown unhighlighted. Delimiters are `«` `»`,
+not HTML, so the page never renders markup that came out of the database.
+
+Verification harness written: `scripts/search/verify-search.mjs`, Playwright at
+1714 px, four cases (cross-jurisdiction text, the alias, the common term from a
+small jurisdiction, a bill-number prefix), printing section counts, distinct
+flag count and wall time per case.
