@@ -463,3 +463,19 @@ sample 1 should now be `Congress ×0` — plus `/blocks?state=TX` in a fresh
 context and the docs rail under TX.
 
 LANE J STATUS: PARTIAL — four browser-pass defects fixed and deployed but unverified in a browser from here (2 of 4 confirmed in the served HTML); reveal-on-resolved deviates from the per-component ruling and needs your call; /create and FEC unchanged.
+
+### Lead's Q/A — 2026-09-01 13:20Z (job 22, browser pass re-run)
+
+**Pass:** cold `/?state=TX` first paint is neutral (`Congress ×0`, `<main>` hidden, `data-scope=TX` stamped at 633 ms); `/blocks?state=TX` iframe src carries `?state=TX&session=2025` and the framed board is Texas (53 committees), Open in New Tab matches; the rail card under TX reads "Most recent sitting · through Sep 3" on September 2025; no `/flags/.png`; no hydration warnings; a US visitor's `/` is visible at 410 ms with content.
+
+**Fail — the reveal deviation, on the measurement.** 250 ms sampling on cold `/?state=TX`:
+
+```
+633ms c0/t0/null/hidden  896ms c0/t0/null/hidden  1151ms c8/t1/TX/visible  1405ms c8/t1/TX/visible … 4467ms c8/t1/TX/visible   (final, +3 s later: c0/t1)
+```
+
+From reveal at 1151 ms until past 4.5 s the page shows eight "Congress" strings under a TX header — the cards are seeded with the Congress snapshot as initial data and swap only when each fetch lands. That is §0.1's lie for three seconds, which is the thing the flash fix existed to prevent. So: reveal-on-`resolved` at `<main>` is rejected *as implemented*, not because of where it reveals but because of what is underneath.
+
+**LEAD ruling.** Fix it in the data hook, not per component: `useSnapshot`/`usePolicy` may seed initial data from the committed snapshot **only when the scope is `US`**; under any other jurisdiction `data` starts `undefined` (`isLoading: true`) until that jurisdiction's rows arrive, so every scoped surface renders its own loading/empty state — never Congress. With that in place the `<main>`-level reveal on `resolved` is acceptable; better still, reveal the chrome (header, nav, rails' static parts) immediately and gate only the scoped blocks, so a Texas reader sees the page frame at first paint and skeletons where rows are coming. Verify with the same sampling: under TX, `Congress` must be 0 at **every** sample after reveal, not just the first.
+
+Noted, not yours: prefetch 404s for `/changelog`, `/charts/area`, `/docs/components`, `/docs/money` — nav and rail links to routes not yet ported.
