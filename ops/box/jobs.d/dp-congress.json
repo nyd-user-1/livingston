@@ -1,0 +1,15 @@
+{
+  "job": "dp-congress",
+  "repo": "livingston",
+  "cadence": "nightly",
+  "enabled": true,
+  "heap_mb": 2048,
+  "steps": [
+    "scripts/pipeline/congress/sync.mjs --days 7"
+  ],
+  "_why": "HB10160 was referred to committee on 2026-08-27, congress.gov carried its introduced text that day, and govblock said 'No text on file yet' for five days. Neither existing pipeline could have caught it: dp-us-native dies on an undeclared fast-xml-parser, and the nightly LegiScan and text deltas run on box 1 and write to Neon, which the site no longer reads. This one writes to Aurora, which it does.",
+  "_pace": "120 ms between calls. One night's window is ~850 changed bills and came in at 829 requests in 3.4 minutes against a 20,000/hour ceiling — about 4% of it. The .htm bodies come from www.congress.gov rather than the API and take no key; they are paced the same.",
+  "_scope": "The 119th, by updateDate, re-reading a day of overlap so a crash mid-run leaves no hole. A full-congress backfill is the same script with --all. Only the text families: the version list, the .htm body, the Documents link. Actions, cosponsors, committees, subjects and related bills are the same walk with more endpoints and are added on top of this.",
+  "_credentials": "Resolved at run time from the cluster's own MasterUserSecret, not from a file. Aurora's master credentials are RDS-managed and rotate every 7 days: the migration staged them at 08:06Z on 2026-09-01, they rotated at 12:21Z, and every box-side job that used them failed password authentication from then on — silently, because the site reaches Aurora through the Data API with the secret's ARN and never noticed. CONGRESS_API_KEY comes from .env.local, which run-due already passes with --env-file.",
+  "_deliberately_not_fetched": "The PDF and USLM renderings of each version. The Formatted Text .htm is what htmlToText was written against and what the bill page renders; the other two are the same words in packaging the site has no reader for. A govinfo row is never replaced either — it came from the XML, which carries the amendment marks the .htm has already flattened, so this fills gaps and refreshes only its own."
+}

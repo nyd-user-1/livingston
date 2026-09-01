@@ -24,6 +24,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { createRequire } from "node:module";
+import { execFileSync } from "node:child_process";
 
 const REPO = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../../..");
 const require_ = createRequire(path.join(REPO, "noop.js"));
@@ -57,10 +58,33 @@ for (const line of (fs.existsSync(path.join(REPO, ".env.local")) ? fs.readFileSy
   process.env[s.slice(0, eq).trim()] = s.slice(eq + 1).trim().replace(/^["']|["']$/g, "");
 }
 
-const DB = process.env.AURORA_POLICY_URL;
+// run-due starts every step as `node --env-file=.env.local <step>`, so neither
+// ~/.govblock/aurora.env nor a shell wrapper is in scope, and the credentials
+// rotate weekly anyway. Ask the cluster for its own secret when the environment
+// has not already supplied a usable URL. The aws CLI rather than the SDK: it is
+// on the box, the box's role is scoped to this one secret and cluster, and it
+// costs no new dependency.
+function auroraUrlFromSecret() {
+  const region = process.env.AWS_REGION || "us-east-1";
+  const cluster = process.env.AURORA_CLUSTER_ID || "aurora-2525";
+  const aws = (args) => execFileSync("aws", [...args, "--region", region], { encoding: "utf8" }).trim();
+  const arn = aws(["rds", "describe-db-clusters", "--db-cluster-identifier", cluster, "--query", "DBClusters[0].MasterUserSecret.SecretArn", "--output", "text"]);
+  const host = aws(["rds", "describe-db-clusters", "--db-cluster-identifier", cluster, "--query", "DBClusters[0].Endpoint", "--output", "text"]);
+  const secret = JSON.parse(aws(["secretsmanager", "get-secret-value", "--secret-id", arn, "--query", "SecretString", "--output", "text"]));
+  const db = process.env.POLICY_DATABASE || "policy";
+  return `postgresql://${secret.username}:${encodeURIComponent(secret.password)}@${host}:5432/${db}?sslmode=require`;
+}
+
+let DB = process.env.AURORA_POLICY_URL;
+// The migration staged one that expanded to `postgres:@:5432` — empty password,
+// empty host — which psql survived by falling through to PGHOST/PGPASSWORD. Treat
+// anything without both as absent rather than trusting it.
+if (!DB || !/^postgres(?:ql)?:\/\/[^:@/]+:[^@]+@[^@/:]+/.test(DB)) {
+  try { DB = auroraUrlFromSecret(); } catch (e) { console.error(`congress/sync: could not resolve Aurora credentials — ${String(e.message).slice(0, 160)}`); }
+}
 const KEY = process.env.CONGRESS_API_KEY;
 const UA = process.env.CONGRESS_USER_AGENT || "govblock/1.0 (+https://govblock.app)";
-if (!DB) { console.error("congress/sync: AURORA_POLICY_URL is required — this writes to Aurora, not Neon"); process.exit(2); }
+if (!DB) { console.error("congress/sync: no Aurora credentials — set AURORA_POLICY_URL or give the box rds:DescribeDBClusters + secretsmanager:GetSecretValue"); process.exit(2); }
 if (!KEY) { console.error("congress/sync: CONGRESS_API_KEY is required"); process.exit(2); }
 
 /* ---- htmlToText, the one the govinfo path uses --------------------------- */
