@@ -816,9 +816,23 @@ Warm, three runs, measured on Aurora. All jurisdictions unless marked.
 The four groups run in one `Promise.all`, so the envelope is the **max**: ~380 ms
 of database for the worst case measured.
 
-**Against §3's budgets:** menu ≤ 300 ms warm → **77 ms**, met. `/search` with
-full text ≤ 1.5 s → **427–1322 ms** page wall clock including cold Lambda and the
-`subjects` fetch, met.
+**Against §3's budgets, measured at all three layers rather than quoting the
+flattering one.** The numbers above are SQL on Aurora. The endpoint adds the Data
+API round trip and the Lambda; the page adds the browser and its `subjects`
+fetch. Origin timings are cache-busted, because `s-maxage=1800` otherwise returns
+a CloudFront hit in 113 ms and measures nothing:
+
+| layer | menu path | `/search`, `all=1&text=1`, worst case |
+|---|---|---|
+| SQL on Aurora, warm | 77 ms | 379 ms |
+| **origin endpoint**, warm λ, cache-busted | **221–265 ms** | **558–873 ms** |
+| page wall clock, 1714 px | — | 427–1322 ms |
+| CloudFront hit | — | 113 ms |
+| **§3's budget** | **≤ 300 ms** ✓ | **≤ 1.5 s** ✓ |
+
+Both met at the layer that matters — the endpoint — with the worst term
+(`health`, 979,526 matching documents) asked from the smallest jurisdiction
+(Wyoming), which is the hardest question this search can be asked.
 
 **The one number this lane exists for:**
 
