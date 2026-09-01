@@ -1,0 +1,212 @@
+#!/usr/bin/env node
+// scripts/pipeline/congress/billstatus.mjs — summaries, titles, related bills, and
+// the bill each amendment and committee report belongs to, from the govinfo
+// BILLSTATUS zips, into Aurora.
+//
+//   node scripts/pipeline/congress/billstatus.mjs            # 119th
+//   node scripts/pipeline/congress/billstatus.mjs --congress 118
+//
+// Zero API calls. govinfo publishes the whole legislative record of a congress as
+// eight zips — one per bill type — and the 119th is 18,469 bills in eight
+// requests and about a minute. The same families through api.congress.gov are one
+// request per bill per family: ~18,500 for summaries alone, against a 20,000/hour
+// ceiling. This is the reason `dp-us-native` is fixed rather than retired.
+//
+// It also supplies the linkage the API list endpoints do not carry: an amendment
+// record from /amendment/119 names no bill, and a committee report names no bill,
+// so `amendments?bill=` could not be honoured until this ran.
+
+import fs from "node:fs";
+import os from "node:os";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
+import { createRequire } from "node:module";
+import { execFileSync } from "node:child_process";
+import { unzipSync } from "fflate";
+
+const REPO = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../../..");
+const require_ = createRequire(path.join(REPO, "noop.js"));
+const args = process.argv.slice(2);
+const val = (f, d = null) => { const i = args.indexOf(f); return i >= 0 && args[i + 1] ? args[i + 1] : d; };
+const CONGRESS = Number(val("--congress", "119"));
+const ONLY_TYPE = val("--type");
+const log = (...a) => console.log(new Date().toISOString().slice(11, 19), ...a);
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+
+for (const line of (fs.existsSync(path.join(REPO, ".env.local")) ? fs.readFileSync(path.join(REPO, ".env.local"), "utf8") : "").split("\n")) {
+  const s = line.trim(); if (!s || s.startsWith("#")) continue;
+  const eq = s.indexOf("="); if (eq < 1 || process.env[s.slice(0, eq).trim()] !== undefined) continue;
+  process.env[s.slice(0, eq).trim()] = s.slice(eq + 1).trim().replace(/^["']|["']$/g, "");
+}
+
+function auroraUrlFromSecret() {
+  const region = process.env.AWS_REGION || "us-east-1";
+  const cluster = process.env.AURORA_CLUSTER_ID || "aurora-2525";
+  const aws = (a) => execFileSync("aws", [...a, "--region", region], { encoding: "utf8" }).trim();
+  const arn = aws(["rds", "describe-db-clusters", "--db-cluster-identifier", cluster, "--query", "DBClusters[0].MasterUserSecret.SecretArn", "--output", "text"]);
+  const host = aws(["rds", "describe-db-clusters", "--db-cluster-identifier", cluster, "--query", "DBClusters[0].Endpoint", "--output", "text"]);
+  const secret = JSON.parse(aws(["secretsmanager", "get-secret-value", "--secret-id", arn, "--query", "SecretString", "--output", "text"]));
+  return `postgresql://${secret.username}:${encodeURIComponent(secret.password)}@${host}:5432/${process.env.POLICY_DATABASE || "policy"}?sslmode=require`;
+}
+let DB = process.env.AURORA_POLICY_URL;
+if (!DB || !/^postgres(?:ql)?:\/\/[^:@/]+:[^@]+@[^@/:]+/.test(DB)) DB = auroraUrlFromSecret();
+function pgConfig(url) {
+  const m = /^postgres(?:ql)?:\/\/([^:@/]+):(.*)@([^@/:]+)(?::(\d+))?\/([^?]+)(?:\?(.*))?$/.exec(url);
+  if (!m) throw new Error("cannot parse the Aurora URL");
+  const [, user, password, host, port, database, query] = m;
+  let pw = password; try { pw = decodeURIComponent(password); } catch { pw = password; }
+  return { user, password: pw, host, database, port: Number(port || 5432), ssl: /sslmode=(require|verify)/.test(query ?? "") ? { rejectUnauthorized: false } : undefined, application_name: "congress-billstatus" };
+}
+
+const BULK = "https://www.govinfo.gov/bulkdata/BILLSTATUS";
+const TYPES = ["hr", "s", "hres", "sres", "hjres", "sjres", "hconres", "sconres"];
+// govinfo's type -> our bill_number prefix. LegiScan renames the federal types
+// into its state vocabulary and the renaming collides with govinfo's, which is
+// why this table is written out rather than derived.
+const PREFIX = { hr: "HB", s: "SB", hres: "HR", sres: "SR", hjres: "HJR", sjres: "SJR", hconres: "HCR", sconres: "SCR" };
+// congress.gov's own type, for keying into congress_amendments.
+const API_TYPE = { hr: "HR", s: "S", hres: "HRES", sres: "SRES", hjres: "HJRES", sjres: "SJRES", hconres: "HCONRES", sconres: "SCONRES" };
+const yearOfCongress = (c) => (c - 1) * 2 + 1789;
+
+const arr = (x) => (x == null ? [] : Array.isArray(x) ? x : [x]);
+const items = (x) => arr(x?.item);
+const txt = (x) => (x == null ? null : typeof x === "object" ? (x["#text"] ?? null) : String(x));
+const plain = (s) => String(s ?? "").replace(/<[^>]+>/g, " ").replace(/&nbsp;/g, " ").replace(/\s+/g, " ").trim();
+
+function xmlParser() {
+  const { XMLParser } = require_("fast-xml-parser");
+  return new XMLParser({ ignoreAttributes: false, attributeNamePrefix: "@", parseTagValue: false, trimValues: true });
+}
+
+const { Client } = require_("pg");
+const db = new Client(pgConfig(DB));
+await db.connect();
+const parser = xmlParser();
+const year = yearOfCongress(CONGRESS);
+
+for (const [table, cols] of [
+  ["congress_summaries", `bill_id bigint, bill_number text, action_date text, action_desc text, version_code text, text text`],
+  ["congress_titles", `bill_id bigint, bill_number text, title_type text, title text, chamber text`],
+  ["congress_related_bills", `bill_id bigint, bill_number text, related_bill_id bigint, related_bill_number text, relationship text`],
+]) {
+  await db.query(`create table if not exists ${table} (
+    key text primary key, congress int, payload jsonb, updated_at timestamptz not null default now(), ${cols})`);
+  await db.query(`create index if not exists ${table}_bill_idx on ${table} (bill_id)`);
+}
+
+const known = new Map();
+for (const r of (await db.query(`select bill_id, bill_number from "Bills" where state='US' and session_id=$1`, [year])).rows) {
+  known.set(String(r.bill_number).toUpperCase(), Number(r.bill_id));
+}
+log(`${known.size.toLocaleString()} bills on file for ${year}`);
+
+const tally = { bills: 0, summaries: 0, titles: 0, related: 0, amendments: 0, reports: 0, zips: 0, bytes: 0 };
+
+/** Batched multi-row upsert — one statement per few hundred rows, not per row. */
+async function flush(table, cols, rows) {
+  if (!rows.length) return;
+  for (let i = 0; i < rows.length; i += 200) {
+    const chunk = rows.slice(i, i + 200);
+    const params = [];
+    const tuples = chunk.map((r) => `(${cols.map((c) => `$${params.push(r[c])}`).join(",")})`).join(",");
+    await db.query(
+      `insert into ${table} (${cols.join(",")}) values ${tuples}
+       on conflict (key) do update set ${cols.filter((c) => c !== "key").map((c) => `${c} = excluded.${c}`).join(", ")}, updated_at = now()`,
+      params,
+    );
+  }
+  rows.length = 0;
+}
+
+for (const type of ONLY_TYPE ? [ONLY_TYPE] : TYPES) {
+  const url = `${BULK}/${CONGRESS}/${type}/BILLSTATUS-${CONGRESS}-${type}.zip`;
+  const t0 = Date.now();
+  const res = await fetch(url, { headers: { "User-Agent": process.env.CONGRESS_USER_AGENT || "govblock/1.0 (+https://govblock.app)" } });
+  if (!res.ok) { log(`${type}: ${res.status} — skipped`); continue; }
+  const buf = new Uint8Array(await res.arrayBuffer());
+  tally.zips += 1; tally.bytes += buf.length;
+  const files = unzipSync(buf);
+  const names = Object.keys(files).filter((n) => n.endsWith(".xml"));
+
+  const sums = [], titles = [], related = [];
+  const amendLinks = [], reportLinks = [];
+
+  for (const name of names) {
+    let b;
+    try { b = parser.parse(new TextDecoder().decode(files[name]))?.billStatus?.bill; } catch { continue; }
+    if (!b) continue;
+    const number = txt(b.number) ?? txt(b.billNumber);
+    if (!number) continue;
+    const bn = `${PREFIX[type]}${number}`;
+    const billId = known.get(bn) ?? null;
+    tally.bills += 1;
+
+    // Every CRS summary the bill has carried, not just the newest — the point is
+    // the sequence: as introduced, as reported, as passed.
+    items(b.summaries).forEach((s, i) => {
+      const actionDate = txt(s.actionDate) ?? "";
+      sums.push({ key: `${CONGRESS}-${bn}-${actionDate || i}-${txt(s.versionCode) ?? i}`, congress: CONGRESS,
+        payload: JSON.stringify(s), bill_id: billId, bill_number: bn, action_date: actionDate || null,
+        action_desc: txt(s.actionDesc), version_code: txt(s.versionCode), text: plain(txt(s.text)) });
+    });
+    items(b.titles).forEach((t, i) => {
+      titles.push({ key: `${CONGRESS}-${bn}-${i}`, congress: CONGRESS, payload: JSON.stringify(t), bill_id: billId,
+        bill_number: bn, title_type: txt(t.titleType), title: txt(t.title), chamber: txt(t.chamberName) });
+    });
+    for (const rb of items(b.relatedBills)) {
+      const rbn = `${PREFIX[String(txt(rb.type) ?? "").toLowerCase()] ?? String(txt(rb.type) ?? "")}${txt(rb.number) ?? ""}`;
+      related.push({ key: `${CONGRESS}-${bn}-${rbn}`, congress: CONGRESS, payload: JSON.stringify(rb), bill_id: billId,
+        bill_number: bn, related_bill_id: known.get(rbn.toUpperCase()) ?? null, related_bill_number: rbn,
+        relationship: (items(rb.relationshipDetails)[0] ? txt(items(rb.relationshipDetails)[0].type) : null) ?? "related" });
+    }
+    // The linkage the API list endpoints do not carry.
+    for (const a of items(b.amendments)) {
+      const at = String(txt(a.type) ?? "").toUpperCase();
+      const an = txt(a.number);
+      if (at && an && billId) amendLinks.push([`${CONGRESS}-${at}-${an}`, billId, bn]);
+    }
+    for (const cr of items(b.committeeReports)) {
+      const cit = txt(cr.citation);
+      if (cit && billId) reportLinks.push([cit, billId]);
+    }
+  }
+
+  await flush("congress_summaries", ["key", "congress", "payload", "bill_id", "bill_number", "action_date", "action_desc", "version_code", "text"], sums.splice(0));
+  await flush("congress_titles", ["key", "congress", "payload", "bill_id", "bill_number", "title_type", "title", "chamber"], titles.splice(0));
+  await flush("congress_related_bills", ["key", "congress", "payload", "bill_id", "bill_number", "related_bill_id", "related_bill_number", "relationship"], related.splice(0));
+
+  for (let i = 0; i < amendLinks.length; i += 500) {
+    const chunk = amendLinks.slice(i, i + 500);
+    await db.query(
+      `update congress_amendments a set amended_bill_id = v.bill_id::bigint, amended_bill_number = v.bn
+         from (select * from unnest($1::text[], $2::bigint[], $3::text[]) as t(key, bill_id, bn)) v
+        where a.key = v.key`,
+      [chunk.map((c) => c[0]), chunk.map((c) => c[1]), chunk.map((c) => c[2])],
+    );
+  }
+  for (let i = 0; i < reportLinks.length; i += 500) {
+    const chunk = reportLinks.slice(i, i + 500);
+    // A citation names every part of the report, so this links all of them.
+    await db.query(
+      `update congress_committee_reports r set bill_id = v.bill_id::bigint
+         from (select * from unnest($1::text[], $2::bigint[]) as t(citation, bill_id)) v
+        where r.citation = v.citation`,
+      [chunk.map((c) => c[0]), chunk.map((c) => c[1])],
+    );
+  }
+  tally.amendments += amendLinks.length; tally.reports += reportLinks.length;
+  log(`${type}: ${names.length} bills · ${(buf.length / 1e6).toFixed(1)} MB · ${amendLinks.length} amendment links · ${reportLinks.length} report links · ${((Date.now() - t0) / 1000).toFixed(0)}s`);
+  await sleep(1500); // govinfo asks nothing of us; this is manners.
+}
+
+const counts = await db.query(`select
+  (select count(*) from congress_summaries) s, (select count(*) from congress_titles) t,
+  (select count(*) from congress_related_bills) r,
+  (select count(*) from congress_amendments where amended_bill_id is not null) a,
+  (select count(*) from congress_committee_reports where bill_id is not null) cr`);
+const c = counts.rows[0];
+log(`billstatus done: ${tally.bills} bills · ${tally.zips} zips · ${(tally.bytes / 1e6).toFixed(0)} MB · 0 API requests`);
+log(`  congress_summaries ${c.s} · congress_titles ${c.t} · congress_related_bills ${c.r} · amendments linked ${c.a} · reports linked ${c.cr}`);
+
+await db.end();
+process.exit(0);
