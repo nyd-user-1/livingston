@@ -130,7 +130,12 @@ function mapBill(b, congress, type, R) {
     ...common,
     os_id: `${SOURCE}:${STATE}:${session}:${key}`,
     title: txt(b.title),
-    description: items(b.summaries)[0] ? String(txt(items(b.summaries)[0].text) ?? "").replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim() : null,
+    // ⚠ <summaries> holds <summary>, not <item>. This read items(b.summaries)
+    // and so wrote null for every bill ever published — BILLSTATUS uses a
+    // different child name per collection (<titles> and <relatedBills> are
+    // <item>, <amendments> is <amendment>, <committeeReports> is
+    // <committeeReport>), and reading them all as .item fails silently.
+    description: arr(b.summaries?.summary)[0] ? String(txt(arr(b.summaries?.summary)[0].text) ?? "").replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim() : null,
     classification: txt(b.policyArea?.name),
     last_action: txt(latest.text), last_action_date: txt(latest.actionDate),
     status_desc: laws.length ? "Became law" : txt(latest.text)?.slice(0, 120) ?? null,

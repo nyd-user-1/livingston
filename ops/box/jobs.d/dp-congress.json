@@ -7,7 +7,8 @@
   "steps": [
     "scripts/pipeline/congress/sync.mjs --days 7",
     "scripts/pipeline/congress/billstatus.mjs",
-    "scripts/pipeline/congress/harvest.mjs"
+    "scripts/pipeline/congress/harvest.mjs",
+    "scripts/pipeline/congress/house-votes.mjs"
   ],
   "_why": "HB10160 was referred to committee on 2026-08-27, congress.gov carried its introduced text that day, and govblock said 'No text on file yet' for five days. Neither existing pipeline could have caught it: dp-us-native dies on an undeclared fast-xml-parser, and the nightly LegiScan and text deltas run on box 1 and write to Neon, which the site no longer reads. This one writes to Aurora, which it does.",
   "_pace": "120 ms between calls. One night's window is ~850 changed bills and came in at 829 requests in 3.4 minutes against a 20,000/hour ceiling \u2014 about 4% of it. The .htm bodies come from www.congress.gov rather than the API and take no key; they are paced the same.",

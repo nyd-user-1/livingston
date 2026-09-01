@@ -138,6 +138,37 @@ const FAMILIES = [
     key: (r) => String(r.jacketNumber ?? `${r.congress}-${r.chamber}-${r.number}`),
     cols: { jacket_number: (r) => String(r.jacketNumber ?? ""), chamber: (r) => r.chamber ?? null, number: (r) => String(r.number ?? "") },
     thin: "transcripts are behind a detail request each (932)" },
+  { table: "congress_house_votes", path: (c) => `/house-vote/${c}`, listKey: "houseRollCallVotes",
+    key: (r) => String(r.identifier),
+    cols: { identifier: (r) => String(r.identifier), session_number: (r) => String(r.sessionNumber ?? ""),
+            roll_call_number: (r) => String(r.rollCallNumber ?? ""), legislation_type: (r) => r.legislationType ?? null,
+            legislation_number: (r) => r.legislationNumber ?? null, result: (r) => r.result ?? null,
+            vote_type: (r) => r.voteType ?? null, start_date: (r) => r.startDate ?? null } },
+  // Not congress-scoped: /crsreport is the whole library, 14,076 of them.
+  { table: "congress_crs_reports", path: () => `/crsreport`, listKey: "CRSReports",
+    key: (r) => String(r.id),
+    cols: { report_id: (r) => r.id, title: (r) => r.title ?? null, publish_date: (r) => r.publishDate ?? null,
+            status: (r) => r.status ?? null, version: (r) => String(r.version ?? ""), content_type: (r) => r.contentType ?? null },
+    detail: { since: 90, path: (r) => `/crsreport/${r.id}`, unwrap: (d) => d.CRSReport,
+              cols: { summary: (r) => (r.summary ? String(r.summary).replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim() : null),
+                      topics: (r) => (r.topics ? JSON.stringify(r.topics) : null),
+                      authors: (r) => (r.authors ? JSON.stringify(r.authors) : null) } } },
+  { table: "congress_record_daily", path: () => `/daily-congressional-record`, listKey: "dailyCongressionalRecord",
+    key: (r) => `${r.volumeNumber}-${r.issueNumber}`,
+    cols: { volume_number: (r) => String(r.volumeNumber ?? ""), issue_number: (r) => String(r.issueNumber ?? ""),
+            issue_date: (r) => r.issueDate ?? null, session_number: (r) => String(r.sessionNumber ?? "") },
+    detail: { since: 30, path: (r) => `/daily-congressional-record/${r.volumeNumber}/${r.issueNumber}`,
+              unwrap: (d) => (Array.isArray(d.issue) ? d.issue[0] : d.issue),
+              cols: { articles_count: (r) => String(r.fullIssue?.articles?.count ?? ""),
+                      entire_issue: (r) => (r.fullIssue?.entireIssue ? JSON.stringify(r.fullIssue.entireIssue) : null) } } },
+  { table: "congress_communications", label: "house-communications", path: (c) => `/house-communication/${c}`, listKey: "houseCommunications",
+    key: (r) => `${r.congress}-H-${r.communicationType?.code ?? "?"}-${r.number}`,
+    cols: { chamber: (r) => r.chamber ?? "House", communication_type: (r) => r.communicationType?.name ?? null,
+            type_code: (r) => r.communicationType?.code ?? null, number: (r) => String(r.number ?? "") } },
+  { table: "congress_communications", label: "senate-communications", path: (c) => `/senate-communication/${c}`, listKey: "senateCommunications",
+    key: (r) => `${r.congress}-S-${r.communicationType?.code ?? "?"}-${r.number}`,
+    cols: { chamber: (r) => r.chamber ?? "Senate", communication_type: (r) => r.communicationType?.name ?? null,
+            type_code: (r) => r.communicationType?.code ?? null, number: (r) => String(r.number ?? "") } },
 ];
 
 /* ---- main ---------------------------------------------------------------- */
@@ -149,7 +180,8 @@ const since = val("--since");
 const results = [];
 
 for (const fam of FAMILIES) {
-  if (ONLY && fam.table !== `congress_${ONLY}` && fam.table !== ONLY) continue;
+  const label = fam.label ?? fam.table;
+  if (ONLY && fam.table !== `congress_${ONLY}` && fam.table !== ONLY && label !== ONLY) continue;
   const t0 = Date.now();
   const before = requests;
 
@@ -217,16 +249,16 @@ for (const fam of FAMILIES) {
             [t.key, JSON.stringify({ ...t.payload, ...rec }), ...dcols.map((c) => { const v = fam.detail.cols[c](rec); return v == null ? null : String(v); })],
           );
           detailed += 1;
-        } catch (e) { log(`  ${fam.table} detail ${t.key}: ${String(e.message).slice(0, 80)}`); }
+        } catch (e) { log(`  ${label} detail ${t.key}: ${String(e.message).slice(0, 80)}`); }
       }
     }
 
     const mins = (Date.now() - t0) / 60000;
-    results.push({ table: fam.table, rows, written, detailed, requests: requests - before, mins: mins.toFixed(1), thin: fam.thin ?? null });
-    log(`${fam.table}: ${rows} rows${detailed ? ` · ${detailed} detailed` : ""} · ${requests - before} requests · ${mins.toFixed(1)} min${fam.thin ? ` · thin (${fam.thin})` : ""}`);
+    results.push({ table: label, rows, written, detailed, requests: requests - before, mins: mins.toFixed(1), thin: fam.thin ?? null });
+    log(`${label}: ${rows} rows${detailed ? ` · ${detailed} detailed` : ""} · ${requests - before} requests · ${mins.toFixed(1)} min${fam.thin ? ` · thin (${fam.thin})` : ""}`);
   } catch (e) {
-    results.push({ table: fam.table, rows, written, requests: requests - before, mins: ((Date.now() - t0) / 60000).toFixed(1), error: String(e.message).slice(0, 120) });
-    log(`${fam.table}: FAILED after ${rows} rows — ${String(e.message).slice(0, 140)}`);
+    results.push({ table: label, rows, written, requests: requests - before, mins: ((Date.now() - t0) / 60000).toFixed(1), error: String(e.message).slice(0, 120) });
+    log(`${label}: FAILED after ${rows} rows — ${String(e.message).slice(0, 140)}`);
   }
 }
 
