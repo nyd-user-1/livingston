@@ -151,8 +151,13 @@ function pgConfig(url) {
   const m = /^postgres(?:ql)?:\/\/([^:@/]+):(.*)@([^@/:]+)(?::(\d+))?\/([^?]+)(?:\?(.*))?$/.exec(url);
   if (!m) throw new Error("AURORA_POLICY_URL is not a postgres URL");
   const [, user, password, host, port, database, query] = m;
+  // refresh-aurora-env writes it percent-encoded; a hand-staged one may not be.
+  // Decoding a string with no % sequences is a no-op, and a malformed one is
+  // better used verbatim than thrown away.
+  let pw = password;
+  try { pw = decodeURIComponent(password); } catch { pw = password; }
   return {
-    user, password, host, database,
+    user, password: pw, host, database,
     port: Number(port || 5432),
     ssl: /sslmode=(require|verify)/.test(query ?? "") ? { rejectUnauthorized: false } : undefined,
     application_name: "congress-sync",
