@@ -1218,3 +1218,44 @@ The union costs about **100 ms** on the worst case measured.
   headline is cut from that chunk's own 80,000 characters, so the match is always
   inside the window.
 
+
+---
+
+### Commits (govblock@main, explicit paths throughout)
+
+```
+75d8d0f  search: aliases, so 'holmes' finds Eleanor Holmes Norton
+a592f66  search: every jurisdiction, and the bill text itself
+81c2211  search: /search shows a Text section, and every row wears its own flag
+e62bf2a  search: cross-jurisdiction metadata is opt-in, because the menu still draws one flag
+c74ee64  search: the verifier finds playwright wherever it already is
+7160206  search: cut the row set before ts_headline, not after
+c697175  search: a member search matches word by word, not as one string
+13d3d4f  policy: lobbying and FEC get a way in, gated to the jurisdiction that has them
+a765520  search: a member is someone with a name, not a committee filed as one
+633928c  search: the last 1.91 GB of bill text, and phrase search that tells the truth
+080dfa3  search: the chunk geometry lives in one place, because it drifted once already
+a19a6c8  search: the chunk populator's summary line could not print its own result
+```
+
+Files touched: `apps/web/lib/policy/db-queries.ts` (`searchAll`, plus two strings
+in `US_ONLY` — flagged), `apps/web/app/api/policy/[resource]/route.ts` (the
+`search` case, plus the `lobbying`/`fec` cases the lead asked for),
+`apps/web/app/search/page.tsx`, and four new files under `scripts/search/`.
+`components/command-menu.tsx` was never touched; the lead flipped it on with the
+`all: 1` the gate left ready.
+
+### What a reader can do at 23:20 ET that they could not at 16:09
+
+- Search **every jurisdiction at once** — 52 flags on one page — instead of the
+  one they happen to be scoped to.
+- Search the **text of bills**, not just their titles: 3.3 M documents, 39 GB.
+- Search the text of the **budget bills**, all 4.02 GB of the 2,110 documents
+  that were too long to index at all this morning.
+- Find **Eleanor Holmes Norton by the name she is known by**, and Gil Cisneros as
+  Gilbert, and Elizabeth Fletcher as Lizzie.
+- Ask `health` from Wyoming and get an answer in **1.3 seconds** instead of a
+  blank page after 28.5.
+- Not be shown 511 committees pretending to be legislators.
+
+LANE S STATUS: COMPLETE — §1 indexes built and measured (six new, 2.31 GB, one 3-second lock, all indisvalid); §2 searchAll spans all 52 jurisdictions for bills, committees and text, current-scope-first with a per-jurisdiction cap, aliases matching word by word; §3 /search carries a Text section with highlighted snippets and per-row flags, both latency budgets met at the endpoint (menu 205–241 ms of 300; /search 664–953 ms of 1500); §4 reported above with projected-vs-actual on every index, the $2.30 ACU bill, a ten-item honest list and three findings that outlive the lane. The headline: the query the lane was opened for went 179,435 ms → 419 ms, 428×. Beyond the brief and approved in flight: "BillTextChunks" (51,972 chunks, 1661 MB) making the long bills phrase-searchable end to end, lobbying and fec exposed on the route, and 511 committee rows removed from the member search. Three of my own defects were caught before or just after shipping and are recorded rather than quietly fixed — the 800 KB chunk that broke phrase search silently, the chunk geometry that drifted between script and query, and a 3.9× storage under-estimate I corrected loudly because Brendan had approved the wrong number. Still open and priced, not started: the 41,172 documents in the 110 KB–1 MB band whose phrases past ~110 KB remain unfindable (~2.4 GB), and billtexts_search_idx's 1895 MB of dead weight, which must not be dropped without changing `idx === 4` in livingston/api/bill-text.ts first.
