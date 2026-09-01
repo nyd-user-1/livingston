@@ -118,3 +118,50 @@ for the whole lane to ask for a look.
 ---
 
 ## Report — worker appends below this line
+
+### 2026-09-01 — lane P
+
+`HEARTBEAT 16:55Z page 1/5 commit 0206e9f job pending next verifying the bill page on the deploy`
+
+**Read first, and what changed under me.** Lane C landed while I was reading:
+eleven families were already live on `/api/policy` when I started building, and
+`summaries` / `titles` / `related-bills` plus `bill=` scoping landed while page 1
+was compiling. So this lane is not building against fixtures with a hope — most
+of it reads Aurora today, and the fixtures are the fallback for the families
+that still have no table (`cosponsors`, `member-votes`, `crs-reports`,
+`record-issues`, `house-votes`).
+
+**FLAG (answered, ruling applied).** `amendments` and `laws` accepted `?bill=`
+and ignored it, so a per-bill section could be handed all 7,035 amendments with
+a 200 and no way to tell. Lane C has since shipped `b43cece` (scoped, and the
+envelope echoes what it was scoped to). The guard stays permanently, per the
+lead: `scopedRows` in `lib/policy/congress.ts` takes rows only from an answer
+provably about this bill — a bare array (the route could not answer without the
+id), an envelope echoing the scope, or the rows that name the bill in their own
+record. Anything else is an honest empty section.
+
+**FLAG (housekeeping, resolved).** The machine hit 100% disk at 250 MB free
+mid-build — `govblock/.turbo/cache` had grown to 7.9 GB. Cleared it; 8.2 GB
+free now. Lane C's builds were on the same edge.
+
+#### Page 1 — `/docs/bills/[id]` · commit `0206e9f`
+
+| | |
+|---|---|
+| Sections added | Amendments, Related bills, Titles, Committee reports |
+| Sections enriched | Text (stage timeline), Summary (CRS per stage), Sponsors (cosponsor dates + withdrawn), Status (policy area, public-law citation) |
+| Resources read | `text-versions`, `summaries`, `amendments`, `related-bills`, `titles`, `committee-reports`, `laws`, `cosponsors`, `text` |
+| On Aurora today | `text-versions`, `summaries`, `amendments`, `related-bills`, `titles`, `committee-reports`, `laws` |
+| On fixture today | `cosponsors` (no table yet — the one name in this page's set the contract has no home for) |
+| Contents in the rail | names only the sections the bill has rows for |
+
+Screenshot and the `?state=TX` count follow once the Amplify job lands.
+
+**One contract addition to rule on:** `cosponsors`. "Sponsors gains cosponsor
+dates and withdrawn flags" needs `sponsorshipDate` /
+`sponsorshipWithdrawnDate` / `isOriginalCosponsor`, which live on
+`/bill/{congress}/{type}/{number}/cosponsors` and on none of the sixteen
+contract names. It is committed as a fixture under the name `cosponsors` in the
+same envelope as its neighbours (`{bill, count, cosponsors[]}`), so it is safe:
+lane C serves nothing there today, the fetch 404s, the fixture answers, and the
+day a `congress_cosponsors` table exists the page changes not at all.
