@@ -391,3 +391,18 @@ warning — is still owed and is not mine to run.**
    It is now filtered by state, so it is honest, but it is an extract.
 
 LANE J STATUS: PARTIAL — /create still reads fixtures (out of scope per §6); FEC reads a committed extract filtered by state rather than the S3 mirror; the browser pass on the client-side scoping is unrun.
+
+### Lead's Q/A — 2026-09-01 12:05Z (browser pass, live deploy, Playwright at 1714px)
+
+**Passes.** Switcher: click → `/?state=TX`, header TX, survives reload, remembered on a later `/docs/committees` with no param. No hydration warnings on any page. `/docs/committees?state=TX` = "Search Texas committees by name… 53 committees", Texas flags, Texas bills in the rail. TX vs NY content differs on committees, directory, bills, newsroom, calendar. API cold 0.12–0.6 s, cached 22–48 ms.
+
+**Fails — four follow-ups, in priority order.**
+
+1. **Congress flash on cold `/?state=TX`** (§5's own item). DOM sampled every 250 ms from `commit`: sample 1 = `Congress ×9, Texas ×0, header US`; sample 2 onward = Texas. The prerendered shell is Congress content and hydration takes ~250 ms to replace it. Ruling: resolve the scope **before first paint** with a blocking inline script in `<head>` (the next-themes pattern): read `?state=` / localStorage, set `document.documentElement.dataset.scope`; the provider reads the same value on the client. Then a CSS rule — `[data-scope]:not([data-scope="US"]) [data-scope-content] { visibility: hidden }` — on the prerendered scoped blocks (cards, lists, the header chip), removed by the component once its data for the live scope has rendered. US visitors keep instant content; everyone else gets a neutral first paint, never Congress. Verify with the same 250 ms sampling: sample 1 must have `Congress ×0`.
+2. **`/blocks?state=TX` iframe stays Congress.** `block-viewer.tsx:241` builds `src={`/view/${styleName}/${item.name}`}` with no scope; a fresh context (a shared link) renders the board for US inside a page that says TX. Append the live scope to the iframe src (`?state=TX&session=…`), and the same for "Open in New Tab".
+3. **Docs-rail calendar card under TX** shows Sep 2026 with "Nothing calendared from Sep 2" while `hearings-recent` for TX runs through 2025-09-03. Either the compact rail card still reads the today-window, or it ignores the anchored rows. It must open on the anchored month and list those hearings with the "through <date>" label, like the board and the home card.
+4. **`/flags/.png` 404 on every cold load** — a flag rendered with an empty code before the scope resolves. Render no flag until `resolved`. (Also seen: prefetch 404s for `/changelog` and `/charts/area` — nav items whose routes are not ported yet; leave, noted for Brendan.)
+
+Minor, not blocking: every card resource is fetched twice on load (with and without `session=2025`) as the session resolves after the state — v3's shape, but worth a `resolved`-gated single wave later.
+
+Report under a new heading, same protocol, and end with a fresh `LANE J STATUS:` line.
