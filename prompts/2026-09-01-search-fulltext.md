@@ -982,3 +982,60 @@ ok   590 ms  TX/"HB10"                [Bills (60), Text (3)]                    
   scan in another window. Check `pg_stat_activity` first, or you will attribute
   someone else's scan to your index.
 
+
+LEAD: (Brendan, verbatim ruling) — *"Yes, do this — the ~20-minute BillTextChunks build."* APPROVED and assigned to this lane as the one-item scope extension described at 01:15Z: create "BillTextChunks" (document_id, chunk_no, tsv — no text stored), one-off batched insert...select over the 2,110 over-limit documents at 800 k chars per chunk, gin (state, session_id, tsv) in the shape you already built, union in searchAll's text arm at the same query site. The freshness caveat stands recorded (nothing refreshes BillTexts today; the chunker joins the pipeline at the ingestion cutover). Fold it in before your STATUS line if it is not yet written; if it is, append the chunk work and close with a fresh STATUS. Verify Ohio HB96's back half answers on production — that is the acceptance test: a line from deep in the state operating budget, found.
+
+### Scope extension — `"BillTextChunks"` (Brendan's ruling, 18:40 ET)
+
+> *"Yes, do this — the ~20-minute BillTextChunks build."*
+
+**Built, and then rebuilt, because the first version was quietly half-broken.**
+
+The table is `"BillTextChunks"(document_id, chunk_no, bill_id, state, session_id,
+tsv)` — no text stored — with `gin (state, session_id, tsv)`, deliberately the
+same shape as `billtexts_scope_search_idx` so the text arm of `searchAll` asks
+both tables the same question and gets the same plan. `scripts/search/bill-text-chunks.sql`
+is the DDL, `scripts/search/bill-text-chunks.sh` the batched populator
+(restartable, `on conflict do nothing`, batched by document so no single
+transaction holds a snapshot long enough to stall a `CONCURRENTLY` build beside
+it — a lesson from earlier today).
+
+The first pass finished in **4 minutes, not 20**: 2,110 documents, 3,642 chunks,
+304 MB, against a projection of 3,632 chunks and ~290 MB. Chunk count right to
+0.3%, size to 5%, and the time badly over-estimated in the safe direction —
+Postgres slices a TOASTed value for `substr` rather than detoasting the whole
+thing, which I had not priced.
+
+**Then the acceptance test half-passed, and the half that failed mattered.**
+Searching a phrase from the back of Ohio HB96 found the bill — but through only
+one of the two chunks that literally contain it:
+
+```
+chunk  4  (phrase at +681,376 into the chunk)   words match: t   phrase match: f
+chunk 10  (phrase at  +11,386 into the chunk)   words match: t   phrase match: t
+```
+
+**A tsvector stores lexeme positions in 14 bits.** Anything past **16,383** is
+clamped to 16,383, and a quoted query compiles to `<->`, which reads those
+positions. An 800,000-character chunk of legislative text is ~126,000 tokens, so
+everything after roughly the first 110 KB of each chunk collapsed to one position
+and stopped matching as a phrase. Word queries were unaffected, because the
+lexeme is present either way — which is exactly what makes it dangerous: a
+quoted search would have returned fewer results than an unquoted one, silently,
+and looked like it worked.
+
+Measured the ceiling rather than guessed at it: 100,000 characters is 15,744
+tokens on the densest document we hold — **4%** under the limit. Rebuilt at
+**80,000** (23% headroom, stride 79,000, 1,000-character overlap). Same text,
+~6× the rows, almost identical bytes.
+
+**The seam that remains, and its price.** `"BillTexts".search_tsv` has the same
+14-bit ceiling over its own 1,000,000 characters, so **phrase search inside any
+bill works only in roughly its first 110 KB** — that is pre-existing, corpus-wide,
+and untouched by this lane. For the 2,110 long bills, chunks now cover from
+999,001 onward, so their tails are fully phrase-searchable and the middle
+(110 KB–999 KB) is not. Closing that seam means chunking these documents from
+offset 1 instead: ~52,000 chunks and **~610 MB instead of ~200 MB**, same few
+minutes. I have *not* done it — it roughly doubles what was approved, and that is
+Brendan's call, not mine.
+
