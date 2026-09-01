@@ -1,0 +1,12 @@
+{
+  "job": "lv-refresh-matviews",
+  "repo": "livingston",
+  "cadence": "nightly",
+  "enabled": true,
+  "steps": [
+    "node scripts/box/refresh-matviews.mjs"
+  ],
+  "_why": "govblock's /docs/changelog, /docs/changelog-v2 and /newsroom read two materialized views in the policy database — mv_stream_latest (each jurisdiction's latest session, its 40 most recently acted-on bills) and mv_newsroom_latest (one row per state, the newsroom's sections as jsonb) — instead of livingston-v3's per-request fan-out of one query per jurisdiction. A view only changes when its inputs do, and the inputs change here, at night, when the syncs run; so this refreshes them once a night rather than on a clock. Brendan, 2026-09-01: \"once over night is fine.\" Definitions: govblock/sql/001_policy_matviews.sql.",
+  "_order": "Should land after lv-bills-sync and lv-legiscan-delta, which change the rows it summarises. run-due globs ~/jobs.d/*.json in filename order and `lv-r` sorts after both; with MAX_CONCURRENT 2 the order is best-effort, and a refresh that runs before a late sync is simply a night behind on a handful of rows — the next night corrects it. Not pg_cron: on this Neon project the extension can only be created in the postgres database, where neondb_owner has no CREATE privilege, and it would not fire while the compute is suspended anyway.",
+  "_cost": "~45 s and one connection. Both refreshes are CONCURRENTLY, so the site never sees an empty view."
+}
