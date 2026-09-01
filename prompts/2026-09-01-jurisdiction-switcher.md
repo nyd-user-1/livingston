@@ -307,6 +307,87 @@ you want the default window to follow the data (last hearing date backwards)
 rather than today, or is an honest empty calendar right for the morning? Not
 blocking; I am scoping the pages meanwhile.
 
+LEAD: hearings — Follow the data on the list surfaces, stay honest on the calendar. Port v3's `latestHearingDate`: for the calendar board (sidebar-05), the home Calendar card and the docs rail, when [today−30, today+60] is empty, anchor the window on the jurisdiction's latest hearing date and take the 60 days before it, and say so in the header/badge ("through <date>") so a reader sees it is the most recent, not the upcoming. `/calendar` keeps its URL date — a month view that the user navigates is allowed to be empty in September; do not move its default.
+
 FLAG: `tallies` is New York's `member_vote_tallies` and returns `[]` elsewhere
 rather than erroring, so it is honest but silent. It is not in v3's `NY_ONLY`.
 Adding it would make the emptiness *named* per §0.2. Say the word and I will.
+
+LEAD: tallies — Yes: add `tallies` to `NY_ONLY` so the emptiness is named. Then audit the other 23 resources for any that read a single-jurisdiction table (`Discretionary`, `Contracts`, `school_funding*`, `budget_2027_*`, `member_vote_tallies`, NY lobbying vs LDA) and put each in the same set; list them in the report. §0.2 is "named", not merely "empty".
+
+`HEARTBEAT 12:40Z step 5/5 build 21 health aurora next reporting`
+
+### §7.A — every surface, and what it reads
+
+| page / surface | read before | reads now | verified |
+|---|---|---|---|
+| header switcher | frozen constant, no-op setters | URL + localStorage, `resolved`-gated | writes `?state=`, remembers, 14 consumers unchanged |
+| `/` home — 13 cards | `lib/fixtures` constants | `seats`, `members`, `rollcalls`, `sessions`, `subjects`, `options`, `committees`, `hearings-recent` | each differs per jurisdiction (below) |
+| `/docs/bills` | `F.recentBills` (12 rows) | `/api/policy/bills` | 40/page, real totals per state |
+| `/docs/committees` | `F.committeesAll` | `/api/policy/committees` | US 61 · NY 82 · TX 53 · CA 41 |
+| `/docs/directory` | `members-us.json` | `/api/policy/members`, sitting only | US 553 · NY 219 · TX 181 · CA 121 |
+| `/docs/bills/[id]` | Aurora already | unchanged | any of 2,129,003 |
+| `/newsroom` | server `getNewsroom("US")` | static shell + client `newsroom` | API shape identical to the component's type |
+| `/docs/changelog` | server `getStream(["US"])` | shell + client `stream` | scopeStates = Congress + the scope |
+| `/docs/changelog-v2` | server `getStream` + `getBillTexts` | shell + client `stream` + batched `bill-texts` | one request, not twenty-four |
+| `/blocks` boards, `/calendar`, `/typeset` | `usePolicy` → fixtures | `usePolicy` → `/api/policy` | follow the hook, no edits needed |
+| calendar board + card, docs rail | fixtures / today's window | `hearings-recent`, anchored | NY through 2026-06-05, TX through 2025-09-03 |
+| FEC explorer | national extract, unscoped | same extract, **filtered by state** | rows carry the seat's state, 50 values |
+| `/create` designer | fixtures | **unchanged** | §6 put it out of scope |
+
+`grep -rn "F.STATE"` over `app/` and `components/` now returns only the three
+server shells passing Congress in as `initialState`. No surface reads the
+constant as its scope.
+
+### §7.C — timings after the fix (seconds, cache-busted, steady state)
+
+| resource | US | NY | TX | CA |
+|---|---|---|---|---|
+| committees | 0.14 | 0.23 | 0.23 | 0.18 |
+| members | 0.76 | 0.30 | 0.25 | 0.34 |
+| bills | 0.20 | 0.29 | 0.22 | 0.19 |
+| **newsroom** | **0.51–0.80** (was 3.08) | 0.50–0.62 | 0.49 | 0.59 |
+| stream | 0.16 | 0.21 | 0.25 | 0.13 |
+| hearings-recent | 0.17 | 0.57 | 0.69 | 0.24 |
+| options / subjects / rollcalls | ≤0.55 | ≤0.55 | ≤0.57 | ≤0.34 |
+
+Nothing over 1 s. The two spikes in the first sweep (committees US 2.47 s,
+newsroom NY 1.47 s) were cold starts and did not reproduce.
+
+### Rulings, applied
+
+- **Hearings follow the data.** `hearings-recent` returns the window around
+  today when it has rows and otherwise the 60 days before the jurisdiction's
+  last sitting, with the date it runs through; the board and the card print
+  "through <date>". `/calendar` keeps its URL date, untouched.
+- **`tallies` is named, not merely empty.** `GET /api/policy/tallies?state=TX`
+  → `503 {"error":"tallies is a New York dataset. Nothing for Texas."}`.
+  Audit of the other 23: `seats`, `activity`, `sponsors`, `committees` and the
+  rest all scope through `"Bills"` and were each verified to return different
+  rows per jurisdiction. `tallies` was the only one. The NY-only *tables*
+  (`Discretionary`, `Contracts`, `school_funding*`, `budget_2027_*`) back
+  resources not ported, and v3's `NY_ONLY` already names them for when they are.
+- Lobbying and Model Bills are the federal Senate LDA and a cross-state text
+  match — the same numbers under every scope. Rather than let them pass for the
+  jurisdiction's own, they now say which register they are.
+
+### What I could not verify, and why
+
+**The pages scope on the client, so `curl` only ever sees the prerendered
+Congress shell.** §5.3's `curl /docs/committees?state=TX | grep -c Texas`
+returns 0 and will keep returning 0 by design — that is v3's pattern and the
+reason the routes stay static and cacheable per jurisdiction. What I verified
+instead: every resource returns different rows per jurisdiction (§7.C table),
+and no component reads the constant any more (the grep above). **The browser
+pass — switch to Texas, reload, watch for a Congress flash and a hydration
+warning — is still owed and is not mine to run.**
+
+### Two things left un-scoped, both deliberate
+
+1. `/create` — §6 put the designer out of scope; it still reads fixtures.
+2. FEC reads a committed 2026-cycle extract rather than Aurora. The candidate
+   summaries live in the FEC parquet mirror on S3, not in the policy database,
+   so scoping it properly means porting v3's `/api/fec/*` against that mirror.
+   It is now filtered by state, so it is honest, but it is an extract.
+
+LANE J STATUS: PARTIAL — /create still reads fixtures (out of scope per §6); FEC reads a committed extract filtered by state rather than the S3 mirror; the browser pass on the client-side scoping is unrun.
