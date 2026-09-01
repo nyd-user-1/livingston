@@ -100,7 +100,10 @@ const FAMILIES = [
             description: (r) => r.description ?? null, organization: (r) => r.organization ?? null,
             received_date: (r) => r.receivedDate ?? null, latest_action: (r) => r.latestAction?.text ?? null } },
   { table: "congress_committee_reports", path: (c) => `/committee-report/${c}`, listKey: "reports",
-    key: (r) => String(r.citation ?? `${r.congress}-${r.chamber}-${r.type}-${r.number}-${r.part ?? 1}`),
+    // The citation alone is NOT the identity: H. Rept. 119-608 exists as part 1
+    // and part 2, two different documents, and keying on the citation dropped
+    // the second. The part belongs in the key.
+    key: (r) => `${r.citation ?? `${r.congress}-${r.chamber}-${r.type}-${r.number}`}-p${r.part ?? 1}`,
     cols: { citation: (r) => r.citation ?? null, chamber: (r) => r.chamber ?? null, report_type: (r) => r.type ?? null,
             number: (r) => String(r.number ?? ""), part: (r) => n(r.part) } },
   { table: "congress_laws", path: (c) => `/law/${c}`, listKey: "bills",
@@ -122,7 +125,15 @@ const FAMILIES = [
   { table: "congress_committee_meetings", path: (c) => `/committee-meeting/${c}`, listKey: "committeeMeetings",
     key: (r) => String(r.eventId),
     cols: { event_id: (r) => String(r.eventId), chamber: (r) => r.chamber ?? null },
-    thin: "the list is an eventId and a URL; the date, title, witnesses and documents are one detail request each (2,680)" },
+    // The list is an eventId and a URL. The date — which is what a calendar
+    // needs — lives only in the detail, so the [today-7, today+60] window cannot
+    // be applied before fetching. updateDate is the way in: a meeting being
+    // scheduled or amended is a meeting being updated. 76 in the last 30 days
+    // against 2,680 for the archive.
+    detail: { since: 30, path: (r) => `/committee-meeting/119/${String(r.chamber).toLowerCase()}/${r.eventId}`, unwrap: (d) => d.committeeMeeting,
+              cols: { meeting_date: (r) => r.date ?? null, title: (r) => r.title ?? null,
+                      location: (r) => (r.location ? JSON.stringify(r.location) : null),
+                      meeting_status: (r) => r.meetingStatus ?? null } } },
   { table: "congress_hearings", path: (c) => `/hearing/${c}`, listKey: "hearings",
     key: (r) => String(r.jacketNumber ?? `${r.congress}-${r.chamber}-${r.number}`),
     cols: { jacket_number: (r) => String(r.jacketNumber ?? ""), chamber: (r) => r.chamber ?? null, number: (r) => String(r.number ?? "") },
@@ -149,11 +160,13 @@ for (const fam of FAMILIES) {
     update_date timestamptz,
     payload jsonb not null,
     updated_at timestamptz not null default now())`);
-  for (const c of cols) {
+  const detailCols = Object.keys(fam.detail?.cols ?? {});
+  for (const c of [...cols, ...detailCols]) {
     // Typed columns are added rather than assumed, so a family can grow one
     // without a migration and without dropping what is already there.
     await db.query(`alter table ${fam.table} add column if not exists ${c} text`);
   }
+  if (fam.detail) await db.query(`alter table ${fam.table} add column if not exists detail_fetched_at timestamptz`);
 
   let rows = 0, written = 0;
   try {
@@ -180,9 +193,37 @@ for (const fam of FAMILIES) {
       }
       if (list.length < PAGE) break;
     }
+    // The detail pass, bounded. Only the recently-updated records: a meeting
+    // being scheduled or amended is a meeting being updated, and the archive can
+    // wait. Without this the family costs one request per record, forever.
+    let detailed = 0;
+    if (fam.detail && !has("--no-detail")) {
+      const cutoff = new Date(Date.now() - fam.detail.since * 86400e3).toISOString();
+      const targets = await db.query(
+        `select key, payload from ${fam.table}
+          where update_date >= $1 and (detail_fetched_at is null or detail_fetched_at < update_date)
+          order by update_date desc limit $2`,
+        [cutoff, Number(val("--detail-limit", "400"))],
+      );
+      for (const t of targets.rows) {
+        try {
+          const raw = await api(fam.detail.path(t.payload));
+          const rec = fam.detail.unwrap ? fam.detail.unwrap(raw) : raw;
+          if (!rec) continue;
+          const dcols = Object.keys(fam.detail.cols);
+          const setters = dcols.map((c, i) => `${c} = $${i + 3}`).join(", ");
+          await db.query(
+            `update ${fam.table} set payload = $2, detail_fetched_at = now()${dcols.length ? ", " + setters : ""} where key = $1`,
+            [t.key, JSON.stringify({ ...t.payload, ...rec }), ...dcols.map((c) => { const v = fam.detail.cols[c](rec); return v == null ? null : String(v); })],
+          );
+          detailed += 1;
+        } catch (e) { log(`  ${fam.table} detail ${t.key}: ${String(e.message).slice(0, 80)}`); }
+      }
+    }
+
     const mins = (Date.now() - t0) / 60000;
-    results.push({ table: fam.table, rows, written, requests: requests - before, mins: mins.toFixed(1), thin: fam.thin ?? null });
-    log(`${fam.table}: ${rows} rows · ${requests - before} requests · ${mins.toFixed(1)} min${fam.thin ? ` · thin (${fam.thin})` : ""}`);
+    results.push({ table: fam.table, rows, written, detailed, requests: requests - before, mins: mins.toFixed(1), thin: fam.thin ?? null });
+    log(`${fam.table}: ${rows} rows${detailed ? ` · ${detailed} detailed` : ""} · ${requests - before} requests · ${mins.toFixed(1)} min${fam.thin ? ` · thin (${fam.thin})` : ""}`);
   } catch (e) {
     results.push({ table: fam.table, rows, written, requests: requests - before, mins: ((Date.now() - t0) / 60000).toFixed(1), error: String(e.message).slice(0, 120) });
     log(`${fam.table}: FAILED after ${rows} rows — ${String(e.message).slice(0, 140)}`);
@@ -190,7 +231,7 @@ for (const fam of FAMILIES) {
 }
 
 log(`harvest done: ${results.length} families · ${requests} requests total`);
-for (const r of results) log(`  ${r.table.padEnd(30)} ${String(r.rows).padStart(6)} rows  ${String(r.requests).padStart(4)} req  ${r.mins} min${r.error ? `  ERROR ${r.error}` : ""}`);
+for (const r of results) log(`  ${r.table.padEnd(30)} ${String(r.rows).padStart(6)} rows ${String(r.detailed ?? 0).padStart(4)} detailed ${String(r.requests).padStart(4)} req  ${r.mins} min${r.error ? `  ERROR ${r.error}` : ""}`);
 
 await db.end();
 process.exit(results.some((r) => r.error) ? 1 : 0);
