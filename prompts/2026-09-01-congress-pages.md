@@ -221,3 +221,51 @@ LEAD: 16:40Z — Pages 1–5 verified on the deploy (builds 34–39, Playwright 
 LEAD: SB1 — `/docs/committees/hsif14` titles itself "Subcommittee on Health Committee". Do not append " Committee" to a name that already says Committee or Subcommittee; the h1 is "Subcommittee on Health", the parent belongs in the line under it.
 LEAD: SB2 — under `?state=TX`, `/docs/committees/hsvr00` renders Bills (its own, federal — correct: the path names a federal code) but drops Subcommittees, Meetings and Reports, while `/docs/bills/2032901?state=TX` renders every section it has. An entity page keyed by a federal code is federal: pass `state: "US"` explicitly to its resource fetches so all sections render regardless of the reader's scope. The rail and nav stay scoped to the reader; only the entity's own sections change.
 LEAD: On the tally bars — faithful to v3 (`livingston-v3 votes-board.tsx:133/140` use the same `--chart-2`/`--chart-5`) under Brendan's red preset; the brief's "red charts" names the rule, not a ban. Leave them. It is with Brendan now; if a change comes it comes from him. Land SB1 and SB2 in one commit each, then write your `LANE P STATUS` line and stand idle.
+
+`HEARTBEAT 19:45Z page 5/5 commit e4f67c9 job pending next verifying SB1 and SB2 on the deploy`
+
+### Acceptance, page by page
+
+Screenshots are 1714 px, in
+`/private/tmp/claude-501/-Users-brendanstanton-Code-livingston/e0b0e3ad-b3e5-4f40-b111-dd86b01cf52f/scratchpad/shots/`.
+
+| # | page | commits | shot | on Aurora | on committed records | honest-empty |
+|---|---|---|---|---|---|---|
+| 1 | `/docs/bills/[id]` | `0206e9f` `8826162` `82888bf` | `p1-top` `p1-amendments` `p1-text` | text-versions · summaries · amendments · related-bills · titles · laws | cosponsors · committee-reports | committee reports on the twelve August bills (they have none); amendments on any bill with none |
+| 2 | `/docs/directory/[id]` | `c5686af` `7cea8d8` `760ba8e` `4f4bc4c` | `p2-member-kean` `p2-terms` | member · record · member-detail (portraits for all 553) | member-votes | committee assignments — absent, not empty (`PARKED-committee-rosters.md`) |
+| 3 | `/docs/committees/[id]` | `e4439c3` `2306791` `b50f1b8` | `p3-committee` `p3-meetings` | committee (bills) · committee-detail | committee-meetings (witnesses + documents) · committee-reports · hearings-congress | the roster — same parked lane |
+| 4 | `/docs/nominations` `/reports` `/record` `/laws` | `992a0df` `b42cf08` | `p4-nominations` `p4-reports` `p4-record` `p4-laws` | nominations (2,074) · laws (104) · crs-reports · record-issues | — | each names itself federal under another scope rather than emptying |
+| 5 | `/blocks/vote` | `611d813` `760226f` `4f4bc4c` | `p5-votes` | rollcalls (120) | house-votes (6 roll calls with positions) | roll calls whose positions are not on file are not drawn |
+
+Send-backs: **SB1** `b50f1b8` — a subcommittee is no longer a "Subcommittee on
+Health Committee", and its parent is a link in the line beneath. **SB2**
+`9b78d44` — every entity page now reads in the record's own jurisdiction rather
+than the reader's, so `?state=TX` no longer hollows out a federal committee's
+page; the three "reads under the federal jurisdiction" notes are deleted with
+it, since nothing is withheld any more.
+
+**`Congress` at first paint under `?state=TX`** — 0 on all four new docs pages,
+the committee page and the vote board. It caught two leaks on the way, both
+fixed in `760ba8e`: the member page's meta description and Copy Page text still
+said "Congress House", and the two older directory pages baked "Search Congress
+committees by name…" into the shell every reader shares. The bill page returns
+1 and correctly: H.R. 1's own action text cites the Congressional Budget Act.
+The two entity pages keyed by a record (`/docs/bills/[id]`,
+`/docs/directory/[id]`) name that record's jurisdiction after resolve, which is
+SB2's ruling, not a leak.
+
+**One correction to the 16:40Z review.** "Every vote 120 · House 76 · Senate
+44 — the House-floor merge is live" reads as confirmation, but 120 is exactly
+LegiScan's own count and 76 + 44 = 120: no House Clerk card was on the board.
+`house-votes` had landed on Aurora between the commit and the review, and its
+rows carry no tallies — the positions are a separate table reachable one roll
+call at a time — so the board asked, got a complete answer with nothing it
+could draw, and fell back to LegiScan alone. Fixed in `4f4bc4c`:
+`useCongressRecord` now takes a predicate for whether the route's answer is one
+the caller can actually draw with, and falls back to the committed record on
+the same terms `useCongress` already uses for rows. Re-verification below.
+
+**The ask that retires that predicate:** a yea/nay count on the
+`congress_house_votes` row, aggregated from the positions table lane C already
+has. With it the board reads all 647 roll calls from Aurora instead of the six
+committed here.
