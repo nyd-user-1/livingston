@@ -194,13 +194,13 @@ for (const type of ONLY_TYPE ? [ONLY_TYPE] : TYPES) {
     if (billId) {
       for (const tv of items(b.textVersions)) {
         const date = String(txt(tv.date) ?? "").slice(0, 10);
-        if (!date) continue;
-        for (const f of items(tv.formats)) {
-          const slot = VERSION_CODES.indexOf(versionCodeOf(txt(f.url)));
-          if (slot < 0) continue;
-          docDates.push([-(billId * 100 + slot + 1), date]);
-          break;
-        }
+        const formats = items(tv.formats).map((f) => txt(f.url)).filter(Boolean);
+        if (!formats.length) continue;
+        const slot = VERSION_CODES.indexOf(versionCodeOf(formats[0]));
+        if (slot < 0) continue;
+        // Prefer the readable rendering for the link a reader follows.
+        const url = formats.find((u) => /\.htm$/i.test(u)) ?? formats[0];
+        docDates.push([-(billId * 100 + slot + 1), billId, date || null, url, txt(tv.type) ?? null]);
       }
     }
 
@@ -232,13 +232,24 @@ for (const type of ONLY_TYPE ? [ONLY_TYPE] : TYPES) {
   await flush("congress_related_bills", ["key", "congress", "payload", "bill_id", "bill_number", "related_bill_id", "related_bill_number", "relationship"], related.splice(0));
   await flush("congress_cosponsors", ["key", "congress", "payload", "bill_id", "bill_number", "bioguide_id", "people_id", "full_name", "party", "state", "sponsorship_date", "is_original_cosponsor", "sponsorship_withdrawn_date"], cosponsors.splice(0));
 
-  for (let i = 0; i < docDates.length; i += 500) {
-    const chunk = docDates.slice(i, i + 500);
+  for (let i = 0; i < docDates.length; i += 400) {
+    const chunk = docDates.slice(i, i + 400);
+    // Insert, not update: govinfo wrote 222,121 rows into "BillTexts" and none
+    // into "Documents", so there was nothing to update — which is why every
+    // stage of a bill read the night of the backfill and carried no link.
+    const seen = new Map();
+    for (const c of chunk) seen.set(c[0], c);
+    const rows = [...seen.values()];
+    const params = [];
+    const tuples = rows.map((c) => `($${params.push(c[0])},$${params.push(c[1])},'text',$${params.push(c[2])},$${params.push(c[3])},$${params.push(c[4])})`).join(",");
     await db.query(
-      `update "Documents" d set date = v.date
-         from (select * from unnest($1::bigint[], $2::text[]) as t(document_id, date)) v
-        where d.document_id = v.document_id and d.document_type = 'text' and d.date is distinct from v.date`,
-      [chunk.map((c) => c[0]), chunk.map((c) => c[1])],
+      `insert into "Documents" (document_id, bill_id, document_type, date, url, document_desc)
+       values ${tuples}
+       on conflict (document_type, document_id) do update set
+         date = coalesce(excluded.date, "Documents".date),
+         url = coalesce("Documents".url, excluded.url),
+         document_desc = coalesce("Documents".document_desc, excluded.document_desc)`,
+      params,
     );
   }
 
