@@ -149,8 +149,8 @@ export const TYPE_MAP = {
   timestamp: "TIMESTAMP",
   timestamptz: "TIMESTAMP",
   bytea: "BYTE_ARRAY",
-  tsvector: "STRING",
-  vector: "STRING",
+  tsvector: "STRING", // omitted from the lake by rule (LEAD B); mapped so inventory can still type it
+  vector: "LIST_FLOAT", // pgvector, kept as list<float> rather than text (LEAD B)
   point: "STRING",
   oid: "INT64",
 }
@@ -211,6 +211,13 @@ export function coerce(value, type) {
       return value instanceof Date ? value : new Date(value)
     case "BYTE_ARRAY":
       return value
+    case "LIST_FLOAT": {
+      // pgvector renders as "[0.1,0.2,...]"; keep the numbers, not the text.
+      if (Array.isArray(value)) return value
+      const t = String(value).trim()
+      if (!t || t === "[]") return []
+      return t.replace(/^[[{]|[\]}]$/g, "").split(",").map(Number)
+    }
     default:
       return typeof value === "string" ? value : String(value)
   }
