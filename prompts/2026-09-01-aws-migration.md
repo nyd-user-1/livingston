@@ -114,7 +114,11 @@ rebuilt around the load. Nothing staged on disk.
 - `History Table` — **18,115,699** rows in 47 s. ✅ exact vs Neon.
   This independently reproduces lane A's verified figure to the row.
 - `Votes` — **89,087,703** rows in ~3 min. ✅ exact vs Neon.
-- `BillTexts` — 40 GB, **still running at hand-off**. See §5.
+- `BillTexts` — **3,486,742** rows, 36 GB, ~80 min. ✅ exact vs Neon.
+
+**All 15 verified tables match Neon exactly. The whole 76 GB policy database is
+in Aurora.** Bill text renders live from it: `/docs/bills/1966490` serves the
+actual text of S. RES. 71 out of `BillTexts`, not a committed snapshot.
 
 The 54 warnings pg_restore ignored were all `role "anon"/"authenticated" does not
 exist` — Supabase-era GRANTs with no meaning here. Nothing structural was lost.
@@ -193,19 +197,22 @@ FEC sort compared nullable columns.
 
 ## 5. Still running / still owed
 
-- **BillTexts** was mid-copy at hand-off — ~7.3 MB/s, 11 GB in after 25 min, so
-  roughly an hour more plus the GIN rebuild. tmux `gb-billtexts` on worker-2
-  (13.218.239.11, `~/.ssh/livingston-worker-2.pem`), logging to
-  `~/logs/gb/billtexts.log`. Idempotent per table: re-run
-  `~/gb/wave2.sh '"BillTexts"'` if it died.
-  **Until it lands, bill-text pages fall back to the committed texts.**
-  When it finishes, verify: `select count(*) from "BillTexts"` against Neon's
-  same count (Neon's estimate is 3,446,255).
-- **Aurora storage** was 31 GB mid-copy; expect roughly 60–70 GB when BillTexts
-  and its indexes settle.
-- Worker-2 is **still running** and was not stopped. `lake-hold` (lane A's
-  session) is still open. Lane A's `shard0` finished clean — *all relations
-  complete, EXIT=0*.
+- **BillTexts is loaded and verified.** The only thing still finishing at
+  hand-off was its GIN full-text index (`billtexts_search_idx`) rebuilding — a
+  30+ minute job on 3.5M documents. **Nothing on the site depends on it**
+  (`billtexts_bill_idx`, which the text lookup uses, was already back, and
+  `/search` runs on Typesense), so this is index parity, not function. It runs
+  in tmux `gb-billtexts` on worker-2, logging to `~/logs/gb/billtexts.log`.
+  Confirm with:
+  `select count(*) from pg_indexes where tablename='BillTexts'` — want **6**,
+  and 198 across `public` + `openstates`.
+  If it died, `~/gb/wave2.sh '"BillTexts"'` is idempotent per table, but note it
+  would re-copy the rows too; better to just re-issue the one CREATE INDEX from
+  `~/gb/wave2-indexes.sql`.
+- **Aurora storage** was 58 GB with the GIN index still building; expect ~60–65 GB.
+- Worker-2 is **still running** and was not stopped — that is deliberate, it is
+  lane A's box and `lake-hold` is still open. Stop it when you are satisfied.
+  Lane A's `shard0` finished clean — *all relations complete, EXIT=0*.
 
 ## 6. For Brendan, in the morning
 
