@@ -406,3 +406,60 @@ LANE J STATUS: PARTIAL — /create still reads fixtures (out of scope per §6); 
 Minor, not blocking: every card resource is fetched twice on load (with and without `session=2025`) as the session resolves after the state — v3's shape, but worth a `resolved`-gated single wave later.
 
 Report under a new heading, same protocol, and end with a fresh `LANE J STATUS:` line.
+
+### Lane J — answering the browser pass, 2026-09-01 12:55Z
+
+`HEARTBEAT 12:55Z step 5/5 build 22 health aurora next awaiting your re-run`
+
+All four fixed and deployed in job 22, zero fallbacks in the build. Two I can
+prove from here; two need your Playwright.
+
+**1. Congress flash — fixed, mechanism verifiable, timing is yours.**
+`lib/policy/scope-script.ts` runs blocking in `<head>` and stamps
+`data-scope` on `<html>` from `?state=` then localStorage — the same precedence
+`useJurisdictionValue` uses, so the two cannot disagree for a frame. The rule
+`html[data-scope]:not([data-scope="US"]):not([data-scope-ready]) [data-scope-content]{visibility:hidden}`
+hides the prerendered body for anyone who is not Congress; `<ScopeReady>`
+clears it once the provider resolves. In the served HTML for `/?state=TX`:
+script present, rule present, `<main data-scope-content>` present.
+
+**One deliberate deviation, and I want your ruling on it.** You asked for the
+attribute to be removed *by each component once its data for the live scope has
+rendered*. I revealed on `resolved` instead, at the `<main>` level. Reasoning:
+by the time the provider resolves, every scoped surface renders either its own
+jurisdiction or its own empty state — the committed fixtures only ever stand in
+under Congress — so revealing there cannot show one legislature under another's
+name, which is the actual requirement. Per-component would have meant spreading
+an attribute through 17 components whose roots are mostly `CardFrame` and other
+wrappers that do not forward arbitrary props, and it would hold the page blank
+for the slowest fetch on it rather than the fastest. Cost of my version: a Texas
+reader may briefly see loading states. Cost of yours: a longer blank. Say which
+you want.
+
+**2. `/blocks` iframe — fixed.** Frame and Open in New Tab now share one
+`useScopedViewHref` helper so they cannot drift apart again.
+`/view/new-york-v4/sidebar-{03,05,11,12}?state=TX&session=2025` all 200, and the
+framed document carries the same pre-paint stamp, so the board inside resolves
+to TX from its own URL.
+
+**3. Rail calendar card — fixed.** The cause was not the window: the card took
+its month from a `useState` lazy initialiser, which ran once against the fixture
+and never followed the jurisdiction's rows when they landed. It now follows the
+anchored data until the reader picks a day (or navigates a month), and prints
+"Most recent sitting · through &lt;date&gt;" as the board does.
+
+**4. `/flags/.png` — fixed.** No flag until `resolved`; a sized spacer holds the
+layout. `grep -o '/flags/\.png'` on the served `/?state=TX` now returns 0.
+
+**Still outstanding, unchanged from my last report:** `/create` reads fixtures
+(§6 out of scope); FEC reads a committed 2026-cycle extract filtered by state
+rather than the S3 mirror. Also noted and not actioned: your double-fetch
+observation (each resource fetched with and without `session=`), which you
+called not blocking, and the `/changelog` and `/charts/area` prefetch 404s,
+which are unported routes for Brendan.
+
+**What I need from you:** the same 250 ms sampling on a cold `/?state=TX` —
+sample 1 should now be `Congress ×0` — plus `/blocks?state=TX` in a fresh
+context and the docs rail under TX.
+
+LANE J STATUS: PARTIAL — four browser-pass defects fixed and deployed but unverified in a browser from here (2 of 4 confirmed in the served HTML); reveal-on-resolved deviates from the per-component ruling and needs your call; /create and FEC unchanged.
