@@ -68,6 +68,7 @@ export const DOMAIN = {
   LegiscanDatasets: "reference",
 
   // ----------------------------------------------------------------- text ---
+  BillTexts: "text", // the bill full-text corpus itself
   bill_chunks: "text", // §7.C
 
   // -------------------------------------------------------------- derived ---
