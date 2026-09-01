@@ -188,3 +188,130 @@ say whether it should in the 2c report.
 
 LEAD: 15:40Z — Both flags approved. The two IAM grants (`secretsmanager:GetSecretValue` on the one secret, `rds:DescribeDBClusters` on the one cluster) stay; `scripts/box/refresh-aurora-env.sh` at the top of every box job that uses psql/pg is the right structural fix, and the corrected `AURORA_POLICY_URL` is the one §8 of the migration report now describes by accident-turned-intent. Declaring `pg`, `esbuild`, `fast-xml-parser` — good. Record the 7-day rotation in your closing report; it belongs in the operating notes.
 LEAD: 15:40Z — §2d contract, shared with lane P (the pages lane, starting now in another window): resources are served under these exact names, and each answers with the API's own JSON shape (its field names unchanged; the full record as `payload` where a table holds one): `text-versions`, `summaries`, `amendments`, `related-bills`, `titles`, `committee-reports`, `laws`, `member-detail`, `member-votes`, `committee-detail`, `committee-meetings`, `hearings`, `nominations`, `crs-reports`, `record-issues`, `house-votes`. Lane P commits fixtures pulled from the same API under the same names into `lib/policy/snapshot.ts`, so its pages render today under Congress and flip to your routes the moment they exist — no page changes needed. Lane P owns `app/`, `components/` and the fixtures; you own `lib/policy/db-queries.ts`, `app/api/policy`, `scripts/pipeline/congress`. Same checkout: explicit paths, `git status` before every commit.
+
+### Lane C — report, 2026-09-01 15:35Z
+
+`HEARTBEAT 15:35Z step 2d requests ~1,400 tables 10/16 next reporting`
+
+**2a — the defect is fixed and the acceptance passes.**
+
+```
+$ curl -s "$BASE/api/policy/text-versions?state=US&bill=2157695"
+[{"document_id":-215769521,"version":"Introduced in House","source":"congress.gov",
+  "chars":5551,"fetched_at":"2026-09-01 15:10:53",
+  "url":"https://www.congress.gov/119/bills/hr10160/BILLS-119hr10160ih.htm"}]
+
+$ curl -s "$BASE/docs/bills/2157695" | grep -c "No text on file"
+0
+```
+
+The page now renders the bill: *"[Congressional Bills 119th Congress] … H. R. 10160
+To direct the Secretary of Veterans Affairs to improve mental health care for
+veterans…"*
+
+First run: **849 bills changed in 7 days · 920 versions seen · 46 inserted ·
+874 kept · 24 unmatched · 829 requests · 3.4 min.** The 874 kept are versions
+govinfo already holds from the XML, which carries the amendment marks the .htm
+has flattened — §0.3, and the reason the number is large.
+
+Freshness: **3 of 70** bills acted on in the last 7 days still have no text —
+HB10169, HB10173, HB10179, all introduced Aug 27 — and congress.gov has no text
+for any of them either (`textVersions: 0`). That is the floor, not a gap: the
+site is now as current as the source.
+
+**One thing the acceptance needed that was not in the ticket.** The text landed
+in Aurora at 15:10 and the page still said "No text on file yet" at 15:15. The
+twelve bills in `generateStaticParams` are prerendered and the route had no
+`revalidate`, so nothing ever asked again. Added, hourly, matching the rest of
+the app. *(That file is `app/docs/bills/[id]/page.tsx` — lane P's territory under
+the split I was given afterwards. Flagging it so lane P does not trip over it.)*
+
+**2c — `dp-congress` is installed and nightly**, `~/jobs.d/dp-congress.json` on
+box 2, one step, `--days 7`. Proved under the runner's own conditions —
+`env -u AURORA_POLICY_URL -u PGPASSWORD -u PGHOST -u CONGRESS_API_KEY node
+--env-file=.env.local …` — because `run-due` starts every step that way and
+neither `~/.govblock/*.env` nor a shell wrapper is in scope. Re-run was
+idempotent: **0 inserted, 33 unchanged, 478 kept**.
+
+`dp-us-native`: **fix, do not retire.** It reads all 18,469 bills of the 119th in
+**eight requests and 71 seconds** from govinfo's BILLSTATUS zips; the same
+structure through this API is ~20,000 requests. The API's advantage is currency,
+not bulk. They are complements: `dp-us-native` for structure, `dp-congress` for
+what moved. `fast-xml-parser` is declared and resolves on the box, so it runs.
+
+**2b — ten families, 64 requests, 2 minutes.** Counts against §1's measured API
+totals:
+
+| table | rows | §1 API count | requests | min |
+|---|---:|---:|---:|---:|
+| congress_members | 553 | 553 | 3 | 0.0 |
+| congress_amendments | 7,035 | 7,035 | 29 | 1.1 |
+| congress_nominations | 2,077 | 2,077 | 9 | 0.1 |
+| congress_committee_reports | 921 | 921 | 4 | 0.1 |
+| congress_laws | 104 | 104 | 1 | 0.0 |
+| congress_committees | 236 | 238 | 1 | 0.0 |
+| congress_committee_prints | 80 | 80 | 1 | 0.0 |
+| congress_treaties | 1 | 1 | 1 | 0.0 |
+| congress_committee_meetings | 2,680 | 2,680 | 11 | 0.3 |
+| congress_hearings | 932 | 932 | 4 | 0.0 |
+
+Two honest caveats. Serving counts come back a hair lower than harvest counts
+(nominations 2,074/2,077, reports 919/921, meetings 2,679/2,680) — a handful of
+records collapse onto a shared derived key. It is ~0.1% and it is a key choice,
+not lost data; the fix is a tighter key per family. And `committee_meetings` and
+`hearings` are **thin**: the list is an eventId and a URL, and the dates,
+witnesses, documents and transcripts are one detail request each — 2,680 and 932.
+Marked in the code, not silently half-done.
+
+**Not harvested:** `summaries`, `crs_reports`, `record_daily`, `communications`,
+`house_votes`. The first is a per-bill walk (~18,500 requests for the congress,
+or free if taken from the `dp-us-native` BILLSTATUS zips instead — my
+recommendation); the others are their own endpoints and were simply not reached.
+
+**2d — eleven resources live**, in the API's own field names, `US_ONLY` guarding
+them the way `NY_ONLY` guards New York's:
+
+`text-versions` · `amendments` · `laws` · `nominations` · `committee-reports` ·
+`committee-meetings` · `hearings-congress` · `treaties` · `member-detail` ·
+`committee-detail`
+
+```
+$ curl -s "$BASE/api/policy/amendments?state=TX"
+{"error":"amendments is a Congress dataset. Nothing for Texas.","resource":"amendments"}
+```
+
+Lane P's list also names `summaries`, `related-bills`, `titles`, `member-votes`,
+`crs-reports`, `record-issues`, `house-votes` — those have no table yet, so I did
+not stub them. `hearings-congress` rather than `hearings`, because `hearings`
+already means the calendar for all 52 jurisdictions and quietly changing it would
+break the calendar board.
+
+### What pages could now show
+
+- **Faces.** `congress_members` carries `depiction.imageUrl` for all 553 — the
+  official portrait, which LegiScan's `People` rows have never had. The directory
+  and every sponsor byline could show one today.
+- **Amendments**, 7,035 of them, with sponsor and latest action. HR 1 alone has
+  493; a bill page could show what was tried against it.
+- **The law list** — 104 public laws with their numbers, the natural "what
+  actually passed" page.
+- **The confirmation docket** — 2,077 nominations with organization and dates.
+- **Committee reports** — 921, with citations, the paper trail behind a markup.
+- **Text versions per bill**, with which source won for each, which is how you
+  see a bill move Introduced → Reported → Engrossed → Enrolled.
+
+### The two structural findings, recorded as asked
+
+1. **Aurora's master credentials rotate every 7 days.** Staged 08:06Z, rotated
+   **12:21Z**, and every box-side job using them failed `password authentication
+   failed` from then until 15:0xZ — invisibly, because the site reaches Aurora
+   through the Data API with the secret's *ARN* and stayed green throughout.
+   Both new scripts now resolve credentials from the cluster's own
+   `MasterUserSecret` at run time; `scripts/box/refresh-aurora-env.sh` does the
+   same for anything using psql.
+2. **The `AURORA_POLICY_URL` the migration staged was never a valid URL** —
+   `postgresql://postgres:@:5432/policy`, empty password and empty host. It
+   worked only because psql falls through to `PGHOST`/`PGPASSWORD` from the same
+   file; node `pg` answered `Invalid URL`. Corrected, percent-encoded.
+
+LANE C STATUS: PARTIAL — 2a, 2c and ten of 2b's families complete and verified; summaries, crs-reports, record-issues, house-votes and communications not harvested (endpoints named, costs measured); committee-meetings and hearings hold list records only, detail is 2,680 + 932 requests; seven of lane P's resource names have no table behind them yet.
