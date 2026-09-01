@@ -353,3 +353,5 @@ build: neither source publishes membership. `PARKED-committee-rosters.md` is
 the lane that fixes it, and it has a method that needs no fetch at all.
 
 LANE P STATUS: COMPLETE
+
+PAUSED 20:55Z — nothing in flight. The lane finished before the pause: all five pages are committed, pushed and verified on the deploy (jobs 32–47, last `1d634ff`), both send-backs are in, and the status line above stands. Both checkouts are clean. · next: nothing — on RESUME, the six open items are lane C's, listed under "What is owed, and by whom".
