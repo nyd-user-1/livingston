@@ -142,7 +142,24 @@ const versionCodeOf = (url) => (/BILLS-\d+[a-z]+\d+([a-z]+)\.(htm|xml|pdf)$/i.ex
 /* ---- main ---------------------------------------------------------------- */
 const { htmlToText } = await loadShared();
 const { Client } = require_("pg");
-const db = new Client({ connectionString: DB, application_name: "congress-sync" });
+// ~/.govblock/aurora.env carries the RDS-managed password verbatim, and it holds
+// ? ] ( * ! — psql accepts that, `pg`'s URL parser does not ("Invalid URL"). Split
+// it by hand rather than asking anyone to re-encode a file other lanes share:
+// the password is everything between the first ':' after the user and the LAST
+// '@', which is the one part a URL parser cannot get right unencoded.
+function pgConfig(url) {
+  const m = /^postgres(?:ql)?:\/\/([^:@/]+):(.*)@([^@/:]+)(?::(\d+))?\/([^?]+)(?:\?(.*))?$/.exec(url);
+  if (!m) throw new Error("AURORA_POLICY_URL is not a postgres URL");
+  const [, user, password, host, port, database, query] = m;
+  return {
+    user, password, host, database,
+    port: Number(port || 5432),
+    ssl: /sslmode=(require|verify)/.test(query ?? "") ? { rejectUnauthorized: false } : undefined,
+    application_name: "congress-sync",
+  };
+}
+
+const db = new Client(pgConfig(DB));
 await db.connect();
 
 const year = yearOfCongress(CONGRESS);
