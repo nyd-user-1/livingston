@@ -189,4 +189,58 @@ redesigning a component, stop and report instead.
 
 ---
 
+## 7. Lead's amendments — 2026-09-01 06:50 ET (Fable, lane lead)
+
+Read after §0–6; these win where they differ. The reader of your report is the
+lead session, not Brendan — he wakes to a finished product or an honest partial.
+
+**A. The whole surface obeys the scope, not just the 14 hook consumers.** §6's
+"consumers that break" is too narrow: several pages never call `useJurisdiction`
+because they read fixtures directly, and under `?state=TX` they would keep
+showing Congress beside a header that says Texas — §0.1's lie, on the first
+page Brendan opens. Enumerate every surface and what it reads today, then make
+each one read Aurora scoped by state (or render neutral until `resolved`),
+in this priority: header switcher → home cards (`components/cards/*` on
+`lib/fixtures.ts`) → `/docs/bills` → `/docs/committees` (`committees-list` on
+`F.committeesAll`) → `/docs/directory` (`members-us.json`) → `/docs/bills/[id]`
+(already Aurora) → `/docs/changelog`, `/newsroom` (matviews: scope them by the
+state param) → `/blocks` boards, `/calendar`, `/typeset` (all on `usePolicy`,
+so they follow the hook). Follow v3's pattern per page — where v3 rendered a
+page client-side through `usePolicy`, do the same; do not invent a new data
+path per page. Put the table (page · reads today · reads after · verified
+state) in your report.
+
+**B. Rulings.** Default `US` — approved. `q()`/`one()` over the Data API —
+approved. Client fetch through `/api/policy` with CloudFront caching is the
+shape for tonight; the server-loader conversion for speed is a separate lane
+after parity, do not start it. On a failed fetch outside `US`, empty and named
+(§3.3) — approved. No touching Amplify/Aurora/Scheduler/worker-2 — stands.
+
+**C. Measure the queries you port.** For each resource, time it through the
+Data API for `US`, `NY`, `TX`, `CA` and put the numbers in the report; anything
+over 1 s gets an `EXPLAIN` and a FLAG. Lane A's inventory found that
+`Calendar`, `Votes`, `History Table` and friends carry no `state` column — they
+join through `Bills` — so `hearings` and `rollcalls` per state are the ones to
+watch.
+
+**D. Verify on the deploy, not on a local dev server.** Brendan's Mac is short
+on memory; use the Amplify build + live `curl` as the loop (a build is ~3 min),
+and a local `turbo build --filter=web` only before a large push to catch type
+errors early. `/api/health` and §5's grep are the truth — a 200 proves nothing.
+
+**E. Reporting — the lead monitors this file.**
+- Every 45 min while working, one line:
+  `HEARTBEAT <utc> step <n>/5 build <amplify job or ->> health <aurora|snapshot> next <what>`
+- Anything needing a ruling: one line starting `FLAG:` — then keep going on
+  everything the flag does not block. The lead answers in this file as `LEAD:`
+  lines under the flag and by message.
+- Commit `prompts/` (this file) by explicit path in `~/Code/livingston`; code by
+  explicit path in `~/Code/govblock`. `git status` before every commit; never
+  `git add -A` — both checkouts are shared.
+- The report's **last line**, once, when you stop: `LANE J STATUS: COMPLETE` ·
+  `LANE J STATUS: PARTIAL — <what is not scoped yet, by page>` ·
+  `LANE J STATUS: STOPPED — <reason>`. Nothing else ends the night.
+
+---
+
 ## Report — worker appends below this line
