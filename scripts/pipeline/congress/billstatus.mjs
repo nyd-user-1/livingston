@@ -121,6 +121,12 @@ const tally = { bills: 0, summaries: 0, titles: 0, related: 0, amendments: 0, re
 /** Batched multi-row upsert — one statement per few hundred rows, not per row. */
 async function flush(table, cols, rows) {
   if (!rows.length) return;
+  // Postgres refuses ON CONFLICT DO UPDATE when one statement touches the same
+  // key twice, and a bill can list the same cosponsor twice — withdrawn, then
+  // added back. Last write wins, which is the later record.
+  const byKey = new Map();
+  for (const r of rows) byKey.set(r.key, r);
+  rows = [...byKey.values()];
   for (let i = 0; i < rows.length; i += 200) {
     const chunk = rows.slice(i, i + 200);
     const params = [];
