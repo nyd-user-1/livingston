@@ -21,7 +21,6 @@
 // Env: AURORA_POLICY_URL, CONGRESS_API_KEY, CONGRESS_USER_AGENT.
 
 import fs from "node:fs";
-import os from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { createRequire } from "node:module";
@@ -69,7 +68,12 @@ if (!KEY) { console.error("congress/sync: CONGRESS_API_KEY is required"); proces
 // different renderings of the same bill in the same column.
 async function loadShared() {
   const { build } = await import("esbuild");
-  const out = path.join(os.tmpdir(), `text-shared-${process.pid}.mjs`);
+  // Inside the repo, not /tmp: the bundle keeps its dependencies external, and a
+  // bare import only resolves if the file sits under the tree that owns
+  // node_modules. From /tmp it fails on @aws-sdk/client-s3.
+  const cache = path.join(REPO, "node_modules", ".cache");
+  fs.mkdirSync(cache, { recursive: true });
+  const out = path.join(cache, `congress-text-shared-${process.pid}.mjs`);
   await build({
     entryPoints: [path.join(REPO, "api/_lib/text-shared.ts")],
     outfile: out, bundle: true, format: "esm", platform: "node",
