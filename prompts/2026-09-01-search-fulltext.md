@@ -749,3 +749,127 @@ time.** There is now a one-line check for it (`grep -n '^\s*--.*\`'`) alongside
 the extractor's four-statement assertion, and both run before every commit.
 
 LEAD: 03:05Z — Heartbeat 8 read. Both conditions met (indisvalid=t; the ACU story follows in §4). 179,435 ms → 419 ms with the Index Cond carrying all three cuts is the headline the lane was opened for, and WY/"health" going from a 28 s blank to 52 distinct flags on one page is "across all jurisdictions" made visible. Two things carried forward: (1) the sample-method lesson goes in the closing notes as a cross-lane carry, verbatim shape — "the 5% sample sizes storage to a few percent and wall clock to 2.5× wrong: CONCURRENTLY scans the heap twice and detoasts the column; price the build, not the index." (2) The 511 committee-rows-as-people finding is accepted as fixed for search (both name halves required, a765520) and PARKED for the upstream fix — getMembers and the directory still list them; that is a data repair in "People", not a search patch, and it now has its own file in prompts/. Re-verify after job 72, then §4 and STATUS.
+
+---
+
+## §4 — The report
+
+### What was built
+
+**Seven indexes on `aurora-2525/policy`, six of them new today.** Every one sized
+from a measured sample before it went near a live table, per rule 0.4.
+
+| index | what it enables | projected | actual | build | lock |
+|---|---|---|---|---|---|
+| `billtexts_scope_search_idx` gin(state, session_id, search_tsv) | full text, cut per jurisdiction inside the index | ~2 GB / 15–20 min | **1919 MB** | 2949 s | none |
+| `bills_title_trgm` gin(title) | bill titles, every jurisdiction | ~380 MB / 40–90 s | **305 MB** | 64 s | none |
+| `bills_committee_trgm` gin(committee) partial | committees, every jurisdiction | ~41 MB / ~4 s | **40 MB** | 3 s | 3 s SHARE |
+| `bills_number_trgm` gin(bill_number) | bill numbers, every jurisdiction | ~41 MB / ~3 s | **37 MB** | 83 s¹ | none |
+| `people_name_trgm` gin(name) | member names | ~5 MB / <1 s | **5776 kB** | 4 s | none |
+| `people_aliases_trgm` gin(aliases) | the names members are known by | — | **5192 kB** | <1 s | none |
+| `billtexts_search_idx` gin(search_tsv) | *already existed* — not built, not dropped | — | 1895 MB | — | — |
+
+All `indisvalid = t`. ¹73 of those 83 seconds were `Virtualxid` — `CONCURRENTLY`
+waiting on my own discovery scan in another session, not index work.
+
+Five of six built `CONCURRENTLY`, so the SHARE lock the lead priced was taken
+once, for **three seconds**, on `"Bills"`. Extensions added: `pg_trgm` 1.6,
+`btree_gin`. Database 58 GB → **61 GB**.
+
+**One column and one script.** `"People".aliases`, populated by
+`scripts/search/people-aliases.sql` — idempotent, 1.07 s, 21,727 of 22,723 rows,
+built from `first/middle/last/nickname/suffix` plus `congress_members.name` for
+the 552 US members that join by `bioguide_id`. No new harvest: every token was
+already held.
+
+**The ACU bill.** Idle is 0.5 ACU; any large read pins the 32-ACU ceiling
+briefly. Hourly averages, with the lane's two hours against the afternoon's
+baseline:
+
+```
+13:00–15:00 ET (baseline, other lanes)   5.1 – 5.8 ACU
+16:00 ET (discovery + four trgm builds)    10.87
+17:00 ET (composite GIN)                   19.10
+```
+
+Incremental ≈ **19 ACU-hours ≈ $2.30** at $0.12/ACU-hour, for the whole
+programme. The 428× came to about two dollars.
+
+### What the queries cost now
+
+Warm, three runs, measured on Aurora. All jurisdictions unless marked.
+
+| group | term | warm |
+|---|---|---|
+| bills | `%climate%` | **37 ms** |
+| bills | `%health%` | **307 ms** |
+| committees | `%health%` | **40 ms** |
+| members (name + aliases) | `%holmes%` | **1.6 ms** |
+| members | `gilbert cisneros` | **7.9 ms** |
+| texts | `climate resiliency` | **283 ms** |
+| texts | `health` | **296 ms** |
+| texts, asked from Wyoming | `health` | **379 ms** |
+| texts | `artificial intelligence` | **172 ms** |
+| bills, **menu path** (`all=0`) | `%health%` | **77 ms** |
+| committees, **menu path** (`all=0`) | `%health%` | **29 ms** |
+
+The four groups run in one `Promise.all`, so the envelope is the **max**: ~380 ms
+of database for the worst case measured.
+
+**Against §3's budgets:** menu ≤ 300 ms warm → **77 ms**, met. `/search` with
+full text ≤ 1.5 s → **427–1322 ms** page wall clock including cold Lambda and the
+`subjects` fetch, met.
+
+**The one number this lane exists for:**
+
+```
+texts, all jurisdictions, "health"
+  before   179,435 ms      bitmap → 979,526 rows, fetched off a 36 GB heap
+  after        419 ms      Index Cond: state = … AND session_id = … AND search_tsv @@ 'health'
+                           2,061 rows per jurisdiction slice
+  428×
+```
+
+### What changed in `searchAll`'s envelope
+
+Additive only; every existing field name and shape kept.
+
+```
+bills[]       + state, tier          (tier 0 = your jurisdiction, 1 = elsewhere)
+committees[]  + state, tier
+texts[]       NEW: { tier, bill_id, document_id, state, bill_number, title, snippet }
+members[]     unchanged
+q, state, session   unchanged
+```
+
+`snippet` marks the match with `«` `»`, not HTML, so no page renders markup that
+came out of the database.
+
+Two new query parameters, both opt-in, both sent only by `/search`:
+`?all=1` (bills and committees from every jurisdiction) and `?text=1` (the pass
+over `"BillTexts"`). Two new route resources, requested by the lead for lane X
+and measured US-only before exposure: `lobbying` and `fec`.
+
+### Screenshots
+
+`scripts/search/verify-search.mjs`, Playwright, 1714 px, production. Written to
+`/tmp/search-shots/`. Final run, all four green:
+
+```
+ok  1322 ms  NY/"climate resiliency"  [Bills (10), Text (32)]                          flags=13
+ok   427 ms  NY/"holmes"              [Bills (16), Text (32), Members (14)]            flags=27
+ok  1288 ms  WY/"health"              [Bills (60), Text (32), Members (28), Comm (18)] flags=52
+ok   590 ms  TX/"HB10"                [Bills (60), Text (3)]                           flags=25
+```
+
+- **`NY-climate-resiliency.png`** — the cross-jurisdiction result set and the
+  Text section. Bills over 8 jurisdictions, Text over 20, and the stemmer visibly
+  working: a query of *climate resiliency* highlights `CLIMATIC`, `RESILIENCY`,
+  `RESILIENCE` and `resilient`.
+- **`WY-health.png`** — all four sections and **52 distinct flags on one page**:
+  every jurisdiction we hold, answering a question asked from Wyoming. This page
+  was a 28.5-second blank this morning.
+- **`NY-holmes.png`** — §2's named test: *Adam Holmes* (OH), *Linda Holmes* (IL),
+  *Marvin Holmes* (MD), *Russell Holmes* (MA), **Eleanor Norton** (Congress),
+  *Alvin Holmes (Ret.)* (AL).
+
