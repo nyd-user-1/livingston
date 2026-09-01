@@ -39,6 +39,14 @@ Page sweep, all 200 (two 307s are intended redirects):
 `/docs/directory` 0.30s · `/docs/changelog` 0.29s · `/docs/changelog-v2` 0.26s ·
 `/blocks` 0.26s · `/typeset` 0.20s · `/create` 1.14s (2 MB page).
 
+**Every bill now has a page.** Before this session the detail route read only
+`lib/data`, so 2,128,991 of 2,129,003 bills returned 404 — the route's own
+comment said "the rest 404 until the data layer lands". They now render from
+Aurora: `/docs/bills/1912501` (Alaska SB9) comes back with its description,
+status, nine sponsors with party and district, and its full legislative history.
+First on-demand render ~0.8–3.9s, cached after; the twelve committed bills stay
+prerendered at ~0.3s. The bills index went from 12 rows to 100.
+
 ---
 
 ## 2. The architecture, and why this shape
@@ -155,6 +163,19 @@ Decoding goes through the Data API's **column metadata**, not
 drops the metadata, which would have turned the newsroom's sections into text.
 
 `POLICY_DATABASE_URL` still wins when set, so a laptop can point at any Postgres.
+
+### Wiring the detail route
+
+`queries.ts` was still entirely fixture-backed, which is why all but twelve bills
+404'd. `getBill`, `getBillText` and `getBills` now read Aurora with the same
+snapshot fallback as everything else. The whole record — sponsors, history, roll
+calls, referrals, progress, same-as, documents, subjects, text versions and
+hearings — is assembled in **one statement** as jsonb sub-selects, so a bill page
+costs one round trip rather than eleven. That matters more here than it would on
+a socket: each Data API call is its own signed HTTPS request.
+
+The twelve committed bills stay in `generateStaticParams` and are prerendered;
+the other 2.1M render on demand and are cached after.
 
 ### The build was broken at HEAD
 
