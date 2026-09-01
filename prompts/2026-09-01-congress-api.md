@@ -369,3 +369,72 @@ Enrolled → Public Law with dates, and the date is the only field missing.
 `/docs/directory/<people_id>`; you already link `congress_members` to
 `People`), and `/api/policy/members` rows expose `bioguide_id`. Lane P is
 carrying a committed people_id→bioguide map (553/553) until then.
+
+### Lane C — round 2: §5.0 and §5.1, 2026-09-01 15:58Z
+
+`HEARTBEAT 15:58Z step 5.1 requests ~3,700 tables 13/16 next 5.2-5.5`
+
+**§5.0 — the defect lane P found is fixed.** `amendments`, `committee-reports`
+and `laws` took `bill=` and returned the whole family, so a bill page asking for
+HR 1's amendments got all 7,035 and the fetch succeeded with the wrong rows.
+Acceptance against HR 1 (`bill_id 2032901`), on the deploy:
+
+| resource | scoped answer | expected |
+|---|---:|---:|
+| `summaries?bill=2032901` | **5** | 5 |
+| `titles?bill=2032901` | **11** | 12 |
+| `related-bills?bill=2032901` | **39** | 38 |
+| `amendments?bill=2032901` | **493** | 493 |
+| `amendments` (unscoped) | 7,035, no `bill` key | family list |
+
+A scoped answer echoes its scope, so it is distinguishable from a family list.
+
+(c) text versions carry the stage's own date: HB10160 now reads
+`2026-08-27 | Introduced in House | 5551 chars` — the day Brendan said the text
+appeared, not the day we fetched it. `Documents` had no `date` column; it does
+now, and all 46 congress.gov rows carry one.
+(d) `member-detail?member=<people_id>` translates through `People.bioguide_id`,
+and `/api/policy/members` exposes `bioguide_id` so a page can cross over itself.
+
+**§5.1 — from the zips, at zero API cost.** 18,494 bills, 8 zips, 51 MB, one
+minute, **0 API requests**: `congress_summaries` 5,669 · `congress_titles`
+58,387 · `congress_related_bills` 11,173 · **all 7,035 amendments linked** ·
+876 of 921 committee reports linked.
+
+Three things worth keeping from it.
+
+**BILLSTATUS does not use one child element name.** `<titles>` and
+`<relatedBills>` hold `<item>`; `<summaries>` holds `<summary>`, `<amendments>`
+holds `<amendment>`, `<committeeReports>` holds `<committeeReport>`. Reading them
+all as `.item` returns titles and related bills and *silently nothing else* —
+which is my first run, and also **`scripts/pipeline/native/us.mjs`**, whose
+`description` is taken from `items(b.summaries)[0]`: an empty list for every bill
+ever published. I did not fix us.mjs — it writes to the other sink and belongs to
+the cutover lane — but that column has never been populated from that route.
+
+**Related bills are recorded one-directionally.** HR 1 names 29 and is named by
+39; congress.gov's own answer, 38, sits in between. The complete graph was
+already in the table, from each bill's own side, so reading one direction
+under-reported by a third at no saving. `related-bills` reads the union and says
+which direction each came from.
+
+**Titles are 11 against the API's 12** — a real BILLSTATUS shortfall, not a
+parsing bug (summaries and amendments match exactly, 5 and 493). Topping it up
+from the API is one request per bill, ~18,500 for one extra title per bill, so I
+have left it and am recording the gap rather than paying that.
+
+**The nightly now runs all three passes** — `sync` (text that moved),
+`billstatus` (the zips), `harvest` (the API families) — about 1,500 requests and
+six minutes against a 20,000/hour ceiling.
+
+**Round-1 rulings closed.** The collapsed records, listed once as asked: three
+nominations (PN929, PN755, PN748) and one meeting (eventId 338400) are returned
+**twice, byte for byte, by the API** — deduplicating those is correct. The other
+two were *not* duplicates: `H. Rept. 119-608` and `119-594` exist as part 1 and
+part 2, two different documents, and keying on the citation dropped the second.
+The part is in the key now and the table is 921, with 17 part-2 reports present.
+Changing the key also left 919 stale rows behind, which I deleted — a key change
+without a cleanup is a silent doubling. Meeting detail is bounded to the
+recently-updated: **76 detailed in 87 requests**, against 2,680 for the archive.
+
+LANE C STATUS: PARTIAL — §5.0 and §5.1 complete and verified on the deploy; §5.2 (house-votes/member-votes), §5.3 (crs-reports), §5.4 (record-issues) and §5.5 (communications) not started; titles run 11 vs the API's 12 and I recommend leaving it; us.mjs's summaries bug reported, not fixed, as it belongs to the cutover lane.
