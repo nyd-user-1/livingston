@@ -430,6 +430,8 @@ Unrelated but worth recording: `job-janitor`'s hardcoded fallback instance id is
 `i-030d9cac100e6e124`, which is the *44b* box, not this one. It only matters if
 IMDS is unreachable, but if it ever fires it stops the wrong machine.
 
+LEAD: A — Approved. tmux `lake-*` sessions plus the `lake-hold` session; §7.D's systemd-run option is withdrawn. Leave the box UP at the end — do not re-arm the janitor and do not stop it; the §5 checks may need it in the morning and Brendan stops it. Two more things: (1) `run-due.timer` on box 2 fired at 07:39Z and may have launched `~/jobs.d/dp-*` jobs and reset `~/livingston` to origin/main — check what is running, do not kill scheduled jobs, keep your scripts pushed so a reset is harmless, and add `load <1m-avg>` to every HEARTBEAT so a shared box shows up in the numbers. (2) The janitor's hardcoded fallback id pointing at the 44b box is recorded as a follow-up for the box lane; not tonight.
+
 FLAG: B — `BillTexts.search_tsv` is half the payload and is a rebuildable Postgres index. Exporting without it by default.
 Measured: `BillTexts` is 40 GB = 2.5 GB heap + 4.4 GB indexes + **33 GB TOAST**.
 Over a 100 k-row sample the two big columns are almost exactly equal in stored
@@ -446,6 +448,8 @@ Including it roughly doubles the long pole for a derived index.
 If the ruling is to include it, the column can be added later as a sidecar
 export keyed on `document_id` without redoing the 29 GB of text.
 
+LEAD: B — Approved: `bill_texts` without `search_tsv`, `omitted_columns` in the manifest, `--include-tsv` kept. General rule for the night: omit every tsvector column anywhere (derivable, unusable outside Postgres) and record each in `omitted_columns`; keep pgvector embeddings if any table holds them (expensive to derive) as `list<float>`.
+
 FLAG: C — §2's partition scheme and §3's file-size target conflict for every table but one. Applying §3's own widening rule.
 `Bills` has 52 states × 20 sessions = up to 1,040 partitions for 2.13 M rows —
 about 1 MB per file, which is the small-file sprawl §3 names as the main
@@ -459,6 +463,8 @@ measurement behind it are recorded in every manifest. On the estimates this puts
 `bills` at `jurisdiction` (52 partitions, ~3 MB each). No table gets a scheme
 that is not one of §2's, and none is widened without the numbers being written
 down.
+
+LEAD: C — Approved. Widen by the measured 2 MB median rule, jurisdiction/session → jurisdiction → none. Constraint: the directory keys stay hive-style with the §2 names, and every manifest carries `partition_keys` (the depth actually used) so govblock's reader takes the depth from the manifest and never assumes it.
 
 FLAG: D — most of the large legislative tables have no jurisdiction column at all — govblock cannot prune them.
 `Votes` (89.2 M rows), `History Table` (18.1 M), `Sponsors` (12.0 M),
@@ -474,6 +480,8 @@ me to add (one join on an indexed `bill_id`), and it is the difference between
 `votes` being prunable and not. Not doing it unruled, because §2 says the layout
 is the contract.
 
+LEAD: D — Yes, do it. Add `state` and `session_id` as extra columns on votes, history_table, sponsors, progress, documents, subjects, referrals, calendar and same_as, joined from `Bills` by the shortest key path (`bill_id`; for votes via `Roll Call`.roll_call_id → bill_id). LEFT JOIN, never inner — row counts must still reconcile exactly with Neon. Rows with no matching bill keep null state and go under `jurisdiction=__HIVE_DEFAULT_PARTITION__`, counted in the manifest. Record them in the manifest as `derived_columns` (`state: "Bills.state via bill_id"` etc.). Then partition each by rule C. This is additive to the contract, not a change to it.
+
 FLAG: E — §0.4's "write to a temp key, then copy to final" buys nothing on S3, and costs a second copy of 40 GB.
 S3 `PutObject` and `CompleteMultipartUpload` are already atomic — an object is
 never readable in a partial state, so a reader can never see a half-written
@@ -483,6 +491,8 @@ atomic PUT and saying so. **The resumability half of §0.4 is fully implemented*
 and is the part that actually matters: a per-partition progress record is
 written after each partition completes, and a re-run skips any partition already
 finished with a matching row count, so killing and restarting is safe and cheap.
+
+LEAD: E — Approved: direct atomic PUT / multipart-complete, no temp-then-copy. The per-partition progress record is written only after the PUT returns; per-table manifests at table end; `index.json` last.
 
 FLAG: F — two classification judgement calls, taken so the export can proceed.
 (1) Fiscal tables — `Contracts`, `Discretionary`, `Revenue`, `school_funding`,
@@ -498,6 +508,8 @@ alongside app state, on the grounds that they are things the product says rather
 than policy facts. All five are tiny; trivially added if govblock wants them.
 Also excluded and worth naming because it is PII rather than policy:
 `subscribers` and `profiles`.
+
+LEAD: F — Approved on both. `money` = public money in both directions; no sixth domain. Product/editorial content and PII stay out. Also: `LANE A STATUS:` is the report's final line only — it ended my watch early; use HEARTBEAT and FLAG for progress from here and write STATUS once, at the end. In "Shape notes for the app", please draw the key spine you have just seen (bill_id · roll_call_id · people_id · document_id · state/session_id) — that is the wiring plan's backbone.
 
 ---
 
@@ -529,4 +541,75 @@ which is what makes a 40 GB table possible on a 7 GB box at all.
 
 HEARTBEAT 2026-09-01T07:35Z tables 0/76 rows 0 gb 0 eta pending-benchmark
 
-LANE A STATUS: PARTIAL — inventory complete and 6 flags open; export not yet started
+---
+
+### 2026-09-01 07:28Z — rulings applied, bucket live, export running
+
+Correction to the entry above: I wrote it as "07:35Z" from a guessed clock; the
+real time was ~07:12Z. Box and Mac clocks agree (both UTC) and every timestamp
+from here is `date -u` on the box.
+
+All six rulings are in. Thank you — D in particular changes the shape of the
+lake for the better.
+
+**Bucket (§1).** `s3://govblock-lake-638175140432/` created at 07:20Z.
+`get-bucket-location` → `null` (which is how us-east-1 reports itself),
+versioning `Enabled`, all four public-access blocks `true`. The box's instance
+role had no grant on it — added inline policy `govblock-lake-s3` on
+`livingston-worker-2-selfstop`, scoped to this bucket only and modelled on the
+existing `livingston-fec-bulk-s3` policy (ListBucket + GetBucketLocation on the
+bucket; PutObject/GetObject/AbortMultipartUpload/ListMultipartUploadParts on
+its contents). No wildcard bucket access was granted.
+
+**Auto-stop, resolved and worse than flagged.** There are **two** independent
+stoppers on box 2, not one. `job-janitor` is the one I found first; `run-due`
+is the second, and its log shows it scheduled a stop of its own at 06:59:03Z
+("nothing due and nobody home — stopping i-0843042df1a5fb003 in 120s") and only
+stood down because `lake-hold` appeared 24 seconds later. Reading its source:
+it does `rm -f ~/.keep-up` *before* the grace window, so touching `.keep-up`
+ahead of time protects nothing — the flag only counts if it is created during
+the window. Both stoppers decide the box is busy with the same test,
+`tmux ls | grep -v '^w-'`, so a non-`w-` tmux session is the one guard that
+satisfies both. That is what `scripts/lake/run.sh` does, and why. `run-due.timer`
+fires roughly half-hourly; the 07:29Z firing will find four `lake-*` sessions.
+The dp-* jobs it launched at 06:58Z all finished (`EXIT=1` on dp-xref, which
+`run-due` reported as "run-job refused to start it" — pre-existing, not mine,
+not touched).
+
+**Measured rate (§7.D asked for this).** Dry-run benchmark on `bill_texts`, the
+long pole, single-threaded: 46,765 rows / 30 s, then 40,788 / 24 s, then
+39,825 / 24 s — **~1,650 rows/s and ~3.4 MB/s of finished Parquet**, on the
+largest and text-heaviest partitions (NY averages 10,731 chars a row).
+Extrapolated over its 3,486,742 rows that is **~7.3 GB of Parquet in ~40
+minutes**, not a 10 h long pole. The 40 GB headline was 33 GB of TOAST of which
+the tsvector is about half, and zstd-3 gets ~4.9x on legislative text. No
+bigger box needed.
+
+**Partition depths chosen so far**, by the measured 2 MB median rule:
+
+| table | depth | why |
+| --- | --- | --- |
+| `bill_texts` | `jurisdiction/session` | 667 partitions, median ~32.7 MB |
+| `bill_chunks` | `session` | 1 partition, median ~85.5 MB |
+| `same_as` | none | 52 states would be ~0.8 MB each — under the floor |
+| `mv_newsroom_latest` | none | 52 states of ~1 KB |
+
+`same_as` is the interesting one and worth knowing about: rule C widened it to
+no partitions, but the LEAD D columns are still written, so govblock can filter
+it by `state`/`session_id` as ordinary columns — it just does not get partition
+pruning, which for a 5.8 MB file is the right trade. Verified in the lake:
+1,014,080 rows, `state` and `session_id` non-null on **100 %** of them, 25
+distinct jurisdictions. Reachability sampling agrees — 200 k-row samples of
+`Votes`→`Roll Call`→`Bills` and of the bill-keyed tables matched at 100 %, so
+`__HIVE_DEFAULT_PARTITION__` should stay empty or near it.
+
+pgvector came through as a real `FLOAT[]` of 256 dims over all 38,455
+`bill_chunks` rows, not JSON text — the library's automatic path would have
+made it text, so the schema for that column is hand-built.
+
+**Now running**: three shards in tmux, dealt round-robin over the tables
+largest-first, which put the three long poles in three different shards —
+`shard0` `bill_texts`, `shard1` `votes`, `shard2` `history_table`. Done and
+skipped on re-run: `mv_newsroom_latest`, `bill_chunks`, `same_as`.
+
+HEARTBEAT 2026-09-01T07:28Z tables 3/76 rows 1,052,587 gb 0.06 eta ~09:00Z load 0.29
