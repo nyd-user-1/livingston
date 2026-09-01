@@ -393,7 +393,7 @@ async function exportByQuery({ db, schema, name, table, domain, columns, schemaE
   const conds = keys.map((k, i) => (values[i] === null ? `"${k}" is null` : `"${k}" = $${++n}`))
   const where = conds.length ? "where " + conds.join(" and ") : ""
   const params = values.filter((v) => v !== null)
-  const sql = `select ${columns.map((c) => c.expr).join(", ")} from ${qualify(schema, name)} ${where}`
+  const sql = `select ${columns.filter((c) => !c.derived).map((c) => c.expr).join(", ")} from ${qualify(schema, name)} ${where}`
 
   const w = new PartWriter({ prefix, table, columns, schema: schemaEls, rowGroupRows: ROW_GROUP_ROWS, dry })
   w.prefixKey = partition
@@ -630,7 +630,18 @@ async function exportRelation(db, rel) {
 
   // --- export ---------------------------------------------------------------
   let records = []
-  if (chosenKeys.length && indexed) {
+  if (derived) {
+    const anyDone = [...done.values()].reduce((s, r) => s + r.rows, 0)
+    if (!FORCE && done.size && anyDone === total) {
+      records = [...done.values()]
+      log(`  already complete (${anyDone.toLocaleString()} rows), skipping`)
+    } else {
+      records = await exportRouted({
+        db, schema, name, table, domain, columns, schemaEls,
+        keys: chosenKeys, billMap, derivedOn: derived.on, dry: DRY,
+      })
+    }
+  } else if (chosenKeys.length && indexed) {
     let soFar = 0
     for (const [i, g] of groups.entries()) {
       const partition = partitionPath(chosenKeys, g.values)
