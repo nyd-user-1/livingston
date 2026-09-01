@@ -115,7 +115,16 @@ const FAMILIES = [
     // the second. The part belongs in the key.
     key: (r) => `${r.citation ?? `${r.congress}-${r.chamber}-${r.type}-${r.number}`}-p${r.part ?? 1}`,
     cols: { citation: (r) => r.citation ?? null, chamber: (r) => r.chamber ?? null, report_type: (r) => r.type ?? null,
-            number: (r) => String(r.number ?? ""), part: (r) => n(r.part) } },
+            number: (r) => String(r.number ?? ""), part: (r) => n(r.part) },
+    // The committee that filed it, and the bill it is about, are on the report
+    // record — neither is in the list. 921 requests, once.
+    detail: { since: 3650, path: (r) => `/committee-report/${r.congress}/${r.type}/${r.number}`,
+              unwrap: (d) => (Array.isArray(d.committeeReports) ? d.committeeReports[0] : d.committeeReports),
+              cols: { committees: (r) => (r.committees ? JSON.stringify(r.committees) : null),
+                      committee_code: (r) => (r.committees?.[0]?.systemCode ?? null),
+                      committee_name: (r) => (r.committees?.[0]?.name ?? null),
+                      title: (r) => r.title ?? null,
+                      issue_date: (r) => r.issueDate ?? null } } },
   { table: "congress_laws", path: (c) => `/law/${c}`, listKey: "bills",
     key: (r) => `${r.congress}-${r.type}-${r.number}`,
     cols: { bill_type: (r) => r.type, number: (r) => String(r.number), title: (r) => r.title ?? null,

@@ -228,8 +228,16 @@ for (const type of ONLY_TYPE ? [ONLY_TYPE] : TYPES) {
       if (at && an && billId) amendLinks.push([`${CONGRESS}-${at}-${an}`, billId, bn]);
     }
     for (const cr of kids(b.committeeReports, "committeeReport")) {
-      const cit = String(txt(cr.citation) ?? "").split(",")[0].trim();
-      if (cit && billId) reportLinks.push([cit, billId]);
+      // The API carries the ",Book N" suffix too — I had assumed only BILLSTATUS
+      // did and stripped it, which broke the match for exactly the reports that
+      // have one (H. Rept. 119-106,Book 1 and Book 2, H.R. 1's own). Match what
+      // was published, and fall back to the stripped form for the rest.
+      const cit = String(txt(cr.citation) ?? "").trim();
+      if (cit && billId) {
+        reportLinks.push([cit, billId]);
+        const bare = cit.split(",")[0].trim();
+        if (bare !== cit) reportLinks.push([bare, billId]);
+      }
     }
   }
 
