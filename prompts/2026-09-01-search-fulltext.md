@@ -873,3 +873,98 @@ ok   590 ms  TX/"HB10"                [Bills (60), Text (3)]                    
   *Marvin Holmes* (MD), *Russell Holmes* (MA), **Eleanor Norton** (Congress),
   *Alvin Holmes (Ret.)* (AL).
 
+### The honest list — what still cannot be found, and why
+
+1. **Bill text from an archive session outside your own jurisdiction.** By
+   design (§2): cross-jurisdiction rows come from each jurisdiction's *current*
+   session. Ohio's 2019 text is reachable only while scoped to Ohio and that
+   session. The index built today covers every session, so lifting this is a
+   query change, not an index one — but "everywhere, forever" is a different
+   product decision and was not asked for.
+
+2. **Everything past the first megabyte of a long bill** — and these are the
+   bills people search hardest:
+
+   ```
+   OH  HB96    11,429,601 chars   Make state operating appropriations for FY 2026-27
+   OH  HB775    6,735,788         Regards state agencies' authority to adopt rules
+   NY  S09003   5,071,155         Makes appropriations for the support of government
+   ```
+
+   2,110 documents over 907 bills, holding **1.91 GB of unsearchable text**. The
+   generated `search_tsv` stops at `left(text, 1000000)` and it has to: the limit
+   is on the tsvector *output* (1,048,575 bytes, hard), and 4 M characters of
+   HB96 already spends 993,214 of them. Priced above as a `"BillTextChunks"`
+   side table: **~290 MB, under 20 minutes, no lock**. Decision with Brendan.
+
+3. **A match past 200,000 characters produces no snippet.** 2,707 of the 444,220
+   current-session documents (**0.61%**) run longer than the `ts_headline` window.
+   Those rows are dropped rather than shown with an unhighlighted fragment, so
+   they are missing from Text. They still appear under Bills if the title matches.
+
+4. **Bills with no text at all.** 197,748 of 2,129,003 bills (**9.3%**) have never
+   had text fetched, and 183,031 `"BillTexts"` rows carry a null `text` from a
+   failed fetch. Text coverage is as of **2026-09-01 15:12:21Z** — and, checked
+   rather than assumed, Aurora is 46 rows *ahead* of Neon and 32 hours fresher,
+   so this is the better of the two copies, not a stale one.
+
+5. **A state legislator's nickname, unless LegiScan recorded it.** The alias
+   column adds the bioguide's full names for 552 US members and every state
+   legislator's own `middle_name`/`nickname` where one exists (9,334 and 2,294
+   rows). A state legislator LegiScan files as "Bob Smith" is not findable as
+   "Robert Smith". §2 anticipated this; no source exists to fix it.
+
+6. **Committees only from current sessions**, cross-jurisdiction — same rule as
+   bills, same reason.
+
+7. **A two-character query cannot use a trigram index** (trigrams need three
+   characters) and falls back to a parallel sequential scan of `"Bills"`:
+   **312 ms** measured for `%hb%` across all current sessions. Inside budget, so
+   the UI's two-character floor stays, but it is the one query shape here with no
+   index behind it.
+
+8. **`getMembers` and the directory still list the 511 committee rows.** The
+   member *search* excludes them as of `a765520`; the other surfaces do not.
+   That is a data fix upstream, not a search one — parked by the lead as
+   `prompts/PARKED-people-committee-rows.md`.
+
+9. **`billtexts_search_idx` (1895 MB) is now dead weight, and must not be dropped
+   casually.** Nothing queries it; the only references in either repo are in
+   `livingston/api/bill-text.ts`, which created it (line 110 — its comment calls
+   it *"the search lane's raw material"*) and counts it in a health check
+   (line 82). That check short-circuits only on finding **4** named indexes:
+
+   ```ts
+   if (have[0] && have[0].tsv === 1 && have[0].idx === 4 && …) return;
+   ```
+
+   Ingestion writes Neon today, so it never looks at Aurora. The day the writers
+   are repointed, an Aurora missing that index fails `idx === 4` and re-runs the
+   whole schema-ensure block — including a **non-concurrent** `CREATE INDEX …
+   USING GIN` over 36 GB, from every fleet process that starts. That file already
+   records 338 sessions queued behind a schema no-op. **Keep it, or change the
+   `4` to a `3` in the same commit that drops it.**
+
+10. **The `'english'` trap, recorded because the code outlives the report.**
+    `default_text_search_config` on this cluster is `pg_catalog.simple`, while
+    `search_tsv` is generated with `'english'`. A tsquery that omits the config
+    is parsed as *simple*, matches none of the stemmed lexemes in the index, and
+    returns **zero rows with no error**. Every tsquery in `searchAll` names
+    `'english'`, and a comment at the query site says why.
+
+### Three things learned that outlive this lane
+
+- **`as materialized` is worth 30×.** Inlined, the planner joins the 52-row
+  session view first and re-derives the same trigram bitmap once per jurisdiction
+  (`loops=52`). Committees: 1244 ms → **38.8 ms**. Bills: 969 ms → **18 ms**. Both
+  CTEs carry the keyword and a comment, because the next person to "simplify" it
+  will make it 30× slower and the plan will not tell them.
+- **Price the build, not the index.** The 5% sample sized storage to within 4%
+  (1919 MB against ~2 GB projected) and wall clock 2.5× wrong (49 min against
+  15–20). `CONCURRENTLY` scans the heap twice, and detoasting a tsvector column
+  out of 36 GB dominates. Size from the sample; time it separately.
+- **`CREATE INDEX CONCURRENTLY` waits on every older transaction.** 73 of one
+  build's 83 seconds were `wait_event = Virtualxid`, blocked on my own discovery
+  scan in another window. Check `pg_stat_activity` first, or you will attribute
+  someone else's scan to your index.
+
