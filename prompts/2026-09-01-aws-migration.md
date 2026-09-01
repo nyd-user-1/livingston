@@ -8,7 +8,9 @@ AWS — front end, database and S3 in one account; maximally cost- and
 performance-efficient. Budget authorised: $15. Cloudflare DNS is Brendan's, in
 the morning.
 
-**Status: done and verified.** The site is serving from AWS, reading Aurora.
+**Status: done and verified.** The site serves from AWS reading Aurora; the whole
+76 GB Neon policy database is migrated and row-count-verified exact; every one of
+2.13M bills has a working page. Neon and Vercel are untouched as a rollback.
 
 ---
 
@@ -197,22 +199,18 @@ FEC sort compared nullable columns.
 
 ## 5. Still running / still owed
 
-- **BillTexts is loaded and verified.** The only thing still finishing at
-  hand-off was its GIN full-text index (`billtexts_search_idx`) rebuilding — a
-  30+ minute job on 3.5M documents. **Nothing on the site depends on it**
-  (`billtexts_bill_idx`, which the text lookup uses, was already back, and
-  `/search` runs on Typesense), so this is index parity, not function. It runs
-  in tmux `gb-billtexts` on worker-2, logging to `~/logs/gb/billtexts.log`.
-  Confirm with:
-  `select count(*) from pg_indexes where tablename='BillTexts'` — want **6**,
-  and 198 across `public` + `openstates`.
-  If it died, `~/gb/wave2.sh '"BillTexts"'` is idempotent per table, but note it
-  would re-copy the rows too; better to just re-issue the one CREATE INDEX from
-  `~/gb/wave2-indexes.sql`.
-- **Aurora storage** was 58 GB with the GIN index still building; expect ~60–65 GB.
-- Worker-2 is **still running** and was not stopped — that is deliberate, it is
-  lane A's box and `lake-hold` is still open. Stop it when you are satisfied.
+**Nothing is owed on the migration. It finished at 10:20:35Z.** Final state,
+against Neon's numbers in brackets:
+
+**93 tables [93] · 198 indexes [198] · 119 constraints [119] · 9 views [9] ·
+58 GB.** Every row count exact across all 15 tables checked.
+
+- Worker-2 is **still running** and was not stopped — deliberate: it is lane A's
+  box and `lake-hold` is still open. Stop it when you are satisfied.
   Lane A's `shard0` finished clean — *all relations complete, EXIT=0*.
+- The scratch scripts live in `~/gb/` on worker-2 (`wave1-dump.sh`,
+  `wave1-restore.sh`, `wave2.sh`) with logs in `~/logs/gb/`, if you ever want to
+  re-run any of it. Credentials are staged at `~/.govblock/`.
 
 ## 6. For Brendan, in the morning
 
