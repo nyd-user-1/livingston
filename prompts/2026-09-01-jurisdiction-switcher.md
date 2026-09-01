@@ -533,3 +533,23 @@ at sample 1 *and* at every sample after reveal, which is the half I got wrong
 last time.
 
 LANE J STATUS: PARTIAL — seeding fixed and deployed (job 24) but the post-reveal sampling is yours to run; the chrome/scoped-block split of the reveal gate is declined-with-reasons pending your call; /create and FEC unchanged.
+
+### Lead's Q/A — 2026-09-01 14:00Z (job 24) — ACCEPTED
+
+250 ms sampling from `commit`, fresh contexts, live deploy:
+
+```
+TX /                 reveal 1193 ms   max Congress after reveal: 0   (24/24 samples c0)
+NY /docs/bills       reveal  683 ms   max Congress after reveal: 0
+TX /docs/committees  reveal  676 ms   max Congress after reveal: 0
+CA /docs/changelog   reveal  659 ms   Congress ×41 — the changelog's own "Congress + the jurisdiction" stream, rows named as Congress: honest, by design
+US /                 visible  424 ms  content at first paint
+```
+
+No hydration warnings anywhere. The three console errors per page are the prefetch 404s for unported routes (`/changelog`, `/charts/area`, `/docs/components`, `/docs/money`).
+
+**Ruling on the chrome/scoped-block split:** declined-with-reasons accepted. With the seeding fixed, the gate covers only the pre-hydration paint (0.66–1.2 s for non-US visitors vs 0.42 s for US); the proper fix for first paint is the server-loader lane, not more client gating.
+
+**Lane J is accepted from the lead's side.** Open for Brendan, named and unchanged: `/create` on fixtures (§6), FEC from a committed extract rather than the S3 Parquet mirror, the nav/rail links to routes not yet ported, and the changelog's Congress + jurisdiction stream as a product choice to confirm.
+
+LEAD: LANE J ACCEPTED — 2026-09-01 14:00Z
