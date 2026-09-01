@@ -1127,3 +1127,94 @@ zone, since the clamp is measured in tokens, not characters. It also changes wha
 is searchable (nobody should lose the ability to find a line number, if anyone
 ever wants to). Brendan's call alone.
 
+
+LEAD: (Brendan, verbatim) — *"proceed with the 1.6 GB build."* The offset-1 build stands at its corrected price. Close out as planned.
+
+### `"BillTextChunks"` — final, and the bug only production caught
+
+**Built.** 2,110 documents, **51,972 chunks**, avg 28,329 bytes of tsvector each,
+**1497 MB table + 164 MB index = 1661 MB** — against the corrected projection of
+51,972 chunks and ~1.6 GB. Exact on count, exact on size. Re-running the script
+found all 2,110 already done and only reprinted the summary, which is the
+idempotence claim tested rather than asserted.
+
+**Then the extended acceptance test failed on production while passing in SQL.**
+`ts_headline` needs to know where chunk *N* starts, to cut a snippet from the
+right part of an 11 MB document. Those offsets were literals in two places — the
+populator and the query — and when the populator moved to 80,000-character chunks
+from offset 1, the query kept computing offsets for 800,000-character chunks
+starting at 999,001. Chunk 6 begins at 474,001; the query looked at 5,793,001.
+
+Nothing errored. The union found the chunk, the join succeeded, `ts_headline` ran
+against text five megabytes from the match, returned a fragment with no highlight
+in it, and the highlight filter dropped the row. **A search for Ohio's operating
+budget returned nothing, and every layer reported success.** The same query, same
+data, was correct at the SQL layer — only the production test saw it.
+`CHUNK_FIRST` / `CHUNK_STRIDE` / `CHUNK_LEN` now sit together above the query,
+named as the contract they are with the script's `FIRST`/`STRIDE`/`LEN`.
+
+**A correction to my own evidence, too.** My first middle-band test phrase was
+`"countywide comprehensive coordinated"` — and it was never a phrase in that text:
+the body carries line numbers inline (`countywide, 7961 comprehensive`), so a
+token sits between the words. I would have reported a tokenisation artefact as
+clamp evidence. Replaced with a contiguous phrase. (The original clamp evidence
+stands independently: the *same* literal string matched in one 800 KB chunk and
+not another, which line numbers cannot explain.)
+
+**Both acceptance tests, on https://policy.nysgpt.com:**
+
+```
+MIDDLE BAND  "infants and toddlers with developmental disabilities"   char 510,329
+             inside search_tsv's megabyte, past its ~110 KB phrase zone
+             search_tsv       words: t   phrase: f
+             BillTextChunks   words: t   phrase: t     ← chunk 6, offset 474,001
+             production       texts=1, HB96 present, snippet:
+               "Monitoring and supervision of a statewide, comprehensive, coordinated,
+                multi-disciplinary, interagency system for «infants» and …"
+
+TAIL         "anticipate a fraction of the proceeds"                  char 4,876,376
+             past the 1 MB ceiling entirely
+             search_tsv       phrase: f
+             BillTextChunks   phrase: t     ← chunks 61, 113, 114, 115, 128
+             production       texts=8, HB96 present, snippet:
+               "…the board of trustees may «anticipate» a «fraction» of the «proceeds» of…"
+```
+
+**Final regression, four cases, warm, production, 1714 px:**
+
+```
+ok   683 ms  NY/"climate resiliency"  [Bills (10), Text (32)]                  flags=13
+ok   325 ms  NY/"holmes"              [Bills (16), Text (32), Members (14)]    flags=27
+ok   273 ms  WY/"health"              [Bills (60), Text (32), Committees (18)] flags=51
+ok   197 ms  TX/"HB10"                [Bills (60), Text (3)]                   flags=25
+```
+
+`WY/"health"` no longer has a Members section — all 28 of its rows were
+committees, and they are gone. That is the fix visible in the product.
+
+**Latency with the chunk union live**, origin, cache-busted, warm λ:
+
+```
+/search  all=1&text=1  WY/"health"   664 – 953 ms   (budget 1.5 s)   ✓
+menu     NY/"health"                 205 – 241 ms   (budget 300 ms)  ✓
+```
+
+The union costs about **100 ms** on the worst case measured.
+
+### Honest list — the two items the chunk table changed
+
+- **Item 2 is closed for the documents it named.** The 2,110 bills over a
+  megabyte — Ohio HB96, Ohio HB775, New York S09003 — are now searchable end to
+  end, words *and* phrases, all 4.02 GB of them.
+- **What replaces it:** the **41,172 documents in the 110 KB – 1 MB band**
+  (1.18% of the corpus). Their words are fully searchable; their *phrases* past
+  the first ~110 KB are not, because `search_tsv`'s single tsvector hits the
+  14-bit position clamp. Closing that means chunking them too: 90,445 chunks,
+  **~2.4 GB** at the measured rate. Not done, not needed for anything asked for,
+  priced so it is a decision.
+- **Item 3 narrows.** The 200,000-character `ts_headline` window still applies to
+  hits found through `search_tsv` (2,707 documents, 0.61%, can match past it and
+  be dropped for want of a snippet). Hits found through a chunk cannot: the
+  headline is cut from that chunk's own 80,000 characters, so the match is always
+  inside the window.
+
