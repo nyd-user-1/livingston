@@ -1039,3 +1039,91 @@ offset 1 instead: ~52,000 chunks and **~610 MB instead of ~200 MB**, same few
 minutes. I have *not* done it — it roughly doubles what was approved, and that is
 Brendan's call, not mine.
 
+
+LEAD: 04:10Z — The clamp finding is accepted and the 80 k rebuild is approved retroactively — "a quoted search returns FEWER results than the same words unquoted, silently" is the nastiest class of defect there is, and the acceptance test catching it is why acceptance tests are set. The substr-on-TOAST pricing lesson joins the sample-method lesson in the closing notes. The seam decision (chunk the 2,110 long documents from offset 1: ~610 MB total against the ~200 approved) is with Brendan now with the lead's recommendation to buy it — the marginal cost is ~400 MB of index (cents per month on Aurora storage) against phrase search being truthful across every long bill. Price in §4 regardless, as the complete option: chunking EVERY document past ~110 KB, with the count of documents in the 110 KB–1 MB band and the storage estimate — the middle-size bills keep the old ceiling under both current options and that fact belongs in the honest list either way.
+
+LEAD: (Brendan, verbatim) — *"yes"* to the seam: chunk the 2,110 long documents from offset 1, ~610 MB total against the ~200 approved earlier. Phrase search becomes truthful across every long bill. The complete option (every document past ~110 KB) still gets priced in §4 as asked. Re-run the acceptance test on a phrase from the MIDDLE band (110 KB–999 KB) of OH HB96 as well as the tail, then close.
+
+LEAD: 06:20Z — The correction is handled exactly right: continuing was defensible (the decision is insensitive — 1.6 GB is ~16¢/month and one DROP TABLE reverses it) and refusing to spend 2.6× an approved number quietly is the standard this file exists to enforce. The mechanism — position lists duplicated per chunk, 3.3× inherent to chunking-for-phrase, "the positions ARE the feature" — goes in the closing notes beside the other pricing lessons: linear models fail on tsvector twice in one night, in opposite directions. The corrected table (780 MB shipped / ~1.6 GB offset-1 / ~4.3 GB complete, with the band census: 98.76% of documents fully covered today, 41,172 in the 110 KB–1 MB gap) is with Brendan now; unless he says revert, the offset-1 build stands. The line-number lever stays parked as the §4 design note — stripping "134058" changes what is searchable and that is nobody's call but his. Finish the extended acceptance test, §4, STATUS.
+
+### The 14-bit position clamp — its own paragraph, so nobody rediscovers it
+
+A `tsvector` stores each lexeme with a position list. Those positions are **14
+bits**: legal values are 1–16,383, and `to_tsvector` silently clamps anything
+beyond to 16,383. Phrase search is the feature that reads them — a quoted query
+compiles to the `<->` (FOLLOWED BY) operator, which asks whether two lexemes sit
+at adjacent positions. So **in any document longer than about 16,383 tokens,
+phrase search stops working past that point**, while unquoted word search keeps
+working perfectly, because a lexeme's presence does not depend on its position.
+
+For legislative text — measured on the densest document we hold, Ohio HB96 — that
+is **15,744 tokens per 100,000 characters**, so the phrase-safe zone is roughly
+the **first 110 KB** of whatever text goes into one tsvector. Line numbers
+interleaved through the body (`134058`, `7959`) each count as a token and push
+the density up.
+
+The failure mode is the reason this needs writing down: **a quoted search returns
+fewer results than the same words unquoted, silently, with no error and no
+warning.** It looks exactly like a search that works. It was caught here only
+because the acceptance test used a phrase, and only because that phrase happened
+to appear twice in one bill — once inside a chunk's safe zone and once outside:
+
+```
+OH HB96, "anticipate a fraction of the proceeds"
+  chunk  4  (phrase at +681,376 into an 800 KB chunk)   words: t   phrase: f
+  chunk 10  (phrase at  +11,386 into an 800 KB chunk)   words: t   phrase: t
+```
+
+Where it still bites, after everything built today:
+
+```
+OH HB96, "countywide comprehensive coordinated"   (at character 510,280)
+  via search_tsv:   words: t    phrase: f
+```
+
+That phrase is inside `search_tsv`'s 1,000,000-character window — the words are
+indexed — but past its 110 KB phrase-safe zone, so the quoted form finds nothing.
+Chunking from offset 1 is what fixes it for these 2,110 documents.
+
+### Corrected sizing, and why the first estimate was wrong by 3.9×
+
+**The tail-only build measured 780 MB against a ~200 MB projection.** 25,277
+chunks, avg **27,007 bytes** of tsvector each; table 691 MB, index 89 MB.
+
+The estimate came from a linear model — `pg_column_size(search_tsv)` over 1 MB
+slices is 103 KB per MB of text, so 80,000 characters "should" cost 8.2 KB. It
+costs 27 KB. **Chunking duplicates position lists.** A tsvector stores up to 256
+positions per lexeme; a word appearing 5,000 times in one megabyte stores 256
+positions *once*, and the same word spread across twelve 80 KB chunks stores 256
+positions *twelve times*. Lexeme headers repeat too. **3.3× inflation, inherent
+to chunking for phrase search** — the positions are the feature being bought.
+
+Every figure scales accordingly:
+
+| option | documents | chunks | measured / projected |
+|---|---|---|---|
+| tail only (from 999,001) | 2,110 | 25,277 | **780 MB** (measured) |
+| **from offset 1** (Brendan's ruling) | 2,110 | 51,972 | **~1.6 GB** |
+| complete — every document past 110 KB | 43,282 | 139,496 | **~4.3 GB** |
+
+**The band census**, whole corpus, 3,486,788 documents with a `chars` value:
+
+```
+≤ 110 KB          3,443,506   98.76%   fully phrase-searchable today
+110 KB – 1 MB        41,172    1.18%   words yes, phrases only in the first ~110 KB
+> 1 MB                2,110    0.06%   the ones chunked today
+```
+
+The middle band is the honest gap under **both** current options: 41,172
+documents holding 4,978 MB past 110 KB, which would take 90,445 chunks and about
+**2.4 GB** at the measured rate. It is 1.18% of documents, and every one of them
+is word-searchable throughout — only quoted phrases past 110 KB are affected.
+
+**A design note, not an option, because it is not mine to take.** This text
+carries line numbers interleaved through the body, and every `134058` is indexed
+as a lexeme with positions. Stripping them before `to_tsvector` would cut both
+storage and token density materially — which would in turn widen the phrase-safe
+zone, since the clamp is measured in tokens, not characters. It also changes what
+is searchable (nobody should lose the ability to find a line number, if anyone
+ever wants to). Brendan's call alone.
+
