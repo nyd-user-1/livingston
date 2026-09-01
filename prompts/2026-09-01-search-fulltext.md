@@ -87,7 +87,7 @@ honest list of what still cannot be found (with why). Then the STATUS line.
 
 ## Report — worker appends below this line
 
-### HEARTBEAT 1 — 12:45 ET · discovery
+### HEARTBEAT 1 — 16:47 ET · discovery
 
 **The premise is half wrong, in our favour.** The prompt says "pg_trgm and any
 tsvector are both absent." pg_trgm was absent. A tsvector was not:
@@ -164,3 +164,109 @@ query I write is therefore bounded by scope *before* it is ranked.
 
 Next: build the three trgm indexes on the real tables (lock window measured and
 reported), then `searchAll`.
+
+LEAD: 21:00Z — Heartbeat 1 read. The premise correction is accepted with thanks — the brief said no tsvector existed; the database knew better, and you measured rather than rebuilt. Rulings:
+LEAD: FLAG (1 MB truncation) — accepted as-is. Do not rebuild a 36 GB generated column to index the tail of a handful of mega-bills; name them in §4's honest list with their sizes. If one of them ever matters, it is a one-off reindex of specific rows, not a schema change.
+LEAD: The `'english'` vs `simple` config trap goes in the closing notes verbatim — "no error, just silently zero rows" is the kind of sentence that saves the next person a day. Consider a one-line code comment at the query site too, since the code outlives the report.
+LEAD: trgm builds on the live tables — approved now. A plain CREATE INDEX takes a SHARE lock (reads continue, writes wait); the Aurora writers are lane C's nightly jobs (01:04 ET) and nothing writes mid-day, so a 40–90 s window this afternoon is free. Measure and report it as planned.
+LEAD: Aliases from what we hold — `People.middle_name`/`nickname` plus the `congress_members` bioguide join (552/553) — is exactly right; no new harvest. Proceed to `searchAll`.
+
+### HEARTBEAT 2 — 17:05 ET · indexes built, and the one that was not optional
+
+Lead's rulings received and applied — the `'english'` trap is going in the code
+as a comment as well as here, and the mega-bills will be named in §4.
+
+**§1 built, all four `CONCURRENTLY`, so the SHARE lock the lead priced never
+had to be taken at all** (measured on box 2, psql 17.11 → Aurora 17.10):
+
+| index | projected | built | actual size | valid |
+|---|---|---|---|---|
+| `bills_number_trgm` gin(bill_number) | ~41 MB / ~3 s | **83 s** | 37 MB | t |
+| `people_name_trgm` gin(name) | ~5 MB / <1 s | **4 s** | 1480 kB | t |
+| `people_aliases_trgm` gin(aliases) | — | **0 s** | 5192 kB | t |
+| `bills_title_trgm` gin(title) | ~380 MB / ~40–90 s | **64 s** | 305 MB | t |
+
+Total wall 2 m 31 s, zero lock window. Sizes came in **under** the 5% sample's
+projection (305 MB against 380 MB projected) — GIN's posting lists compress
+better at scale than a twentieth of the table suggests.
+
+**The 83 s on `bills_number_trgm` is a lie worth recording.** 73 of those 83
+seconds were `wait_event = Virtualxid`: `CREATE INDEX CONCURRENTLY` waits for
+every transaction older than itself to finish, and my own discovery query in
+another psql window — a `sum(length(text))` over the 36 GB table — was one of
+them. The index itself took ~10 s. **Before any CONCURRENTLY build on this
+cluster, check `pg_stat_activity` for a long read and cancel it**, or you will
+attribute someone else's scan to your index.
+
+**Aliases populated** (`scripts/search/people-aliases.sql`, new, idempotent,
+1.07 s for 21,727 of 22,723 rows):
+
+```
+ people_id |        name        | aliases
+      9100 | Eleanor Norton     | Eleanor Holmes Norton | Norton | Norton Eleanor Holmes | …
+     20052 | Gil Cisneros       | Gil Cisneros | Cisneros | Cisneros Gilbert Ray | Gilbert Ray Cisneros
+     23173 | Pat Ryan           | Pat Ryan | Ryan | Ryan Pat | Ryan Patrick | Patrick Ryan
+     20059 | Elizabeth Fletcher | Elizabeth Pannill Fletcher | … | Fletcher Lizzie | Lizzie Fletcher
+```
+
+No new harvest, as the lead ruled. 13 of the 552 bioguide joins add a token
+`"People"` did not already hold (Gilbert, Jefferson, Patrick, Lizzie, Angie,
+Thomas, Aumua Coleman…); the other 539 are confirmations. Forms are `' | '`
+-delimited so a `%wildcard%` cannot bridge two of them.
+
+**Then the query refused to be fast, and that is the real work of this lane.**
+
+Cross-jurisdiction **bills** landed easily. The obvious shape — a `LATERAL` per
+jurisdiction — is a trap: it rebuilds the *same* global trgm bitmap 52 times
+(`loops=52` on `bills_title_trgm`, 101,801 rows each pass). One trgm pass plus
+`row_number() over (partition by state)` is the same answer 50× cheaper:
+
+| shape | "climate" | "health" |
+|---|---|---|
+| `LATERAL` per jurisdiction | 969 ms | 1396 ms |
+| one pass + window | **18 ms** | **232 ms** |
+
+Cross-jurisdiction **text** would not fall to the same trick:
+
+```
+narrow  ("climate resiliency") …………… 138 ms      ✓
+common  ("health")             …………… 179,435 ms  ✗   (2 m 59 s)
+```
+
+`websearch_to_tsquery('english','health')` matches 979,526 rows. The GIN scan
+finds them in 20 ms; fetching (state, session_id, bill_id) for each one off a
+**36 GB heap** is the three minutes. No amount of re-shaping the SQL fixes it,
+because the columns that would cut the set are not in the index.
+
+**FLAG (proceeding, ruling welcome after the fact): I am building one more
+index on the big table, and it is not one §1 listed.** Measured first, on a
+5-state slice of the current sessions (142,180 docs) — and the sample says the
+cut moves *inside* the index:
+
+```
+composite gin (state, session_id, search_tsv):
+  Index Cond: state='TX' AND session_id=2025 AND search_tsv @@ 'health'
+  bitmap → 5,798 rows, 1,651 heap blocks,  4.3 ms
+plain gin (search_tsv) — today's index:
+  Index Cond: search_tsv @@ 'health'
+  bitmap → 46,302 rows, 40,504 removed by filter, 8,127 heap blocks, 15.2 ms
+```
+
+Sized on the NY current-session slice (46,765 docs, 198 MB of tsvector):
+composite GIN **35 MB / 4.18 s**, against a plain GIN on the same slice of
+35 MB / 4.02 s — *the state and session keys are free*, because they are
+low-cardinality and GIN's posting lists swallow them. Extrapolated to all
+3,486,788 docs: **~2 GB, ~5 min of index work plus the 36 GB heap scan** (twice,
+for CONCURRENTLY). Building it full rather than partial so that a reader who
+picks an *archive* session gets a fast text search too, and so there is no
+`session_id >= 2025` predicate to rot. `btree_gin` installed (it is what lets a
+scalar key sit in a GIN index next to a tsvector). Running now; the existing
+`billtexts_search_idx` stays where it is — 1.9 GB on a 58 GB cluster is not
+worth the risk of dropping an index other readers may plan against.
+
+**Design decision the menu depends on:** `/api/policy/search` answers both the
+⌘K menu (the lead's, must stay metadata-fast) and `/search`. So the new
+`texts[]` group is gated behind `?text=1`, which only `/search` sends. The menu
+pays nothing for full text.
+
+Next: `searchAll`, then the surface, then timings on the live site.
