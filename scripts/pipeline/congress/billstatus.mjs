@@ -68,6 +68,11 @@ const PREFIX = { hr: "HB", s: "SB", hres: "HR", sres: "SR", hjres: "HJR", sjres:
 const API_TYPE = { hr: "HR", s: "S", hres: "HRES", sres: "SRES", hjres: "HJRES", sjres: "SJRES", hconres: "HCONRES", sconres: "SCONRES" };
 const yearOfCongress = (c) => (c - 1) * 2 + 1789;
 
+// The same slot table api/bill-text.ts numbers synthetic document ids with, so a
+// date found here lands on the row govinfo already wrote.
+const VERSION_CODES = ["as", "ash", "ath", "ats", "cdh", "cds", "cph", "cps", "eah", "eas", "ech", "eh", "enr", "eph", "es", "fah", "fph", "fps", "hdh", "hds", "ih", "iph", "ips", "is", "lth", "lts", "oph", "ops", "pap", "pcs", "pp", "pwah", "rah", "ras", "rch", "rcs", "rdh", "rds", "reah", "renr", "res", "rfh", "rfs", "rh", "rih", "ris", "rs", "rth", "rts", "sas", "sc"];
+const versionCodeOf = (url) => (/BILLS-\d+[a-z]+\d+([a-z]+)\.(htm|xml|pdf)$/i.exec(url || "")?.[1] ?? "").toLowerCase();
+
 const arr = (x) => (x == null ? [] : Array.isArray(x) ? x : [x]);
 // BILLSTATUS does not use one child name. <titles> and <relatedBills> hold
 // <item>, <summaries> holds <summary>, <amendments> holds <amendment>,
@@ -151,6 +156,7 @@ for (const type of ONLY_TYPE ? [ONLY_TYPE] : TYPES) {
   const names = Object.keys(files).filter((n) => n.endsWith(".xml"));
 
   const sums = [], titles = [], related = [], cosponsors = [];
+  const docDates = [];
   const amendLinks = [], reportLinks = [];
 
   for (const name of names) {
@@ -181,6 +187,23 @@ for (const type of ONLY_TYPE ? [ONLY_TYPE] : TYPES) {
         bill_number: bn, related_bill_id: known.get(rbn.toUpperCase()) ?? null, related_bill_number: rbn,
         relationship: (items(rb.relationshipDetails)[0] ? txt(items(rb.relationshipDetails)[0].type) : null) ?? "related" });
     }
+    // The stage's own date for every text version, including the ones govinfo
+    // wrote. Those rows had no date at all, and the API fell back to the night of
+    // the backfill — so every stage of H.R. 1 read the same day. A wrong date is
+    // worse than a missing one.
+    if (billId) {
+      for (const tv of items(b.textVersions)) {
+        const date = String(txt(tv.date) ?? "").slice(0, 10);
+        if (!date) continue;
+        for (const f of items(tv.formats)) {
+          const slot = VERSION_CODES.indexOf(versionCodeOf(txt(f.url)));
+          if (slot < 0) continue;
+          docDates.push([-(billId * 100 + slot + 1), date]);
+          break;
+        }
+      }
+    }
+
     // <cosponsors> holds <item>, unlike <summaries>. Checked, not assumed.
     for (const cs of items(b.cosponsors)) {
       const bio = String(txt(cs.bioguideId) ?? "").toUpperCase();
@@ -209,6 +232,16 @@ for (const type of ONLY_TYPE ? [ONLY_TYPE] : TYPES) {
   await flush("congress_related_bills", ["key", "congress", "payload", "bill_id", "bill_number", "related_bill_id", "related_bill_number", "relationship"], related.splice(0));
   await flush("congress_cosponsors", ["key", "congress", "payload", "bill_id", "bill_number", "bioguide_id", "people_id", "full_name", "party", "state", "sponsorship_date", "is_original_cosponsor", "sponsorship_withdrawn_date"], cosponsors.splice(0));
 
+  for (let i = 0; i < docDates.length; i += 500) {
+    const chunk = docDates.slice(i, i + 500);
+    await db.query(
+      `update "Documents" d set date = v.date
+         from (select * from unnest($1::bigint[], $2::text[]) as t(document_id, date)) v
+        where d.document_id = v.document_id and d.document_type = 'text' and d.date is distinct from v.date`,
+      [chunk.map((c) => c[0]), chunk.map((c) => c[1])],
+    );
+  }
+
   for (let i = 0; i < amendLinks.length; i += 500) {
     const chunk = amendLinks.slice(i, i + 500);
     await db.query(
@@ -228,7 +261,7 @@ for (const type of ONLY_TYPE ? [ONLY_TYPE] : TYPES) {
       [chunk.map((c) => c[0]), chunk.map((c) => c[1])],
     );
   }
-  tally.amendments += amendLinks.length; tally.reports += reportLinks.length;
+  tally.amendments += amendLinks.length; tally.reports += reportLinks.length; tally.docDates = (tally.docDates ?? 0) + docDates.length;
   log(`${type}: ${names.length} bills · ${(buf.length / 1e6).toFixed(1)} MB · ${amendLinks.length} amendment links · ${reportLinks.length} report links · ${((Date.now() - t0) / 1000).toFixed(0)}s`);
   await sleep(1500); // govinfo asks nothing of us; this is manners.
 }
@@ -236,11 +269,12 @@ for (const type of ONLY_TYPE ? [ONLY_TYPE] : TYPES) {
 const counts = await db.query(`select
   (select count(*) from congress_summaries) s, (select count(*) from congress_titles) t,
   (select count(*) from congress_related_bills) r, (select count(*) from congress_cosponsors) cs,
+  (select count(*) from "Documents" where document_type='text' and date is not null) dd,
   (select count(*) from congress_amendments where amended_bill_id is not null) a,
   (select count(*) from congress_committee_reports where bill_id is not null) cr`);
 const c = counts.rows[0];
 log(`billstatus done: ${tally.bills} bills · ${tally.zips} zips · ${(tally.bytes / 1e6).toFixed(0)} MB · 0 API requests`);
-log(`  congress_summaries ${c.s} · congress_titles ${c.t} · congress_related_bills ${c.r} · congress_cosponsors ${c.cs} · amendments linked ${c.a} · reports linked ${c.cr}`);
+log(`  congress_summaries ${c.s} · congress_titles ${c.t} · congress_related_bills ${c.r} · congress_cosponsors ${c.cs} · text dates ${c.dd} · amendments linked ${c.a} · reports linked ${c.cr}`);
 
 await db.end();
 process.exit(0);
