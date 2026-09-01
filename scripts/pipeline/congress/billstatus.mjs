@@ -69,6 +69,12 @@ const API_TYPE = { hr: "HR", s: "S", hres: "HRES", sres: "SRES", hjres: "HJRES",
 const yearOfCongress = (c) => (c - 1) * 2 + 1789;
 
 const arr = (x) => (x == null ? [] : Array.isArray(x) ? x : [x]);
+// BILLSTATUS does not use one child name. <titles> and <relatedBills> hold
+// <item>, <summaries> holds <summary>, <amendments> holds <amendment>,
+// <committeeReports> holds <committeeReport>. Reading them all as `.item` is why
+// scripts/pipeline/native/us.mjs's `description` has always been null: it takes
+// items(b.summaries)[0], which is an empty list for every bill ever published.
+const kids = (x, name) => arr(x?.[name]);
 const items = (x) => arr(x?.item);
 const txt = (x) => (x == null ? null : typeof x === "object" ? (x["#text"] ?? null) : String(x));
 const plain = (s) => String(s ?? "").replace(/<[^>]+>/g, " ").replace(/&nbsp;/g, " ").replace(/\s+/g, " ").trim();
@@ -143,7 +149,7 @@ for (const type of ONLY_TYPE ? [ONLY_TYPE] : TYPES) {
 
     // Every CRS summary the bill has carried, not just the newest — the point is
     // the sequence: as introduced, as reported, as passed.
-    items(b.summaries).forEach((s, i) => {
+    kids(b.summaries, "summary").forEach((s, i) => {
       const actionDate = txt(s.actionDate) ?? "";
       sums.push({ key: `${CONGRESS}-${bn}-${actionDate || i}-${txt(s.versionCode) ?? i}`, congress: CONGRESS,
         payload: JSON.stringify(s), bill_id: billId, bill_number: bn, action_date: actionDate || null,
@@ -160,13 +166,13 @@ for (const type of ONLY_TYPE ? [ONLY_TYPE] : TYPES) {
         relationship: (items(rb.relationshipDetails)[0] ? txt(items(rb.relationshipDetails)[0].type) : null) ?? "related" });
     }
     // The linkage the API list endpoints do not carry.
-    for (const a of items(b.amendments)) {
+    for (const a of kids(b.amendments, "amendment")) {
       const at = String(txt(a.type) ?? "").toUpperCase();
       const an = txt(a.number);
       if (at && an && billId) amendLinks.push([`${CONGRESS}-${at}-${an}`, billId, bn]);
     }
-    for (const cr of items(b.committeeReports)) {
-      const cit = txt(cr.citation);
+    for (const cr of kids(b.committeeReports, "committeeReport")) {
+      const cit = String(txt(cr.citation) ?? "").split(",")[0].trim();
       if (cit && billId) reportLinks.push([cit, billId]);
     }
   }
