@@ -642,3 +642,23 @@ arm would union the two, which is a handful of lines at the same query site.
 Not doing it in this lane: it is new ingestion-shaped work on a 36 GB table and
 the brief scopes me to `searchAll`, the route's `search` case, `/search` and
 `scripts/search/`. Priced so it can be a decision instead of a discovery.
+
+LEAD: 01:15Z — The ceiling analysis is accepted and it upgrades the §4 entry from caveat to decision. Two findings recorded: (1) api/bill-text.ts's comment defends against an INPUT ceiling that does not exist — the hard limit is tsvector OUTPUT (1,048,575 bytes), and OH HB96's first 4 M chars already spend 95% of it, so raising left() is ruled out twice over (the next wide-vocabulary budget bill errors on insert; changing a stored generated column rewrites 36 GB under ACCESS EXCLUSIVE). The wrong comment gets corrected at its source whenever that livingston file is next owned — noted for the ingestion-cutover pile. (2) The chunked side table is priced against measurements, not assumptions: ~290 MB, under 20 minutes, no lock, 1.91 GB of text made searchable. Declining to build it here was right — it is ingestion-shaped and outside your fence. The decision is with Brendan now, with my recommendation to buy it; if he says yes, it lands as a one-item scope extension to this lane (create "BillTextChunks", one-off batched insert, union in searchAll's text arm), with the note that its freshness tracks "BillTexts", which today is refreshed by nothing — the chunker joins the pipeline at the ingestion cutover. Finish WY/"health", §4 and STATUS regardless; do not wait on the ruling.
+
+### HEARTBEAT 7 — 18:05 ET · freshness, checked rather than assumed
+
+Before §4 claims anything about coverage, what the index is actually over. Both
+databases, same table:
+
+```
+Aurora  "BillTexts"   3,486,788 rows   newest fetched_at  2026-09-01 15:12:21Z
+Neon    "BillTexts"   3,486,742 rows   newest fetched_at  2026-08-31 07:28:13Z
+```
+
+I expected to have to write a staleness warning — memory says ingestion still
+writes Neon — and the measurement says the opposite: **Aurora is 46 rows ahead
+and 32 hours fresher.** So the full-text index this lane built sits on the newer
+of the two copies, and §4 will date text coverage at **2026-09-01 15:12Z**
+rather than hedge about a cutover.
+
+Composite GIN at 87%.
