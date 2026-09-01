@@ -346,3 +346,92 @@ Verification harness written: `scripts/search/verify-search.mjs`, Playwright at
 1714 px, four cases (cross-jurisdiction text, the alias, the common term from a
 small jurisdiction, a bill-number prefix), printing section counts, distinct
 flag count and wall time per case.
+
+### HEARTBEAT 4 — 17:22 ET · a correctness bug my own change would have shipped
+
+Amplify job 58 **SUCCEED** — the type-check the brief points at is green on the
+first three commits. Job 60 is building the fourth.
+
+**The bug, and why it needed a fourth commit.** `/api/policy/search` answers both
+`/search` and the ⌘K menu. I widened the envelope so `bills[]` and `committees[]`
+can carry any jurisdiction — and then read `components/command-menu.tsx`, which
+is not mine:
+
+```tsx
+onSelect={() => go(`/docs/bills/${bill.bill_id}?state=${state}`)}
+<FlagChip state={state} width={20} />
+```
+
+`state` there is the *page's* scope, not the row's. Members already carry their
+own (`member.state`) and render correctly; bills and committees do not. So my
+change, shipped as written, would have put a New York flag on an Arizona bill
+and linked it into New York — a wrong answer that looks like a right one.
+
+Rule 0.1 says that file is the lead's, so I gated the behaviour rather than
+reaching into it. `?all=1` sits alongside `?text=1`; only `/search` sends either.
+Off, the cross-jurisdiction CTEs fold to a plan-time `One-Time Filter: false` and
+the scan never runs, so the menu is not merely correct but **unchanged in cost**:
+
+```
+menu (all=0), warm:   bills "%health%"  76 ms      committees  25 ms
+                      members "%holmes%" 1.6 ms    budget: 300 ms
+```
+
+**FLAG for the lead — a two-line change turns the menu national.** In
+`components/command-menu.tsx`, take `state` from the row rather than the page:
+
+```tsx
+- onSelect={() => go(`/docs/bills/${bill.bill_id}?state=${state}`)}
+- <FlagChip state={state} width={20} />
++ onSelect={() => go(`/docs/bills/${bill.bill_id}?state=${bill.state}`)}
++ <FlagChip state={bill.state} width={20} />
+```
+
+(and the same for `committee.state`; add `state: string` to both types in
+`Results`). Then add `all: 1` to the menu's fetch. The envelope already carries
+the field — the menu just has to read it. Until then the menu searches the
+jurisdiction you are in, which is what its flag claims.
+
+**Evidence the lead asked for: who plans against `billtexts_search_idx`.**
+Nobody queries it. The only references in either repo are in
+`livingston/api/bill-text.ts` — the ingestion-side schema-ensure that *created*
+it (line 110, comment: *"The search lane's raw material"*) and a health check
+that counts it by name (line 82). But dropping it is not free, and the trap is
+worth more than the 1.9 GB:
+
+```ts
+if (have[0] && have[0].tsv === 1 && have[0].idx === 4 && …) return;
+```
+
+The ensure block short-circuits only when it finds **4** named indexes. Ingestion
+still writes Neon, so today that check never looks at Aurora. The moment the
+writers are repointed, an Aurora missing `billtexts_search_idx` fails the `idx
+=== 4` test and the whole block re-runs — including a **non-concurrent**
+`CREATE INDEX … USING GIN` over 36 GB, from every fleet process that starts. The
+file's own comment records 338 sessions once queued behind exactly this kind of
+schema no-op. **So: keep the index, or change that `4` to a `3` in the same
+commit that drops it.** Not my file; reporting, not touching.
+
+**Aurora's ACU bill for the whole afternoon**, from CloudWatch
+(`ServerlessDatabaseCapacity`, 5-min periods):
+
+```
+idle, before any of this          0.5 ACU
+discovery scans (15:46–16:06)     avg 11–25, max 32 (the cluster ceiling)
+four trgm builds (16:52–16:56)    avg 13–17, max 32
+composite GIN     (17:06– )       avg  7– 9, max 32
+```
+
+Every large read pins the 32-ACU ceiling briefly; the *average* over the 110
+minutes from first discovery query to now is ≈10 ACU, so the afternoon's whole
+index programme costs on the order of **$2**. Idle returns to 0.5.
+
+**Two more measurements for the honest list.** A two-character query cannot use a
+trigram index (trigrams need three characters) and falls back to a parallel
+sequential scan of `"Bills"` — **312 ms** measured for `%hb%` across all current
+sessions, inside budget, so the two-character floor in the UI stays. And the
+gaps: 197,748 of 2,129,003 bills (9.3%) have never had text fetched, and 183,031
+`"BillTexts"` rows carry a null `text` from a failed fetch. Neither is findable
+by text, and §4 will say so.
+
+Composite GIN at 42%.
