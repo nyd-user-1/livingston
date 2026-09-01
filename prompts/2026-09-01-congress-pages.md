@@ -165,3 +165,54 @@ contract names. It is committed as a fixture under the name `cosponsors` in the
 same envelope as its neighbours (`{bill, count, cosponsors[]}`), so it is safe:
 lane C serves nothing there today, the fetch 404s, the fixture answers, and the
 day a `congress_cosponsors` table exists the page changes not at all.
+
+`HEARTBEAT 18:25Z page 5/5 commit 611d813 job pending next verifying pages 3–5 on the deploy`
+
+#### Pages 2–5 — commits
+
+| page | commit | reads |
+|---|---|---|
+| 2 · `/docs/directory/[id]` | `c5686af` (+ `7cea8d8`) | `member`, `record` (Aurora), `member-detail`, `member-votes` |
+| 3 · `/docs/committees/[id]` | `e4439c3` (+ `2306791`) | `committee` (Aurora), `committee-detail`, `committee-meetings`, `committee-reports`, `hearings-congress` |
+| 4 · `/docs/nominations` `/docs/reports` `/docs/record` `/docs/laws` | `992a0df` | `nominations`, `crs-reports`, `record-issues`, `laws` |
+| 5 · `/blocks/vote` | `611d813` | `rollcalls` (Aurora) + `house-votes` |
+
+Also landed: `82888bf`, the rule below, which is the one thing in this lane
+worth carrying to other lanes.
+
+**The ordering rule, after the lead's ruling.** A per-entity section trusts a
+route's answer only when it is provably about that entity. The first cut then
+showed *nothing* when it was not — which turned out to be wrong in the other
+direction: `committee-reports?bill=2032901` answers `{"bill":2032901,"count":0}`
+(scoped, honest, empty, because the bill→report link is not harvested) while
+the record committed for that same bill from the same API names both books of
+H. Rept. 119-106. `useCongress` now orders the three possible answers: the
+route when it answered about this entity, else the committed record *for this
+entity*, else an honest empty. What is still never allowed is one bill's rows
+under another bill's heading — which is the whole reason the order exists.
+
+**Four asks for lane C**, none blocking, each one visible on the deploy today:
+
+1. `amendments` payload has no `sponsors` — the Sponsor column on H.R. 1 is 493
+   em dashes. The `/amendment/{congress}/{type}/{number}` detail carries it; the
+   list record you stored does not.
+2. `laws` rows carry no `policyArea`, so the status callout can print the
+   public-law citation but not the policy area. It is on the bill record the
+   family is cut from.
+3. `committee-reports?bill=` and `?committee=` answer the whole family or an
+   empty scoped set; the bill→report and committee→report links are not in the
+   tables yet. Same for `committee-meetings?committee=` and
+   `hearings-congress?committee=`, and their payloads are the list stub rather
+   than the record — no witnesses, no documents, no committees, which is what a
+   committee page shows.
+4. `text-versions.date` on a govinfo-sourced row is the night of the backfill,
+   not the day the bill moved. Every stage of H.R. 1 read "Aug 28, 2026" until
+   the page started refusing to print a date that is its own fetch day.
+   congress.gov's `textVersions[].date` has the real one.
+
+**One contract addition, already in use:** `cosponsors`
+(`{bill, count, cosponsors[]}`) — nothing else in the sixteen names carries
+`sponsorshipDate` / `sponsorshipWithdrawnDate` / `isOriginalCosponsor`, which is
+what "Sponsors gains cosponsor dates and withdrawn flags" needs. Safe by
+construction: lane C serves nothing there, so the fixture answers, and the day
+a table exists the page does not change.
