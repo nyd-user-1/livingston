@@ -72,6 +72,11 @@ const DRY = has("--dry-run")
 const INCLUDE_TSV = has("--include-tsv")
 const FORCE = has("--force")
 const LIMIT = Number(flag("--limit", "0")) || 0 // benchmark aid: stop after N rows
+// Split ONE table's partitions across workers: --partition-shard 0/2 and 1/2
+// take disjoint halves, so two processes can work the same long-pole table with
+// no coordination and no duplicated partitions. Only meaningful for the
+// index-supported path, where partitions are independent queries.
+const PART_SHARD = flag("--partition-shard")
 
 // A partition whose Parquet would land under this is not worth its own
 // directory; the scheme widens instead (§3, LEAD C).
@@ -562,12 +567,12 @@ async function exportRelation(db, rel) {
       // Weight the table's rows by how the referenced bills distribute.
       const counts = new Map()
       for (const packed of billMap.values()) {
-        const key = packed ?? " "
+        const key = packed ?? KEY_NULL
         counts.set(key, (counts.get(key) ?? 0) + 1)
       }
       const denom = billMap.size || 1
       dist = [...counts.entries()].map(([key, c]) => {
-        const [st, se] = key === " " ? [null, null] : key.split("|")
+        const [st, se] = key === KEY_NULL ? [null, null] : key.split("|")
         return { values: [st, se === "" ? null : se], rows: Math.round((total * c) / denom) }
       })
     } else {
@@ -593,7 +598,9 @@ async function exportRelation(db, rel) {
       const active = candidateKeys.slice(0, depth)
       const bucket = new Map()
       for (const g of dist) {
-        const k = g.values.slice(0, depth).map((v) => (v === null || v === undefined ? " " : String(v))).join("")
+        const k = g.values.slice(0, depth)
+          .map((v) => (v === null || v === undefined ? KEY_NULL : String(v)))
+          .join(KEY_SEP)
         bucket.set(k, (bucket.get(k) ?? 0) + g.rows)
       }
       const med = median([...bucket.values()].map((r) => r * avgBytes))
@@ -610,7 +617,7 @@ async function exportRelation(db, rel) {
       chosenKeys = active
       groups = [...bucket.entries()]
         .map(([k, r]) => ({
-          values: k.split("").map((v) => (v === " " ? null : v)),
+          values: k.split(KEY_SEP).map((v) => (v === KEY_NULL ? null : v)),
           rows: r,
         }))
         .sort((a, b) => b.rows - a.rows)
@@ -629,6 +636,15 @@ async function exportRelation(db, rel) {
   const done = FORCE || DRY ? new Map() : await loadProgress(table)
 
   // --- export ---------------------------------------------------------------
+  if (PART_SHARD && chosenKeys.length && indexed) {
+    const [idx, of] = PART_SHARD.split("/").map(Number)
+    const before = groups.length
+    groups = groups.filter((_, i) => i % of === idx)
+    log(`  partition shard ${idx}/${of}: ${groups.length} of ${before} partitions`)
+  } else if (PART_SHARD) {
+    log("  partition shard ignored — only the index-supported path has independent partitions")
+  }
+
   let records = []
   if (derived) {
     const anyDone = [...done.values()].reduce((s, r) => s + r.rows, 0)

@@ -613,3 +613,124 @@ largest-first, which put the three long poles in three different shards —
 skipped on re-run: `mv_newsroom_latest`, `bill_chunks`, `same_as`.
 
 HEARTBEAT 2026-09-01T07:28Z tables 3/76 rows 1,052,587 gb 0.06 eta ~09:00Z load 0.29
+
+---
+
+### 2026-09-01 07:39Z — PAUSED by Brendan for usage budget. The export is still running on the box.
+
+Nothing was killed or stopped. Box 2 (`i-0843042df1a5fb003`, **13.218.239.11**)
+is up with `lake-hold`, `lake-shard0` and `lake-shard1` alive; `lake-shard2`
+finished clean (`EXIT=0`). No janitor is armed by me, so **the box will not
+stop itself** — it needs a manual stop when Brendan is done with it.
+
+#### FLAG: G — name collision between the two schemas. Read this first on resume.
+
+`lakeName()` lowercases and snake_cases the Neon table name, and six pairs
+collapse onto the same lake name because `public` and `openstates` both have
+them:
+
+| public | openstates | collides in |
+| --- | --- | --- |
+| `"Bills"` | `bills` | `lake/v1/legislative/bills/` — **data** |
+| `"Votes"` | `votes` | `lake/v1/legislative/votes/` — **data** |
+| `"People"` | `people` | `lake/v1/legislative/people/` — **data** |
+| `"Sponsors"` | `sponsors` | `lake/v1/legislative/sponsors/` — **data** |
+| `"Documents"` | `documents` | `lake/v1/legislative/documents/` — **data** |
+| `"BillTexts"` | `bill_texts` | manifest only (`text/` vs `legislative/`) |
+
+Two different tables with different columns are writing under one prefix, and
+the second manifest to finish overwrites the first. **The affected five
+`legislative` prefixes and six manifests are not trustworthy as they stand.**
+Everything else is unaffected — the collision is purely a naming one, no row
+was lost or mistyped, and both sources are intact in Neon.
+
+Suggested fix (not applied — this needs a ruling because §2/§7.B set the naming
+contract): give `openstates` relations a distinct lake name, either
+`openstates_<table>` or a nested `legislative/openstates/<table>/`. It is a
+one-line change in `lakeName()` plus a re-run of the ~20 openstates tables,
+which are small — the whole schema is under 2 GB. The five public tables would
+also need re-running to clear the mixed prefixes.
+
+#### Correction: the §0.2 proof in my 07:12Z entry was not valid
+
+`export.mjs` had four raw control bytes (U+0000 / U+0001) embedded as
+partition-key separators, which made `grep` treat it as **binary and skip it
+silently** — so the "empty result" I reported did not actually scan that file.
+Fixed: those bytes are now written as JS escape sequences, behaviour
+byte-identical. Re-run, with each file confirmed to be text *before* grepping:
+
+```
+$ for f in scripts/lake/*.mjs scripts/lake/*.py scripts/lake/*.sh; do ... done
+text: _lib.mjs  text: domains.mjs  text: export.mjs  text: index-manifest.mjs
+text: inventory.mjs  text: verify.mjs  text: duck.py  text: run.sh
+$ grep -inE 'drop|truncate|alter|delete|update|insert' scripts/lake/*.mjs scripts/lake/*.py scripts/lake/*.sh
+$ echo $?
+1
+```
+
+Empty, and this time provably over all eight files.
+
+#### Where things stand at 07:39Z
+
+Lake: **436 objects, 1.82 GB**. Verified clean by `verify.mjs` (exact Neon count
+vs DuckDB count, plus 25 random PKs compared field-for-field): `history_table`
+(18,115,699 rows), `same_as` (1,014,080), `bill_chunks` (38,455),
+`mv_newsroom_latest` (52).
+
+**26 manifests written** (six of them suspect per FLAG G):
+`2025_lobbyist_dataset · bill_calendars · bill_chunks · bill_milestones ·
+bill_relations · bill_texts* · bills* · budget_2027_aprops · calendar ·
+documents* · fec_receipts_by_size · finance_sectors · history_table ·
+legislators · lobbying_activities · lobbying_spend · lobbying_sync ·
+lobbyists_clients · model_bills · mv_newsroom_latest · people* ·
+pipeline_reconcile · referrals · same_as · session_people · votes*`
+(`*` = collision-affected).
+
+**In flight**
+- `lake-shard0` — `public."BillTexts"` to `text/bill_texts`, at partition 25 of
+  667, 3,486,742 rows total. ~1,000 rows/s under three-way contention; roughly
+  an hour left. Then 25 more tables.
+- `lake-shard1` — `public."Votes"`, 89.2 M rows, one sequential pass routed to
+  53 per-jurisdiction writers. It logs nothing until a part file rolls, so
+  silence is normal; progress shows as growing files in `/tmp/lake-export/`.
+- `lake-shard2` — done, `EXIT=0`.
+
+#### Resuming
+
+Logs: `~/logs/lake/shard{0,1,2}.log` on the box (`EXIT=<code>` is the last line
+of a finished shard). Per-partition progress records:
+`s3://govblock-lake-638175140432/lake/v1/_manifest/_progress/<table>/`.
+
+```sh
+ssh -i ~/.ssh/livingston-worker-2.pem ubuntu@13.218.239.11
+cd ~/livingston && git pull
+
+# Re-run / resume. Completed partitions are skipped from the progress records,
+# so this is safe and cheap to repeat at any time.
+./scripts/lake/run.sh shard0 --shard 0/3      # or --shard 1/3, 2/3
+./scripts/lake/run.sh billtexts --table BillTexts
+
+# Split one long table across two workers (disjoint partitions, no coordination):
+./scripts/lake/run.sh bt-a --table BillTexts --partition-shard 0/2
+./scripts/lake/run.sh bt-b --table BillTexts --partition-shard 1/2
+
+# Force a table to be rebuilt from scratch, ignoring progress records:
+node scripts/lake/export.mjs --table Bills --force
+
+# Then, in order — index.json is written last because §4 treats it as a public API:
+node scripts/lake/index-manifest.mjs
+node scripts/lake/verify.mjs --keys 100        # the §5 acceptance check
+```
+
+`run.sh` must be used rather than `systemd-run`: both auto-stoppers on this box
+(`job-janitor` and `run-due`) test `tmux ls | grep -v '^w-'`, so only a
+non-`w-` tmux session keeps the box alive. Keep `lake-hold` up for the same
+reason.
+
+Not yet done: `index.json` (§4), the full §5 verification over all tables, and
+the "Shape notes for the app" section — that last one is drafted and goes in
+when the export finishes.
+
+HEARTBEAT 2026-09-01T07:39Z tables 26/76 rows ~112M gb 1.82 eta ~08:45Z load 2.78
+
+LANE A STATUS: STOPPED — paused by Brendan for usage budget; export continues on the box unattended
