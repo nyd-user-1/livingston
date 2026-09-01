@@ -18,7 +18,7 @@ import process from "node:process"
 import { execFileSync } from "node:child_process"
 import path from "node:path"
 import { GetObjectCommand, ListObjectsV2Command, S3Client } from "@aws-sdk/client-s3"
-import { BUCKET, LAKE, REGION, REPO, connect, qualify } from "./_lib.mjs"
+import { BUCKET, LAKE, REGION, REPO, columnExpression, connect, qualify } from "./_lib.mjs"
 
 const s3 = new S3Client({ region: REGION })
 const args = process.argv.slice(2)
@@ -143,8 +143,13 @@ async function verifyTable(db, manifest) {
     // (which have no Neon counterpart) and minus anything omitted by rule.
     const derived = new Set(Object.keys(manifest.derived_columns ?? {}))
     const cols = manifest.schema.filter(([c]) => !derived.has(c))
+    // Read the Neon side through the SAME expression the exporter used. Without
+    // this, node-postgres parses jsonb into an object while the lake holds the
+    // text form, and every row "differs" on a column that is in fact identical.
     const sample = await db.query(
-      `select ${cols.map(([c]) => `"${c.replaceAll('"', '""')}"`).join(", ")}
+      `select ${cols
+        .map(([c, , pg]) => columnExpression(c, String(pg).replace(/\[\]$/, ""), String(pg).endsWith("[]")))
+        .join(", ")}
          from ${qualify(schema, name)} order by random() limit ${KEYS}`
     )
     const rows = sample.rows
