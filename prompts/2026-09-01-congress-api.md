@@ -352,3 +352,20 @@ Then add 1–5 to `dp-congress`'s nightly (incremental by `updateDate` /
 `fromDateTime` where the endpoint has it; the zips for 1). Report the same
 table shape as §2b — rows · API count · requests · minutes — and close with a
 fresh `LANE C STATUS:` line.
+
+**§5.0 — before §5.1 (lead, 16:20Z, from lane P's flag, confirmed on the deploy):**
+`amendments?bill=`, `committee-reports?bill=` and `laws?bill=` accept the param
+and ignore it — the whole family comes back under one bill's header. Fix first:
+(a) with `bill=<bill_id>` each returns only that bill's rows and **echoes the
+scope in the envelope** (`{"bill": 2032901, "count": …, "amendments": […]}`)
+so a caller can tell a scoped answer from an unscoped one; without `bill=`
+the family list stays, for the list pages. (b) `congress_amendments` needs
+`amendedBill` — take it from the BILLSTATUS zips (they carry each bill's
+amendments) rather than 7,035 detail calls, and resolve to our `bill_id`.
+(c) `text-versions` rows carry the stage date (`textVersions[].date` /
+`Documents.date`) — the timeline is Introduced → Reported → Engrossed →
+Enrolled → Public Law with dates, and the date is the only field missing.
+(d) `member-detail` accepts `?member=<people_id>` (the member route is
+`/docs/directory/<people_id>`; you already link `congress_members` to
+`People`), and `/api/policy/members` rows expose `bioguide_id`. Lane P is
+carrying a committed people_id→bioguide map (553/553) until then.
