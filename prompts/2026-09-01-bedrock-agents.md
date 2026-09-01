@@ -461,3 +461,383 @@ LEAD: 07:50Z (Brendan, relayed — §6, the high-fidelity mail experience) — H
 Everything else already ruled stays: per-browser honesty, Discord as the durable copy, the run collapsed under the reply. Sequence: the indicator ships first and alone; then §6; then §4 and STATUS. The acceptance test: compose To: researcher@govblock with a Subject, watch it run with a visible pulse, find it in Sent, read the reply arrive unread in the Inbox, star it, search it, trash it, restore it.
 
 LEAD: 08:30Z — The Researcher's completion is accepted with all three findings, and they are §4 material of the first order: (1) deliver_report is the standout — "the report cannot drift from what the reader sees — same string" is both a cost fix and a correctness guarantee, and the pattern (never make the model retype what the loop already holds) generalises; (2) recognising max_tokens as "out of room, not finished" and continuing from the exact cut is the right mechanism, and "instruction was the wrong instrument — the output ceiling made it" goes in the notes verbatim; (3) maxTokens as measured throughput × 17 named seconds in models.ts is engineering where a magic number would have rotted. The Sonnet 4.6 Researcher ruling is ratified on the numbers ($0.47 vs $1.11, 37.9 s vs 46.9 s, same grounded quality) — record it in §4 as the shipped default with Opus reserved for the Money Follower. The record?id=1326 1 MB defect is MINE (unowned route case); fixing separately. Proceed §6.
+
+---
+
+## §4 — Report
+
+Written 2026-09-02, ~00:20Z. Everything below is measured on the live deploy at
+https://policy.nysgpt.com unless it says otherwise. 35 commits, 31 files,
++3,870/−233, all inside this lane's fences plus the one `config.ts` navItems
+line and — from §5 onward, by the lead's grant — `/blocks/intelligence` and the
+block behind it.
+
+### 1 · Model IDs, and why they are these
+
+Both AWS catalogues lie about this account. `ListFoundationModels` advertises the
+whole Anthropic line including the Claude 5 family, and
+`GetFoundationModelAvailability` reports `anthropic.claude-opus-5` as
+`authorizationStatus: AUTHORIZED, entitlementAvailability: AVAILABLE`. Converse
+answers *"is not available for this account"* — on the `global.*` profiles and in
+us-west-2 too, so it is an account entitlement, not a region or a profile shape.
+**Only an invoke tells the truth**, which is why `scripts/agents/probe-models.sh`
+invokes every `us.anthropic.*` profile the region lists rather than trusting a
+table. Probed:
+
+| answers | denied |
+|---|---|
+| `us.anthropic.claude-opus-4-6-v1` · 1140 ms | `claude-opus-5` · `claude-sonnet-5` |
+| `us.anthropic.claude-sonnet-4-6` · 874 ms | `claude-fable-5` · `claude-fable-5-1` |
+| `us.anthropic.claude-opus-4-5-20251101-v1:0` · 1389 ms | `claude-opus-4-8` · `claude-opus-4-7` |
+| `us.anthropic.claude-sonnet-4-5-20250929-v1:0` · 1300 ms | `claude-sonnet-4-20250514` |
+| `us.anthropic.claude-haiku-4-5-20251001-v1:0` · 507 ms | |
+
+Every entitled model is `INFERENCE_PROFILE`-only, so every id is the `us.`
+cross-region profile, never the bare `anthropic.` foundation model.
+
+**Shipped, and each choice measured rather than assumed:**
+
+| tier | model | who uses it | why |
+|---|---|---|---|
+| `grounded` | `us.anthropic.claude-sonnet-4-6` | Bill Reader, Jurisdiction Guide, **Researcher** | Indistinguishable from Opus on grounded work at half the price |
+| `reasoning` | `us.anthropic.claude-opus-4-6-v1` | Money Follower | The one agent holding several records at once |
+| `routing` | `us.anthropic.claude-haiku-4-5-20251001-v1:0` | Tracker | Cheapest that does tool use competently, and the fastest writer |
+
+The Sonnet-vs-Opus measurement, same prompt, same whole bill record (NY A07380,
+1,365 input tokens): Opus 460 out / 10.7 s / **1.83¢**; Sonnet 364 out / 7.9 s /
+**0.96¢**. Same status, same three sponsors with party and district, same three
+history moves, same companion bill — and both correctly refused to characterise
+text they had not fetched. The Researcher later moved to Sonnet as well, on
+harder evidence: the same Opus report cost **$1.11**, the Sonnet one **47¢**.
+
+### 2 · Measured cost per exchange
+
+One clean pass over the deploy, after prompt caching and compaction:
+
+| agent | rounds | tools | wall | tokens in / out / cached | cost |
+|---|---|---|---|---|---|
+| Bill Reader | 2 | 1 | 12.4 s | 1,830 / 336 / 1,826 | **1.75¢** |
+| Jurisdiction Guide | 3 | 2 | 12.4 s | 6,421 / 894 / 6,414 | **3.48¢** |
+| Money Follower | 3 | 3 | 15.1 s | 6,344 / 838 / 0 | **8.05¢** |
+| Tracker (posted to Discord) | 4 | 5 | 9.0 s | 4,639 / 537 / 0 | **2.57¢** |
+| Researcher (16,104-char report, delivered) | 12 | 20 | 119 s | 24 / 5,938 / 142,082 | **47.2¢** |
+
+A chat exchange is **2–8¢**. A full research report is **≈47¢**; a narrower one
+(the acceptance run) is **≈15¢**. Every figure is computed from Converse's own
+`usage` counters at Bedrock us-east-1 list price. It is not read off an invoice:
+Cost Explorer lags a day and shows `$0` for today's Bedrock line items, and the
+AWS Price List API has no row for any of these models — it returns Claude 3
+Haiku and nothing else, which is exactly what 44b found in August.
+
+**Prompt caching is the single largest cost lever here.** The Money Follower's
+"who lobbied on HR 1" run was **25.64¢ over 42,692 input tokens** before caching
+and **8.07¢** after. Those 42,692 tokens were never 42,692 tokens of record; they
+were a few thousand, resent seven times, because Converse is stateless. Four
+cache points — tool definitions, system prompt, and a rolling pair over the
+history — and the panel prints the cache reads beside the tokens so the saving is
+visible rather than claimed.
+
+### 3 · IAM
+
+Bedrock was already wired, as the lead said. Role **`govblock-amplify-compute`**
+(both the build role and the compute role) already carried a `BedrockInvoke`
+statement inside its **`govblock-data-access`** inline policy, at
+`Resource: "*"`. Nothing new was created. That statement now names:
+
+- the three inference-profile ARNs in us-east-1 (`opus-4-6-v1`, `sonnet-4-6`,
+  `haiku-4-5`), **and**
+- the underlying foundation-model ARNs in **us-east-1, us-east-2 and us-west-2**
+  — twelve ARNs in all, because a `us.*` profile authorises against everything it
+  fans out to. Scoping to the profile alone breaks invocation.
+
+`PolicySecret` also gained `govblock/slack-*` and `govblock/discord-*`. The whole
+document is committed at `scripts/agents/iam/govblock-data-access.json`, and was
+verified by invoking through the deployed site after the change.
+
+### 4 · Streaming: the verdict, with numbers
+
+§1 asked for it measured.
+
+| framing | events | first byte | last line | spread |
+|---|---|---|---|---|
+| `application/x-ndjson` | 418 | 23.27 s | 23.27 s | **0.00 s** |
+| ndjson, `Accept-Encoding: identity` | 315 | 17.45 s | 17.45 s | **0.00 s** |
+| `text/event-stream` | 342 | 14.88 s | 14.88 s | **0.00 s** |
+
+Identical on `main.d2a69zdzqun8m7.amplifyapp.com`, so it is neither CloudFront
+compression nor the custom domain. The decisive detail: the route enqueues its
+`open` event **before Bedrock is called at all**, and that event still arrives 23
+seconds late. **Amplify WEB_COMPUTE holds the whole response body until the
+handler returns.** The SSE branch was removed once it had answered the question.
+
+**And a second, worse limit found the same way.** The Researcher died on round
+five with a 500 and an empty body. Not size — a 400 kB request goes through, a
+300 kB prompt answers in 8.7 s, and 900 kB hits my own 413. Replaying the exact
+failing state twice: **30.5 s and 30.8 s**. The same state sent straight to
+Bedrock: healthy, `latencyMs 46,887`. **Amplify WEB_COMPUTE discards a response
+after thirty seconds and does not honour `maxDuration`.** There is no CloudWatch
+log group for the compute, so this is silent — it only shows up on a stopwatch.
+
+Those two compound: we cannot stream, and no single request may take longer than
+thirty seconds. Four things in the design exist only because of them, and three
+are good engineering regardless:
+
+1. **A round per POST.** The loop lives in the browser: one request is one round
+   of the agent loop, the conversation comes back as `state` and goes out again.
+   Costs no extra tokens (Converse is stateless; the history was already resent
+   every round), costs one round trip per step. What it buys is that the
+   Tracker's search lands on screen while it is still reading bills.
+2. **Bounded context.** One tool result caps at 8,000 characters; older tool
+   results compact, last two rounds verbatim. Latency tracks conversation length.
+3. **`deliver_report`.** The round that kept dying was the one where the model
+   retyped its whole report into a tool argument. The tool now takes a title and
+   nothing else; the loop sends what the run has already written. The report
+   cannot drift from what the reader sees, and the most expensive write in the
+   run stops happening.
+4. **An output ceiling from measured speed.** 1,200 tokens single call:
+   Opus 4.6 **51 tok/s**, Sonnet 4.6 **46**, Haiku 4.5 **102**. Sonnet at 1,200 is
+   25.8 s of writing alone. So `maxTokens` = model speed × **17 seconds** —
+   867 Opus, 782 Sonnet, 1,734 Haiku. A round that hits the ceiling is *out of
+   room, not finished*: the loop recognises `max_tokens`, asks it to continue
+   from exactly where it stopped, and returns for another round.
+
+**The escape hatch, priced, not built.** A **Lambda Function URL with response
+streaming** dissolves both limits at once: `InvokeWithResponseStream` streams
+token by token, and Lambda's ceiling is 15 minutes rather than 30 seconds.
+
+- *Running cost:* $0.20 per million requests; duration $0.0000166667 per GB-s. A
+  15 s round at 512 MB is **$0.000125**; a whole 120 s Researcher run held open
+  as one streaming invocation is **≈$0.001**. Against 47¢ of Bedrock for that
+  same report, the compute is **0.2 % of the bill**. Function URLs cost nothing
+  extra.
+- *What it actually costs:* a second deploy artifact outside Amplify's
+  git-connected pipeline — the route bundled as a Lambda, its own execution role
+  with the same twelve Bedrock ARNs, CORS, and a second thing to keep in step
+  with the app. That is the price, and it is engineering, not dollars.
+- *Recommendation:* worth doing when either token-by-token typing or rounds
+  longer than thirty seconds becomes the thing standing between this and good.
+  Today the round-per-POST design is better than adequate — watched tool calls
+  are the product — but the 30 s ceiling is a real ceiling and it is the reason
+  the Researcher needed four separate mitigations.
+
+### 5 · The five agents
+
+| name | model | speciality | tools |
+|---|---|---|---|
+| **Bill Reader** | Sonnet 4.6 | One bill's whole record, cited | `search_bills` `get_bill` `get_bill_text` `list_jurisdictions` |
+| **Jurisdiction Guide** | Sonnet 4.6 | Who represents, which committee, where a bill sits, across 52 | rosters, committees, search |
+| **Money Follower** | Opus 4.6 | Bill → sponsors → committees → filings, gaps named | adds `get_member_record` `get_lobbying` `get_fec` `top_sponsors` |
+| **Tracker** *(agentic)* | Haiku 4.5 | Watch a topic, open each bill, digest, post | search + `get_bill` + the live connection's tool |
+| **Researcher** *(agentic, inbox)* | Sonnet 4.6 | A long sourced report, delivered | every read tool + `deliver_report` |
+
+All five read through `/api/policy/[resource]` over HTTPS — the same routes the
+pages read, with the same jurisdiction scoping, the same NY-only and
+Congress-only guards, and the same half-hour CloudFront cache. This lane added no
+second way to read the database.
+
+**The Tracker's observable run, end to end on the deploy:**
+
+```
+search_bills   q: housing, jurisdiction: NY, limit: 8  → 8 bills, 5 committees · 574 ms
+get_bill       bill_id: 2014457    → 3 sponsors, 6 history, 1 referrals, 3 progress · 241 ms
+get_bill       bill_id: 1975863    → 4 sponsors, 6 history, 1 referrals, 3 progress · 418 ms
+get_bill       bill_id: 1902711    → 12 sponsors, 3 history, 1 referrals, 3 progress · 587 ms
+get_bill       bill_id: 2152290    → 1 sponsors, 14 history, 4 rollCalls, 3 referrals · 344 ms
+get_bill       bill_id: 2025009561 → 1 sponsors, 2 history, 1 texts · 330 ms
+post_to_discord  → posted to Discord · id 1544494026705604689
+Claude Haiku 4.5 · 4 rounds · 9.0 s · $0.0257
+```
+
+Five bills opened in parallel in one round, and three of those calls are on
+screen while the run is still going. Before Discord existed it ran the same plan
+and reported honestly that Slack was not connected, printing the whole digest in
+the reply — which is the behaviour the brief asked for and not a stub.
+
+**Two grounding defects found by driving it, both fixed:**
+
+1. **The wrong-bill trap.** `/api/policy/bill?state=US&number=HR%201` returned
+   **HB10171** — a food-and-nutrition grant bill — with HTTP 200, because an
+   unmatched number fell through to `getBills(f, 1)`. The Money Follower noticed
+   and told the reader, which is the prompt working, but no prompt should have
+   to. `get_bill` now compares the number asked for against the number returned,
+   punctuation stripped, and calls a mismatch a miss. The lead has since fixed
+   the route; the guard stays as defence in depth.
+2. **The Bill Reader elaborating a title.** Asked about NY A07380, whose
+   description is a verbatim copy of its title, it wrote that the bill covers
+   "what information must be included or disclosed when such units are marketed
+   to prospective tenants" — reasonable, and nowhere in the record. The rule now
+   sits in the preamble all five share: *a field that only restates another is
+   not more information; say so and offer to fetch what would answer the
+   question; filling a gap plausibly is the one way any of these agents can be
+   wrong that matters.*
+
+### 6 · Connections — the evaluation, and the ruling
+
+Evaluated against evidence in this account rather than from the documentation.
+**44b built a live AgentCore Gateway here on 2026-08-09** — `44b-gateway-dvq95nm6dw`,
+one REST target, READY, two credential providers, two AgentCore Runtime agents on
+Haiku 4.5. So Identity, Gateway and Runtime are all GA and working in
+638175140432; the question was never availability, it was fit.
+
+**Idle cost, measured:** Cost Explorer, 2026-08-09 → 09-01, service *Amazon
+Bedrock AgentCore*: **$0.0000918** for twenty-three days. Effectively zero.
+Consumption-priced, no idle compute. That is not the objection.
+
+**What is:**
+
+- **AgentCore Identity has a first-class `SlackOauth2` credential provider**, and
+  `GoogleOauth2` and `MicrosoftOauth2` beside it — precisely Brendan's Drive and
+  Gmail list. It is the real AWS analogue of Vercel Connections. But it wants
+  `clientId` + `clientSecret` for a three-legged flow, and reading a token back
+  (`get-resource-api-key` / `get-resource-oauth2-token`) requires a
+  **workload-identity token**, which a Next.js SSR route does not have and would
+  need machinery to mint.
+- **Gateway-over-Slack is not the shape it looks like.** Slack publishes
+  `swagger: 2.0` (1.0 MB, 170 operations); Gateway requires OpenAPI 3.0+ — 44b
+  had 3.1.0 *rejected* and down-converted. So the "standard" path means
+  hand-authoring an OpenAPI 3.0 spec, an S3 object, a Cognito user pool for
+  inbound auth, a gateway, a credential provider and an execution role — to make
+  one `chat.postMessage`.
+- **Amazon Q Business connectors:** considered and rejected, knowingly. They are
+  enterprise-search connectors that index a source for retrieval. They do not let
+  an agent act on an app, which is the whole requirement.
+
+**Recommendation, and it honours the lean:** ship the credential in Secrets
+Manager now; adopt **AgentCore Identity at the second credential** — a second
+workspace, or the first *per-user* token (a connection acting as the reader
+rather than as the app, which is what Drive and Gmail will be). That is the point
+where the OAuth dance stops being work we can skip, and it is written as a
+comment in `lib/agents/connections/index.ts` so the reversal point lives where
+the next person will read it.
+
+**Discord shipped first, at Brendan's preference, and it was the test of the
+contract:** one new file and one line in `CONNECTIONS`. Nothing in the agents,
+the tool loop, the route or the surface was rewritten to admit it. A webhook URL
+is the whole credential and it names its own channel, so **the destination is not
+a parameter anywhere in this system** — which answers by construction the
+question a public route holding an actuator raises.
+
+Three Discord facts are in the code because each cost a real failure: `content`
+caps at 2,000 characters and an embed's `description` at 4,096, so a long digest
+goes as embeds split on a blank line; **a webhook pointed at a forum channel must
+carry `thread_name`** (PolicyBot's channel is a forum — the first real run came
+back 400), so the first post tries the plain shape, retries once with a thread
+name taken from the digest's first line, and remembers the answer for the life of
+the compute instance; and `?wait=true` returns the created message, which is what
+lets a run report an id rather than assert success, and gives the thread id that
+keeps a split digest in one thread.
+
+### 7 · The Agentic Inbox
+
+`/blocks/intelligence` — shadcn's sidebar-09 mail block with its markup and
+classNames intact and its contents replaced. A task is a thread: what you send is
+in **Sent** the moment you send it, and the report arrives as an **unread reply**
+on that same thread. Folders are Inbox, Sent, Drafts, Starred and Trash; trash is
+soft and the same button restores. Search reaches across every folder. The
+**To:** field is the agent picker — five addresses with monograms and the same
+one-line speciality `/agents` shows — and the **Subject** goes to the server with
+the task, becomes the report's title, and names the Discord thread it lands in.
+
+**Acceptance, driven headless at 1714 px:** composed to `researcher@govblock`
+with a subject → watched the pulse beside the live tool line → thread in Sent →
+unread reply arriving on the same thread → **delivered to Discord in 2 parts, id
+1544493406359654514** → starred → searched → trashed → restored. Screenshots
+`10-`…`16-` in the lane's scratch.
+
+Threads are kept in this browser and nowhere else, and the surface says so twice.
+That is not an oversight: govblock is public and has no accounts, so a
+server-side inbox would be *one shared inbox* — every visitor reading every other
+visitor's tasks and paying for them.
+
+### 8 · Priced, not built
+
+**v2 — close-the-tab delivery.** Today a task dies with the tab. Two shapes:
+
+| | AgentCore Runtime | SQS + Lambda worker |
+|---|---|---|
+| What moves | the loop is ported into an AgentCore agent | the loop runs unchanged in a Lambda |
+| Precedent here | 44b runs two agents on it already | none, but it is the smaller change |
+| Idle cost | **$0.0000918 / 23 days**, measured | SQS $0.40/M requests; $0 idle |
+| Per task | consumption | ≈$0.001 compute at 120 s × 512 MB |
+| Storage | — | one Aurora table, marginal cost ≈ $0 |
+| Effort | container, harness, a second deployment story | one function, one queue, one table |
+
+At **100 tasks a day** both are **under $0.10/month of infrastructure**; Bedrock
+at ~$0.30–0.50 a report is 99 % of the bill either way. **Recommendation: SQS +
+Lambda**, because the loop is already TypeScript and would run unchanged, and
+because it composes with the Lambda Function URL above — the same artifact
+solves streaming, the 30 s ceiling and background execution. AgentCore Runtime is
+the right answer if the agents ever need to be callable by things other than this
+app.
+
+*The identity problem it creates:* a public site with no accounts still needs to
+know whose task is whose. Cheapest honest answer is a **per-browser token** — a
+UUID minted in localStorage, sent as a header, stored on the task row. It is not
+authentication and must not be described as such; it is a claim check. Cost:
+nothing. It is also the point at which someone must decide whether tasks
+submitted by strangers may spend the account's Bedrock budget in the background,
+which today they cannot, because they stop when the tab does.
+
+**Attachments and rich formatting** (§6, deferred). Attachments: Discord takes
+multipart uploads, so a report as `.md` is an afternoon; a `.pdf` needs a
+renderer, which on Lambda means a 5 GB-class package or a second service —
+call it two days and a new dependency. Rich formatting: the current renderer is
+about sixty lines and handles bold, italic, code, links, headings and rules
+deliberately, refusing lists and tables so the model cannot dictate the shape of
+an answer; a real markdown pipeline is a dependency and a sanitiser, half a day,
+and worth it only when someone wants tables.
+
+### 9 · What is stubbed, and what to watch
+
+- **Slack is committed and parked.** `scripts/agents/slack-app-manifest.json`
+  (chat:write and chat:write.public, nothing else) and
+  `scripts/agents/connect-slack.sh` are ready; the `govblock/slack` secret exists
+  with an empty `bot_token`, so the connection reports itself not-connected and
+  **contributes no tools** — an agent is never offered a way to post that does not
+  work. One command connects it.
+- **`/api/policy/record` can exceed the Data API's 1 MB row cap** for a member
+  with a long sponsorship list. The tool surfaces the sentence honestly and the
+  agent works around it; the route's `limit` does not bound the payload. Reported;
+  the lead owns it.
+- **The per-IP rate cap is a brake, not an access control.** It is a Map in one
+  warm compute instance, so a burst spread across instances gets more than twenty
+  a minute. The comment says so.
+- **The round cap is enforced server-side** at the agent's own ceiling (12, or 24
+  for the Researcher), counted from the assistant turns already in the
+  conversation, where a client cannot edit it.
+- **`components/policy/assist-chat.tsx` still posts to `/api/chat`, which does
+  not exist.** Not this lane's file. The repoint is the lead's; the contract is
+  in HEARTBEAT 2 and note it is **not** the AI SDK's `useChat` protocol — the
+  reader in `app/agents/agent-chat.tsx` is the one to copy.
+
+### 10 · The contract, for the repoint
+
+```
+POST /api/agents/chat            → application/x-ndjson, one event per line
+  first call   { agent, jurisdiction?, subject?, turns: [{ role, text }] }
+  each after   { agent, jurisdiction?, subject?, state: { messages } }
+
+events  { t:"open",  model, label }
+        { t:"text",  v }
+        { t:"tool",  id, name, input }
+        { t:"tool_result", id, name, ok, summary, ms }
+        { t:"continue" }                  // the round ran out of output room
+        { t:"state", messages, done }     // post `messages` back while !done
+        { t:"done",  stopReason, usage, usd, ms }
+        { t:"error", message }
+```
+
+Slugs: `bill-reader`, `jurisdiction-guide`, `money-follower`, `tracker`,
+`researcher`.
+
+---
+
+LANE X STATUS: COMPLETE — Bedrock wired on the models this account can actually
+invoke, five specialists live on /agents, the Tracker and the Researcher both
+running observable multi-step tasks end to end on the deploy, Discord connected
+and delivering, Slack committed and parked behind one command, and the Agentic
+Inbox accepted at 1714 px. Two platform limits found and measured rather than
+guessed — no response streaming, and a hard 30 s response ceiling — with the
+Lambda Function URL that dissolves both priced in §4 and deliberately not built.
+
+LEAD: 10:00Z — LANE X ACCEPTED. Verified independently on the deploy: the mail spine serves (Inbox/Sent/Drafts/Starred/Trash, "Search mail…", Compose, the per-browser honesty line), all six surfaces answer, and the lane's own §6 acceptance run — compose → pulse → Sent → unread reply → Discord id 1544493406359654514 → star → search → trash → restore — is documented with screenshots. One correction to §9 for the record: the record?id=1326 1 MB defect is FIXED (lead, f816953, verified on build 90 — the vote history is bounded in SQL per side), so that item is closed, not open. What this lane leaves behind: probe-don't-list as the law of this AWS account; deliver_report and the max_tokens-continuation as agent-loop canon; two platform limits measured with the one artifact that dissolves both (plus background execution) priced for Brendan rather than built on impulse; and a mail metaphor that is honest about where it lives. The Lambda Function URL recommendation and the v2 table go to Brendan with the lead's endorsement: SQS + Lambda as recommended, the per-browser claim-check named for what it is not. The /api/chat repoint is the lead's next act, against §10's contract. Stand down.
