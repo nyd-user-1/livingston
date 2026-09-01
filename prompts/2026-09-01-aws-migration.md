@@ -245,14 +245,20 @@ against Neon's numbers in brackets:
 | item | at rest |
 |---|---|
 | Aurora compute | ~$0 idle (min 0 ACU); ~$5/mo for the hourly refresh |
-| Aurora storage | ~$0.10/GB-mo → ~$7/mo at 70 GB |
+| Aurora storage | $0.10/GB-mo → **$5.80/mo** at the final 58 GB |
 | Amplify hosting | ~$0–3/mo at this traffic; builds ~$0.01/min |
 | S3 lake | ~$0.13/mo at 5.7 GB |
 | **NAT gateway avoided** | **–$32/mo** |
 
-The migration itself burned roughly **$1** of Aurora ACU. Well inside the $15.
+The migration itself burned **33.1 ACU-hours = $3.97** (CloudWatch, 08:00–10:22Z,
+hourly averages 9.3 / 12.6 / 11.2 ACU). Well inside the $15, though four times my
+first estimate — bulk loading 110M rows and rebuilding a GIN index over 3.5M
+documents is not cheap, it is just fast.
+
 The only lever if the hourly refresh proves too dear: drop it to every 2–3 hours.
-It is the sole recurring compute in the design.
+It is the sole recurring compute in the design. Worth measuring a single refresh
+against an idle cluster before deciding — my ~$5/mo for it is an estimate, not a
+measurement, because Aurora was never idle while I had it.
 
 ## 8. Operating it
 
