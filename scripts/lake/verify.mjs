@@ -79,10 +79,15 @@ function same(a, b, type) {
       return x === y
     }
     case "LIST_FLOAT": {
-      const x = Array.isArray(a) ? a : JSON.parse(String(a).replace(/^\[|\]$/g, "[$&]").replace(/^\[\[/, "[").replace(/\]\]$/, "]"))
-      const y = Array.isArray(b) ? b : []
+      // Neon hands the vector back as pgvector's own text form, "[0.1,0.2,...]";
+      // the lake has a real FLOAT[]. Compare as numbers, at float32 tolerance.
+      const parse = (v) =>
+        Array.isArray(v)
+          ? v.map(Number)
+          : String(v).replace(/^\[|\]$/g, "").split(",").filter((t) => t !== "").map(Number)
+      const x = parse(a), y = parse(b)
       if (x.length !== y.length) return false
-      return x.every((v, i) => Math.abs(Number(v) - Number(y[i])) < 1e-5)
+      return x.every((v, i) => Math.abs(v - y[i]) <= 1e-5 * Math.max(1, Math.abs(v)))
     }
     case "BOOLEAN":
       return Boolean(a) === Boolean(b)
@@ -219,11 +224,11 @@ async function main() {
   console.log("")
   log(`${results.length - failed.length}/${results.length} tables verified clean`)
   for (const p of indexProblems) log(`index.json: ${p}`)
-  if (failed.length || indexProblems.length) {
+  if (failed.length) {
     console.error(`\n${failed.length} table(s) with problems:`)
     for (const r of failed) for (const p of r.problems) console.error(`  ${r.table}: ${p}`)
-    process.exit(1)
   }
+  if (failed.length || indexProblems.length) process.exit(1)
 }
 
 main().catch((e) => { console.error(e); process.exit(1) })
