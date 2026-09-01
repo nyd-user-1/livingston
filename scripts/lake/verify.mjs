@@ -198,6 +198,7 @@ async function main() {
       `${ok ? "ok  " : "FAIL"} ${r.domain}/${r.table} · neon ${r.checks.neon_rows?.toLocaleString()} · lake ${r.checks.lake_rows?.toLocaleString()} · ${r.checks.round_trip ?? ""}`
     )
     for (const p of r.problems) log(`       ${p}`)
+    for (const d of r.checks.round_trip_diffs ?? []) log(`         ${d}`)
   }
 
   // --- 3. index.json reconciles -------------------------------------------
