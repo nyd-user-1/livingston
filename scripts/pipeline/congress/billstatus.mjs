@@ -157,6 +157,7 @@ for (const type of ONLY_TYPE ? [ONLY_TYPE] : TYPES) {
 
   const sums = [], titles = [], related = [], cosponsors = [];
   const docDates = [];
+  const lawAreas = [];
   const amendLinks = [], reportLinks = [];
 
   for (const name of names) {
@@ -203,6 +204,11 @@ for (const type of ONLY_TYPE ? [ONLY_TYPE] : TYPES) {
         docDates.push([-(billId * 100 + slot + 1), billId, date || null, url, txt(tv.type) ?? null]);
       }
     }
+
+    // A law is a bill, and policyArea is on the bill record — not on the /law
+    // list the family is cut from.
+    const area = txt(b.policyArea?.name);
+    if (area && items(b.laws).length) lawAreas.push([`${CONGRESS}-${API_TYPE[type]}-${number}`, area]);
 
     // <cosponsors> holds <item>, unlike <summaries>. Checked, not assumed.
     for (const cs of items(b.cosponsors)) {
@@ -251,6 +257,20 @@ for (const type of ONLY_TYPE ? [ONLY_TYPE] : TYPES) {
          document_desc = coalesce("Documents".document_desc, excluded.document_desc)`,
       params,
     );
+  }
+
+  if (lawAreas.length) {
+    await db.query(`alter table congress_laws add column if not exists policy_area text`);
+    for (let i = 0; i < lawAreas.length; i += 500) {
+      const chunk = lawAreas.slice(i, i + 500);
+      await db.query(
+        `update congress_laws l set policy_area = v.area,
+           payload = jsonb_set(l.payload, '{policyArea}', jsonb_build_object('name', v.area), true)
+           from (select * from unnest($1::text[], $2::text[]) as t(key, area)) v
+          where l.key = v.key`,
+        [chunk.map((c) => c[0]), chunk.map((c) => c[1])],
+      );
+    }
   }
 
   for (let i = 0; i < amendLinks.length; i += 500) {

@@ -93,7 +93,17 @@ const FAMILIES = [
   { table: "congress_amendments", path: (c) => `/amendment/${c}`, listKey: "amendments",
     key: (r) => `${r.congress}-${r.type}-${r.number}`,
     cols: { amendment_type: (r) => r.type, number: (r) => String(r.number), description: (r) => r.description ?? null,
-            latest_action: (r) => r.latestAction?.text ?? null, latest_action_date: (r) => r.latestAction?.actionDate ?? null } },
+            latest_action: (r) => r.latestAction?.text ?? null, latest_action_date: (r) => r.latestAction?.actionDate ?? null },
+    // The list record carries no sponsor, so a Sponsor column reads as 493 em
+    // dashes on H.R. 1. The detail has it. `since` is wide because the pass is
+    // gated on detail_fetched_at: the first run pays for all 7,035, a later one
+    // only for amendments that have moved.
+    detail: { since: 3650, path: (r) => `/amendment/${r.congress}/${String(r.type).toLowerCase()}/${r.number}`,
+              unwrap: (d) => d.amendment,
+              cols: { sponsors: (r) => (r.sponsors ? JSON.stringify(r.sponsors) : null),
+                      sponsor_name: (r) => (r.sponsors?.[0]?.fullName ?? null),
+                      sponsor_bioguide: (r) => (r.sponsors?.[0]?.bioguideId ?? null),
+                      purpose: (r) => r.purpose ?? null } } },
   { table: "congress_nominations", path: (c) => `/nomination/${c}`, listKey: "nominations",
     key: (r) => `${r.congress}-${r.number}-${r.partNumber ?? 0}`,
     cols: { number: (r) => String(r.number), part_number: (r) => String(r.partNumber ?? ""), citation: (r) => r.citation ?? null,
