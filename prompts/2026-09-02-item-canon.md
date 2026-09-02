@@ -169,6 +169,28 @@ revisions too.
     - the LegiScan bullet list goes on Congress bills. State bills keep the
       LegiScan list (there is no congress.gov table for them) under the same
       10-row box rule.
+13. **`/blocks/intelligence` — the inbox alone, filling the screen (Brendan,
+    10:50 ET; DO THIS NEXT, before the remaining numbered edits).** Today the
+    page is `app/blocks/layout.tsx` (Announcement, "Building Blocks for the
+    Web", description, Browse Blocks / View Components, the tab strip and
+    "Browse all blocks") wrapping `app/blocks/[...categories]/page.tsx` →
+    `BlockDisplay` → `BlockViewer` (the Preview/Code toolbar, description,
+    device buttons, `npx shadcn add sidebar-09`, Open in v0) → an iframe of
+    `/view/new-york-v4/sidebar-09` at 930 px. Brendan wants, on this route
+    only: the site nav, then the inbox frame, nothing else — and the frame
+    sized to the viewport. Do it inside one route tree, not a route group
+    (the catch-all's `generateStaticParams` already emits `intelligence`):
+    - move the hero and the tab strip out of `app/blocks/layout.tsx` into a
+      `components/blocks-hero.tsx`, rendered by `app/blocks/page.tsx` and by
+      the catch-all page for every tab **except** `intelligence`; the layout
+      keeps only its wrapper, and drops `md:py-12` when the child asks for
+      full-bleed (a prop or a data attribute — your call, say which);
+    - on `intelligence` the catch-all renders the block's iframe directly, no
+      `BlockViewer` toolbar, full container width, height
+      `calc(100svh - var(--header-height))` so the frame fits the screen and
+      the inbox list scrolls inside it; the other six tabs and every category
+      page are byte-identical to today (screenshot `/blocks/vote` to prove it).
+    Never rename the route; `/blocks/intelligence` stays.
 
 ## 3. Acceptance — the output, not the assertion
 
@@ -180,7 +202,7 @@ side with congress.gov. For edit 12 a bill with 80+ cosponsors (S. 1 of the
 
 ## 4. Reporting — the lead monitors this file
 
-Append below the marker. `HEARTBEAT <UTC> edit N/12 <commit> job <n> next …`
+Append below the marker. `HEARTBEAT <UTC> edit N/13 <commit> job <n> next …`
 every 45 minutes; `FLAG: …` for rulings; the last line, once:
 `LANE U STATUS: COMPLETE | PARTIAL — <what> | STOPPED — <why>`.
 
