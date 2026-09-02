@@ -135,8 +135,17 @@ const FAMILIES = [
             number: (r) => String(r.number ?? ""), part: (r) => n(r.part) },
     // The committee that filed it, and the bill it is about, are on the report
     // record — neither is in the list. 921 requests, once.
+    // The endpoint is keyed on the report NUMBER and answers with every part of
+    // it: /committee-report/119/HRPT/106 returns Book 2 and Book 1, in that
+    // order. Taking [0] gave both of H.R. 1's rows Book 2's record, so the page
+    // printed "H. Rept. 119-106,Book 2" twice where congress.gov prints Book 1
+    // and Book 2. The part is already in the key; it has to be in the unwrap.
     detail: { since: 3650, path: (r) => `/committee-report/${r.congress}/${r.type}/${r.number}`,
-              unwrap: (d) => (Array.isArray(d.committeeReports) ? d.committeeReports[0] : d.committeeReports),
+              unwrap: (d, row) => {
+                const all = Array.isArray(d.committeeReports) ? d.committeeReports : [d.committeeReports].filter(Boolean);
+                const want = String(row?.part ?? 1);
+                return all.find((r) => String(r?.part ?? 1) === want) ?? all[0] ?? null;
+              },
               cols: { committees: (r) => (r.committees ? JSON.stringify(r.committees) : null),
                       committee_code: (r) => (r.committees?.[0]?.systemCode ?? null),
                       committee_name: (r) => (r.committees?.[0]?.name ?? null),
@@ -297,7 +306,10 @@ for (const fam of FAMILIES) {
       for (const t of targets.rows) {
         try {
           const raw = await api(fam.detail.path(t.list_payload));
-          const rec = fam.detail.unwrap ? fam.detail.unwrap(raw) : raw;
+          // The list row goes in too: an endpoint keyed less precisely than the
+          // table can answer with several records, and only the row knows which
+          // of them is its own.
+          const rec = fam.detail.unwrap ? fam.detail.unwrap(raw, t.list_payload) : raw;
           if (!rec) continue;
           const dcols = Object.keys(fam.detail.cols);
           const setters = dcols.map((c, i) => `${c} = $${i + 3}`).join(", ");
