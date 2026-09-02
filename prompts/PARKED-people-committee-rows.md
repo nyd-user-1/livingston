@@ -24,3 +24,10 @@ no-attributes signature above), then let the readers' existing
 `committee_id is null` filters do their work. Belongs to whichever lane next
 owns "People" hygiene or the ingestion cutover; the signature list is in lane
 S's report.
+
+**Related, spotted 2026-09-02 while verifying portraits:** the Party card on
+/docs/directory under Congress reads "1,053 seats in the House · Republican
+539 · Democrat 512" — that is the whole `"People"` table (sitting + former +
+the 511 committee rows) counted as seats, not the 553-member roster
+(`getPartySeats` counts by state alone, not by `"SessionPeople"`). Same
+upstream repair, same lane whenever People hygiene is owned.
