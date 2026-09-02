@@ -1886,3 +1886,44 @@ was byte-identical before/after on `/agents` and a bill page, but
 app mentions `not-prose` at all; I probed for it directly rather than leaving
 the claim on reasoning.
 
+
+---
+
+## Observability — the verdict, and my correction was wrong
+
+I told the lead that "this platform cannot be observed" might be an untested
+assumption rather than a fact, because the compute role has always held
+`logs:CreateLogGroup/PutLogEvents` on `/aws/amplify/*` and a log group is
+created on first write — and **nothing in this app had ever logged**. That was a
+reasonable hypothesis and it is now a dead one.
+
+Tested rather than argued: `ecec9a3` put a deliberate `console.log` on the
+connect, save and callback legs; all three were exercised on the deploy (the
+responses carry the `reader` id computed in the same block, so the traced path
+provably ran); then five minutes of polling for a log group in us-east-1.
+
+**No group. Not under `/aws/amplify`, not under any name, anywhere in the
+region.** The §4 finding stands, and now it has a receipt rather than an
+inference: Amplify WEB_COMPUTE on this app delivers no server-side logs, and
+that is why 4:40–4:44 AM left no trace to read.
+
+So for the priced list, as its own line: **this application cannot be debugged
+from the server side at all.** Every diagnosis tonight — the localhost bounce,
+the open redirect, the session-scoped grant, the silent Connect — was made from
+build timestamps, headless re-enactment and the AWS API. That worked, and it
+should not have to.
+
+What this changes today, and it is already shipped: **the response body is the
+observability.** Every branch of both routes now returns an eight-character
+`reader` id (SHA-256 prefix of the claim check — never the credential itself),
+alongside `sessionStatus`. A screenshot of a failed card is therefore evidence
+that can be correlated, which is the only durable trail this platform currently
+permits. The `trace()` calls stay in: they cost nothing, they document what each
+leg decided, and they start working the day logging does.
+
+The enablement path is priced tomorrow per the ruling, not built tonight. The
+cheap durable alternative if Brendan wants one before then: the site already
+holds a working Discord webhook, and one line per failed connect attempt would
+be readable and permanent — noisy, semi-public, and strictly better than
+nothing, which is what we have.
+
