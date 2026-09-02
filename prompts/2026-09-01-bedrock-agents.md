@@ -1606,3 +1606,200 @@ LEAD: 14:30Z (Brendan, relayed — §10d, /connectors slims down; §13 promoted 
 3. **The "All connectors" table: DELETED. The "What 'yours' will mean" section: DELETED — unconditionally.** The lead flagged the scope/claim-check copy losing its home and Brendan overruled: delete as asked, no replacement surface, no tooltip, no proposal. Recorded so nobody re-adds it as a "fix."
 4. **§13 — the Latest hearing video card, top of the committee page's right rail — is promoted from queued to BUILD NOW** on Brendan's order. YOUTUBE_API_KEY is in ~/Code/livingston/.env.local. Every ruling already made stands: Congress-only map in its own file with the header saying so, cached matching (never per-view search), hourly-refresh LIVE truth, empty states per the 11:20Z what-WE-lack canon.
 5. Sequence: the grant-recording investigation stays FIRST; then the slim-down slice; then §13; then the Slack provider (credentials are in); Discord pricing last.
+
+---
+
+## §10d, §13, and the four defects between them
+
+Builds **131–138**, commits `83b7fdf` … `c60fb7f`. Screenshots `66-` … `68-`.
+
+### The callback: two defects in four lines
+
+Brendan finished the Drive consent and landed on
+`https://localhost:3000/connectors?connected=1`. Reproduced against the deploy
+before touching anything, then fixed, then reproved:
+
+```
+before  GET /api/connectors/callback?state=%2Fconnectors
+        → location: https://localhost:3000/connectors?connected=1
+after   → location: https://policy.nysgpt.com/connectors?connected=1
+```
+
+The publicOrigin trap, one spot it had not reached. The vault's own leg was
+fine throughout — AgentCore checks its return URL against the registered one
+and fails **loudly**; ours built a link and failed **silently**, which is the
+whole reason that trap is canon.
+
+Fixing it turned up something worse. `state` was trusted when it began with
+`/`, and `//example.com/x` begins with `/`:
+
+```
+before  ?state=%2F%2Fexample.com%2Fx → location: https://example.com/x?connected=1
+after   → location: https://policy.nysgpt.com/connectors?connected=1
+```
+
+**CANON:** *a redirect target trusted because it "starts with /" trusts `//host`
+too — `new URL("//host/x", origin)` is a protocol-relative reference and
+resolves to that host. Require one leading slash, forbid a second and a
+backslash, else the fixed default.* On a public domain this was an open
+redirect through our own callback.
+
+### The grant: correct answer, wrong question
+
+Two completed consents, and /connectors still read "Not connected". Not a
+recording failure. Proved before changing a line — same user id, same provider,
+same scope, no `sessionUri`:
+
+```
+call 1 → request_uri:MWFmNzE2MDAtM2VmOC00OTdlLTkzYmUtYmVmZTc1NjZjNTQ1
+call 2 → request_uri:OWMwY2U0MzMtNWYyZi00NDUwLTgyNjQtMGE0MWQ4MjQxYzdi
+```
+
+**CANON:** *a session-scoped API answered without its session describes a flow
+nobody walked through.* `sessionUri` says so in its own documentation — it
+"tracks the authorization flow state across multiple requests" — and
+`sessionStatus` sits beside it in the response. Every check we made after his
+consent asked about an authorization that had never existed.
+
+Then the fix's own defect, caught on the deploy before he clicked again by
+walking the round trip it had just created: carrying an unfinished session back
+returns `{"sessionStatus":"IN_PROGRESS"}` and **nothing else**. The first
+version read that as "neither a token nor an authorization url", painted a red
+error on the card, and its retry threw the session away — reproducing the bug it
+was written to fix. Pending is a third state now, not a fault.
+
+And then the third turn of the same screw, which is the one worth remembering.
+Brendan's Connect showed "Opening Google…" for half a second and reverted, no
+navigation. The standing hypothesis was that the click carried his held session;
+it did not — `connect()` had dropped the session since `532ea6f`, so that was
+ruled out before anything was touched. **The vault remembers an in-flight
+session server-side, keyed to the user, not merely in the uri we hold.** So a
+plain call on behalf of someone who had walked away from a consent answered
+about *that* session — IN_PROGRESS, no url — and the button had nothing to open.
+Dropping our copy could never have helped, because the session being described
+was never ours. `forceAuthentication` is the parameter for exactly this, probed
+before shipping.
+
+**CANON:** *a control that appears to do nothing is the one bug a reader cannot
+report usefully.* The button no longer reverts in silence: a click that produces
+no url says so, carrying the vault's own `sessionStatus`. That omission cost
+Brendan two attempts and this lane an hour on the wrong hypothesis.
+
+### §13 — the map was the work, and the automated pass was wrong four times
+
+31 of 34 full committees mapped, **every one read before it was written**.
+
+- A YouTube search for a federal committee ranks **Vermont's legislature** above
+  it: "Vermont Senate Committee on Finance" came back for Senate Finance, and
+  three more like it.
+- Handle-guessing was worse: `@HouseTransportation` is a moving company,
+  `@WaysAndMeans` is a person, `@HouseEnergy` is somebody called Stefan.
+- Three committees are **absent rather than wrong**: Senate Agriculture and
+  Senate Rules run no channel of their own, and Senate Homeland Security
+  resolves to the HOUSE committee's, which would be a lie about both.
+
+**A search hit is not a verification** — the probe-don't-list law applied to a
+third party's index.
+
+**CANON:** *many committees run a MAJORITY or MINORITY channel rather than an
+institutional one. "House Judiciary GOP" is not the same claim as "the House
+Judiciary Committee", and a card must not make the second one* — which is why
+the channel title ships beside the date.
+
+Quota: finding cost **4,135 units once**, at build time, committed. Showing
+costs **2 units per committee per hour** — one `playlistItems` read plus one
+`videos.list`, both on the hour the committee page already revalidates on. The
+second call is not optional: `playlistItems` **does not carry
+`liveBroadcastContent` at all** (checked against the real payload — the field is
+simply absent), so the LIVE badge as first written could never have fired. Dead
+code promising a thing it cannot do is worse than no badge. That call was the
+priced upgrade; the payload made it the only truthful way to say LIVE.
+
+Click-to-play means no iframe, no request to youtube.com and no third-party
+cookie until a reader asks for one. Every non-video state says what WE lack —
+verified live on build 136: a mapped committee read *"The video key is not
+configured"* and an unmapped one *"No YouTube channel is mapped for this
+committee yet."*
+
+### The deployed environment, and a rule that should have existed already
+
+`YOUTUBE_API_KEY` had to reach Amplify. **The branch environment is a single
+map and `update-branch` REPLACES it** — a blind write would have wiped the auth
+lane's four `AUTH_*` keys and broken Brendan's sign-in mid-flow. Routed through
+the lead, written read-modify-write under a one-writer hold, with the four keys
+verified present and byte-identical afterwards.
+
+**CANON:** *the branch env is one map — one writer at a time, announced through
+the lead, always read-modify-write, never a blind update-branch.* And: *a value
+passed in argv is a value in the process table* — the key went through a 0600
+temp file with `--cli-input-json`, deleted after.
+
+### §10d as shipped, and the one judgment call
+
+Cards are logo, name, status, button. All six descriptions, the All-connectors
+table and "What 'yours' will mean" are deleted with nothing in their place, per
+the overrule; the standalone `ConnectButton` and the table's status cell went
+with the table rather than lingering as components nothing renders. Ride-along
+buttons read "Connect". Pending is local to the clicked card while the connected
+answer stays shared — sharing it marched Drive, Docs and Sheets into "Opening
+Google…" together and told the reader three things were happening when one was.
+
+The judgment call, ruled and kept: an unconnected ride-along chip reads
+**"Included in Drive"**, not "Not connected" — the chip is one of the four
+things a card may have, and "Not connected" on a Docs card is false, because
+there is nothing separate to connect.
+
+The catalogue keeps its now-unrendered `summary` and `detail` strings: they are
+where the scope truths (`drive.file`'s reach, `calendar.events.owned`'s limit)
+are written down, and losing the copy from the surface is not a reason to lose
+the knowledge from the repo.
+
+### Discord per-user — EVALUATED AND PRICED, not built
+
+**The obstacle is the headline, and the API model settles it.**
+`GetResourceOauth2TokenResponse` has exactly four members:
+`authorizationUrl`, `accessToken`, `sessionUri`, `sessionStatus`. Discord's
+`webhook.incoming` flow returns the thing you actually need — the `webhook`
+object, with the url the user's channel choice produced — **riding beside the
+token in the token response**. There is nowhere for it to arrive. The vault
+hands back a token and drops the rest.
+
+So the shape Brendan would be buying is not "another provider like Google":
+
+| path | what it costs | what it gives up |
+|---|---|---|
+| **A. Own callback leg** — our route does the code exchange, reads the `webhook` object, stores the url per claim check | a per-user store (DynamoDB on-demand, cents/month at this scale — **not** Secrets Manager, which is $0.40 per secret per month and would be $40/mo at 100 users) | the vault's entire point: **we would hold every reader's credential**, where today we hold none |
+| **B. `identify` + a bot installed in the reader's guild** | a bot application, an install flow, per-guild permissions | far heavier for the reader than "pick a channel"; the site's existing bot connection already covers the shared case |
+| **C. Don't** | nothing | nothing — the site's Discord connection already delivers digests, and the per-user parallel serves a reader who wants them in *their* server |
+
+Recommendation: **C for now, A only if Brendan wants it enough to accept holding
+per-user credentials.** The reason the Google connectors are cheap to run is
+precisely that AgentCore holds the secret and we never see it; A gives that back
+in exchange for one connector.
+
+### Consent-screen branding — EVALUATED AND PRICED
+
+Brendan's *"we gotta change this bedrock-agentcore.us-east-1.amazonaws.com"*.
+The consent screen names that domain because the vault completes the exchange
+and our app is unverified. Two facts decide it:
+
+1. **The vault's callback cannot be moved.**
+   `CreateOauth2CredentialProviderRequest` takes `name`,
+   `credentialProviderVendor`, `oauth2ProviderConfigInput`, `tags` — and
+   nothing else. `callbackUrl` is **output only**, minted by the service with a
+   UUID. There is no vault-side alternative to price.
+2. **Google's verification requires you to own every redirect domain**, and
+   `amazonaws.com` is not ours to verify.
+
+So the two are the same choice: keep the vault and the consent screen keeps
+naming it, or take the callback leg ourselves — which is option A above, with
+the same cost (we start holding refresh tokens) plus the brand review. Brand
+review itself is the cheap part: `drive.file` is Google's one non-sensitive
+Drive scope, and the Data Access page in the console is authoritative on how
+`calendar.events.owned` is classified for this project — Brendan should read the
+label there rather than take my word, because a sensitive scope turns a days-long
+brand review into a weeks-long app verification.
+
+**Recommendation: leave it.** He is the first user and the warning is accurate —
+the app *is* unverified. Revisit when there are readers who are not us.
+
