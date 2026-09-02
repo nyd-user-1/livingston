@@ -421,3 +421,112 @@ record has the day regardless, and that is the day congress.gov prints. And six
 rungs at a 7 rem minimum are 672 px inside a 640 px column, so "Became Law"
 wrapped onto a line of its own under a full-width bar.
 
+
+`HEARTBEAT 14:30Z §5 acceptance measured, nightly EXIT=0 next §6 and the close`
+
+## §5 — acceptance: H.R. 1, side by side
+
+Our page is `/docs/bills/2032901`. Every number below was read off the rendered
+page in a browser at 1714 px, and off congress.gov's own tabs the same way.
+
+| family | congress.gov | Aurora | our page |
+|---|---:|---:|---:|
+| Tracker | 6 stages, **Became Law** | 59 actions → 6 stages | **6 stages, every one dated, Became Law** |
+| Actions | 140 | 59 BILLSTATUS · 141 LegiScan | **142 rows** (24 committee links · 33 Record links · 26 roll-call links) |
+| Committees | 1 committee, 1 activity | 3 activity rows (2 filed "Unknown") | **1 row — Budget Committee · 2025-05-20 · Reported Original Measure** |
+| Subjects | 1 policy area + 239 | 1 + 239 | **1 + 239** |
+| CBO cost estimates | 9 | 9 | **9, each linked to cbo.gov, no numbers** |
+| Text versions | 6 | 6 | **6 rows, 18 format links** (Text · PDF · XML each) |
+| Votes | 47 (3 House, 44 Senate) | 47 LegiScan + 3 congress.gov House | **47 rows** |
+| Sponsor | Arrington, linked | bioguide `A000375` → `people_id 18286` | **linked to `/docs/directory/18286`** |
+| Committee reports | 2 — Book 1 and Book 2 | 2, distinct after `9b6ce98` | **2** |
+| Summaries | 5 | 5 | **5** |
+| Amendments | 493 | 493 | **493** |
+| Related bills | 34 | 39 (the union of both directions) | **39** |
+| Titles | 10 | 11 | **11** |
+| Cosponsors | 0 | 0 | **0** |
+| Constitutional authority | none for H.R. 1 | null | **absent** (6,977 of 18,514 bills have one) |
+| Notes | no tab | no field in either source | **absent** |
+
+The rail reads: Summary · Sponsors · **Actions** · Committee reports ·
+**Committees** · **Subjects** · **Cost estimate** · Votes · Amendments ·
+Related bills · Titles · Text.
+
+**The nightly, all four steps, under the runner's own conditions** — launched
+with `run-due --job dp-congress`, which starts every step
+`env -u AURORA_POLICY_URL -u PGPASSWORD -u PGHOST -u CONGRESS_API_KEY node
+--env-file=.env.local`:
+
+```
+── step: scripts/pipeline/congress/sync.mjs --days 7
+14:02:20 done: 686 bills · 793 versions seen · 17 inserted · 745 kept · 689 requests · 3.8 min
+── step: scripts/pipeline/congress/billstatus.mjs
+14:03:38 billstatus done: 18514 bills · 8 zips · 51 MB · 0 API requests
+14:03:38   congress_bills 18514 (18514 with a sponsor bioguide) · congress_bill_actions 70759 ·
+           congress_bill_committees 29576 · congress_bill_subjects 52750 ·
+           congress_cbo_estimates 1115 · congress_text_formats 21515
+── step: scripts/pipeline/congress/harvest.mjs --detail-limit 1200
+14:12:09 harvest done: 15 families · 955 requests total
+── step: scripts/pipeline/congress/house-votes.mjs
+14:12:14 house-votes done: 7 votes · 3,024 positions · 0 failed · 7 requests
+14:12:14   tallies: 7 rewritten · 654 of 654 roll calls carry one · 3 have no yes or no in them
+EXIT=0
+```
+
+Ten minutes, **1,651 requests** against a 20,000/hour ceiling.
+
+**The member address count after a refresh — the point of §1.1.**
+`554 total · 538 addressInformation · 554 in the detail shape`, unchanged by a
+full nightly run that would previously have flattened every one of them back to
+the roster's nine keys.
+
+**`/blocks/vote` reads from Aurora and the fixture cards are retired.**
+
+```
+Every vote 698 · House 654 · Senate 44
+first card: HR1498 · On Agreeing to the Resolution · 413 aye · 2 nay · Sep 1 · House Clerk
+"House Clerk" appears 654 times — every House card came from the route
+```
+
+654 rather than 647 because the nightly picked up seven new roll calls while
+this lane ran. 44 Senate cards are LegiScan's, which is the only place they
+exist. The committed record still backs `member-votes` and still answers if the
+route is unreachable; it simply no longer answers *here*.
+
+### Three defects the acceptance found, all fixed
+
+1. **The committee date was off by a day** — 2025-05-21 where congress.gov
+   prints 05/20. The conversion was right and the *wire* was wrong: the Data API
+   hands a `timestamptz` back as `"2025-05-22 10:48:46"` with no zone, and
+   `new Date` reads a string like that as the reader's local time. It leaves as
+   an instant now (`2025-05-22T10:48:46Z`). `2e09f04`.
+2. **Both of H.R. 1's committee reports read "Book 2"** where congress.gov
+   prints Book 1 and Book 2 — inherited from lane C. The part was in the key,
+   which made two rows, but `/committee-report/119/HRPT/106` is keyed on the
+   *number* and answers with every part of it, and the unwrap took `[0]`. The
+   unwrap receives the row now and picks the record that is its own; re-detailed
+   all 922 in 926 requests, and zero rows now carry a payload citation that
+   disagrees with the row's. `9b6ce98`.
+3. **The tracker's first rung had no date and its last wrapped to a line of its
+   own.** `609973c`.
+
+## §6 — not in this lane: what /newsroom would need
+
+Sized only, as asked. Nothing here was built.
+
+| element on congress.gov's home page | which Aurora table already feeds it | what is missing |
+|---|---|---|
+| In session · next meeting, per chamber | — | Nothing feeds it. The chambers' convening notices are their own feeds; the API has no endpoint. `congress_record_daily` proves a day *was* a session day after the fact, which is not the same question. |
+| Today's committee meetings | `congress_committee_meetings` — 2,679 rows | **The date is only in the detail**, and detail is bounded to the recently-updated: 77 of 2,679 have one. A calendar needs the window, not the archive — lane C's ruling already scopes it to [today−7, today+60], and that window has to actually be walked. |
+| Yesterday in Congress | `congress_bill_actions` — 70,759 rows, 515 in the last 7 days | Nothing. This is a query, not a harvest: actions by date, grouped by chamber. |
+| Bill texts today | `"Documents"` — 21,278 text rows carrying a stage date, 74 in the last 7 days | Nothing. |
+| Floor calendars | `congress_bill_actions` — 1,391 rows of type `Calendars`, with calendar numbers | The *scheduled* calendar. What we hold is what was placed on it, after the fact; the House and Senate publish the forward calendar as their own feeds and the API does not carry them. |
+| Roll calls | `congress_house_votes` — 654, all tallied; `"Roll Call"` — 1,071 US rows both chambers | Nothing. Both chambers are covered and the House's carry per-member positions. |
+| Presented to the President | `congress_bill_actions` — 212 rows, codes `28000` and `E20000` | Nothing. |
+| The Daily Digest | `congress_record_daily` — 5,859 issues | **12 of 5,859 carry the Digest.** The list is a volume and an issue number; the Digest and the article list are one detail request each, bounded to 30 days today. A "Yesterday in Congress" panel needs only the most recent, so the bound is right and the window just has to be walked nightly. |
+
+Two of the eight cannot be built from any source we have — the in-session
+status and the forward floor calendar. Three are pure query work over tables
+that are already full. Three need an existing nightly detail window actually
+walked rather than any new harvest.
+
