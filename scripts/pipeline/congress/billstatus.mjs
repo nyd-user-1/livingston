@@ -151,6 +151,24 @@ for (const [table, cols] of [
   // Metadata only. Lane B found the numbers behind DataDome; the title, the date
   // and the URL are free, and are all a link needs.
   ["congress_cbo_estimates", `bill_id bigint, bill_number text, pub_date text, title text, url text, description text`],
+
+  // The other renderings of each text version. congress.gov offers PDF, XML and
+  // the formatted text per version; BILLSTATUS lists only the XML url.
+  //
+  // They are DERIVED from the govinfo package id rather than fetched, because
+  // govinfo's package layout is uniform — /pdf/{pkg}.pdf, /html/{pkg}.htm — and
+  // checked before it was trusted: 28 of 28 packages across five bill types and
+  // both BILLS and PLAW answer 200. What is not derivable is which XML flavour a
+  // package has (BILLS carries /xml, a public law carries /uslm and no /xml), so
+  // that one is taken from BILLSTATUS as published and never guessed.
+  //
+  // `document_id` is the same synthetic id "BillTexts" and "Documents" use, so a
+  // version we hold and a version we only list are the same row of the same
+  // table. A version with no slot in the code table gets none, which is how the
+  // Public Law rendering of an enacted bill can be listed with its links while
+  // we hold no body for it.
+  ["congress_text_formats", `bill_id bigint, bill_number text, document_id bigint, version_type text,
+      version_date text, package_id text, html_url text, pdf_url text, xml_url text`],
 ]) {
   await db.query(`create table if not exists ${table} (
     key text primary key, congress int, payload jsonb, updated_at timestamptz not null default now(), ${cols})`);
@@ -204,7 +222,7 @@ for (const type of ONLY_TYPE ? [ONLY_TYPE] : TYPES) {
   const names = Object.keys(files).filter((n) => n.endsWith(".xml"));
 
   const sums = [], titles = [], related = [], cosponsors = [];
-  const bills = [], actions = [], billCommittees = [], subjects = [], cbo = [];
+  const bills = [], actions = [], billCommittees = [], subjects = [], cbo = [], textFormats = [];
   const docDates = [];
   const lawAreas = [];
   const amendLinks = [], reportLinks = [];
@@ -217,6 +235,7 @@ for (const type of ONLY_TYPE ? [ONLY_TYPE] : TYPES) {
     ["congress_bill_committees", billCommittees, ["key", "congress", "payload", "bill_id", "bill_number", "system_code", "name", "chamber", "committee_type", "subcommittee_code", "subcommittee_name", "activity", "activity_date"]],
     ["congress_bill_subjects", subjects, ["key", "congress", "payload", "bill_id", "bill_number", "name", "is_policy_area"]],
     ["congress_cbo_estimates", cbo, ["key", "congress", "payload", "bill_id", "bill_number", "pub_date", "title", "url", "description"]],
+    ["congress_text_formats", textFormats, ["key", "congress", "payload", "bill_id", "bill_number", "document_id", "version_type", "version_date", "package_id", "html_url", "pdf_url", "xml_url"]],
   ];
   const drain = async (force = false) => {
     for (const [table, rows, cols] of NEW_FAMILIES) {
@@ -376,6 +395,31 @@ for (const type of ONLY_TYPE ? [ONLY_TYPE] : TYPES) {
         url, description: plain(txt(est.description)) });
     }
 
+    // Every version's other renderings, held or not. This runs outside the
+    // `slot >= 0` gate above on purpose: a Public Law rendering has no version
+    // code, so it has no slot and no row in "Documents" — and it is exactly the
+    // sixth version congress.gov shows on H.R. 1 and we did not.
+    if (billId) {
+      for (const tv of items(b.textVersions)) {
+        const urls = items(tv.formats).map((f) => txt(f.url)).filter(Boolean);
+        const xml = urls.find((u) => /\.xml$/i.test(u)) ?? urls[0];
+        const pkg = /\/pkg\/([^/]+)\//.exec(xml ?? "")?.[1];
+        if (!pkg) continue;
+        const slot = VERSION_CODES.indexOf(versionCodeOf(urls[0]));
+        const vtype = txt(tv.type) ?? null;
+        textFormats.push({
+          key: `${apiKey}-${vtype ?? pkg}`, congress: CONGRESS, payload: JSON.stringify(tv),
+          bill_id: billId, bill_number: bn,
+          document_id: slot >= 0 ? -(billId * 100 + slot + 1) : null,
+          version_type: vtype, version_date: String(txt(tv.date) ?? "").slice(0, 10) || null,
+          package_id: pkg,
+          html_url: `https://www.govinfo.gov/content/pkg/${pkg}/html/${pkg}.htm`,
+          pdf_url: `https://www.govinfo.gov/content/pkg/${pkg}/pdf/${pkg}.pdf`,
+          xml_url: xml ?? null,
+        });
+      }
+    }
+
     // A law is a bill, and policyArea is on the bill record — not on the /law
     // list the family is cut from.
     const area = txt(b.policyArea?.name);
@@ -483,6 +527,7 @@ const counts = await db.query(`select
   (select count(*) from congress_bills) b, (select count(*) from congress_bill_actions) ba,
   (select count(*) from congress_bill_committees) bc, (select count(*) from congress_bill_subjects) bs,
   (select count(*) from congress_cbo_estimates) cbo,
+  (select count(*) from congress_text_formats) tf,
   (select count(*) from congress_bills where sponsor_bioguide is not null) sp,
   (select count(*) from congress_summaries) s, (select count(*) from congress_titles) t,
   (select count(*) from congress_related_bills) r, (select count(*) from congress_cosponsors) cs,
@@ -491,7 +536,7 @@ const counts = await db.query(`select
   (select count(*) from congress_committee_reports where bill_id is not null) cr`);
 const c = counts.rows[0];
 log(`billstatus done: ${tally.bills} bills · ${tally.zips} zips · ${(tally.bytes / 1e6).toFixed(0)} MB · 0 API requests`);
-log(`  congress_bills ${c.b} (${c.sp} with a sponsor bioguide) · congress_bill_actions ${c.ba} · congress_bill_committees ${c.bc} · congress_bill_subjects ${c.bs} · congress_cbo_estimates ${c.cbo}`);
+log(`  congress_bills ${c.b} (${c.sp} with a sponsor bioguide) · congress_bill_actions ${c.ba} · congress_bill_committees ${c.bc} · congress_bill_subjects ${c.bs} · congress_cbo_estimates ${c.cbo} · congress_text_formats ${c.tf}`);
 log(`  congress_summaries ${c.s} · congress_titles ${c.t} · congress_related_bills ${c.r} · congress_cosponsors ${c.cs} · text dates ${c.dd} · amendments linked ${c.a} · reports linked ${c.cr}`);
 
 await db.end();
