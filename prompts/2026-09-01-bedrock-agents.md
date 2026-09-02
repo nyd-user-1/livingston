@@ -1353,11 +1353,30 @@ A "Latest hearing" video card at the top of the committee page's right rail:
 click-to-play embed of the committee's most recent or live hearing, badged when
 live, title and date beneath, linked to our hearing row where one exists.
 
-**Where nothing matches there is no card at all** — the lead's sharpening of my
-"honest empty state", and it is the better rule. An empty video card says *this
-committee has no hearings*, which is a lie about the world rather than a fact
-about us; absence says only that we have nothing to show. Same precedent as the
-roster: absent rather than empty.
+**OVERRULED by Brendan, and he is right.** The lead and I converged on "no card
+at all where nothing matches". His objection: *"if you have absence then I have
+no recollection that this is a thing we need to do… if we get stuck on a data
+layer issue or an API issue that is not just cause to hide the UI."*
+
+Tonight's own evidence is against my position. The member office block rendered
+nothing for every member for weeks, and the only reason anyone learned the
+ingestion was storing the list payload instead of the detail one is that I
+happened to probe the API. Had that section *said* "no office on file", someone
+would have noticed it said so for all 553.
+
+So the disagreement was never about visibility — it was about what an empty
+state **says**. Two different absences were being run together:
+
+- *The world is that way.* A state committee has no YouTube channel. Asserting
+  "this committee has no hearings" would be a lie about them.
+- *We have not finished.* No API key, no map built, a data layer that is wrong.
+  Hiding this loses the todo, which is exactly Brendan's point.
+
+The rule that satisfies both: **the card always renders; it says what WE lack,
+never what the committee lacks.** "No channel mapped for this committee yet",
+"no video matched this hearing", "the video key is not configured" — each true
+about us, each visibly unfinished, none of them a claim about the world. Absence
+is reserved for nothing at all.
 
 **Two flags, raised now rather than when I reach them.**
 
@@ -1401,3 +1420,5 @@ LEAD: 10:40Z (Brendan, relayed — §14, real email delivery from the Agentic In
 2. **The inbox UI evolves honestly**: a thread whose report was emailed shows the delivery (address elided sensibly, message id from Resend as proof, per the proof-not-assertion rule).
 3. **v2, EVALUATE AND PRICE ONLY: Amazon SES** — the AWS lean, cheaper at scale, and the path to INBOUND agent addresses (researcher@policy.nysgpt.com receives a task by email and the agent replies — the AgentMail-shaped full circle). Name the pieces (domain verification DKIM records in Cloudflare — a Brendan FLAG; production-access request and its ~24 h; inbound receipt rules → the task queue, which composes with the v2 SQS+Lambda close-the-tab work already priced). Brendan buys v2 from the table.
 Sequence: after §10b's connector wirings land and verify. Sender domain choice (send from policy.nysgpt.com vs Resend's shared domain) is a one-line Brendan FLAG when you reach it — his DNS, his call.
+
+LEAD: 11:20Z — Three rulings. (1) Brendan's overrule of "absent rather than empty" is ACCEPTED lead-wide, and the evidence was ours all along: the office block rendered nothing for 553 members and the bug hid precisely because nothing said "no office on file." The reconciled rule is now canon and supersedes my §13 ruling and the roster precedent it leaned on: **a surface always renders and says what WE lack, never what the subject lacks** — "no channel mapped yet," "the key is not configured," "rosters are not harvested yet" — each a true sentence about us, visibly unfinished. Absence is reserved for nothing at all. Apply it to every surface you own; the member/committee ROSTER sections (lane P's builds, currently unowned) are the known other offenders and are hereby queued for the same correction — take them when convenient, they are two sentences each. (2) publicOrigin() joins the canon and the trap list: `new URL(request.url).origin` on Amplify SSR is https://localhost:3000 — only forwarded headers carry the reader's host; AgentCore rejecting the unregistered return URL was the lucky loud case of a bug that ships silently everywhere else. The vault-secret prefix addition (…/oauth2/govblock-*) is approved — still not 44b's. (3) The consent step: do NOT contort headless around Google's sign-in. Brendan is the first real user and the acceptance test IS the product flow — when the Connect button is live on /connectors, hand it to him: he clicks, signs in on his own account, grants the two scopes; you verify the aftermath (grant in the vault, Save to Drive producing a real file). Report readiness and I will put it in front of him.
