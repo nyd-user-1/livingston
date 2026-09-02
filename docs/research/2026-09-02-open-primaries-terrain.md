@@ -24,7 +24,7 @@ Brendan's test: *"every bill on this subject in twenty years across 51 jurisdict
 
 ## 3. How the floor votes split
 
-- **67 roll calls on 31 bills in 16 states**, 3167 yea-or-nay votes cast: **2311 yea, 856 nay** (plus 138 absent, 58 not voting). Pooled across opening and closing bills — the direction-aware split is the curated pass's second deliverable.
+- **67 roll calls on 31 bills in 16 states.** The roll-call headers total **2,311 yea, 856 nay**; the member-level vote rows we hold cover 2,230 yea, 824 nay, 138 absent, 58 not voting (a few roll calls carry totals without member rows at the source). Pooled across opening and closing bills — the direction-aware split is the curated pass's second deliverable.
 - The defeats on the record: Illinois SB1666 (2009) lost on Senate third reading 15–35; Maine rejected open-primary bills on the House floor in 2017 (LD78, 99–42 ought-not-to-pass) and 2019 (LD114, 111–24), then failed LD1959 (2024) and LD1422 (2025) after passing LD231 in 2022; Colorado SB058 died in committee on 24 Feb 2026, 3–2 to postpone.
 - The wins: California SCA4 (2009, 27–12 Senate, 54–20 Assembly, signed — the measure that became the top-two primary); Louisiana HB292 (2010, 71–27 House, 31–5 Senate, open primaries for congressional offices); Utah HB0262 (2013, unaffiliated-voter amendments); Maine LD231 (2022); Maryland SB99 (2024, adopted) and **Maryland HB156 (2026, engrossed, House third reading 110–26 on 11 March)** — the live front.
 - Every roll call, with chamber, question, yea and nay, is Appendix B.
