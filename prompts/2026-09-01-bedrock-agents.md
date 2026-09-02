@@ -1430,3 +1430,166 @@ LEAD: 12:40Z (lead-agent-2 has the chair; Brendan relayed, his 3:04–3:05 AM sc
 4. **DISCORD per-user — EVALUATE AND PRICE ONLY** (Brendan's word was "maybe"). The site's bot connection stays as is; price the per-user parallel (Discord OAuth `webhook.incoming`, user picks server + channel at consent). He buys from the table or he doesn't.
 5. **Card-title truncation, fresh evidence:** at Popular-card width the names render "Go…" and "S…" — the 742958a ruling ("the name truncates and the status does not wrap") inverts at this width; a two-letter name identifies nothing. The name gets the space and the status chip yields — drop it below, shorten its strings, your call from the site's vocabulary. Same slice as the logo-overflow fix already first in your queue.
 6. Sequence: title/logo fix + grant verification + payoff pair → ride-along cards → Slack → Discord pricing whenever. §13 stays after the wirings, key already in env.
+
+---
+
+## §10c — the two fixes, the payoff pair, and the ride-along
+
+Builds **126–129**, commits `1395791`, `24cb8f4`, `9c464b1`, `8f4dede`.
+Screenshots `59-` … `65-`.
+
+### 1. The logo overflow, and why four fixes did not fix it
+
+`735f550` shipped claiming victory. It was wrong, and the deploy said so: the
+avatar spanned y 452.38–476.38 and the image y 461.70–479.56 — **the same
+geometry as before the fix**, 6.25px low and 4.25px out the bottom, on all
+eight marks. The new markup *was* live (`x-cache: Miss`, the new classes in the
+HTML), so this was not a cache lag. The fix moved nothing.
+
+Dumping the CSS rules that actually matched the image found it in one line:
+
+```
+.typeset :not(:where(.not-typeset, [data-not-typeset], …)):where(img, video)
+  { margin-block-start: var(--typeset-flow); height: auto; border-radius: … }
+```
+
+**12.5px of flow margin**, half of it the 6.25px drop — because a flex
+container centring a child still honours that child's margin, including an
+absolutely positioned one, which is exactly why taking the fallback out of flow
+changed nothing. Every `ConnectionMark` renders inside a `DocsPage`, and
+`DocsPage` wraps its children in `.typeset`, so every mark on /connectors *and*
+on the agents surfaces carried it.
+
+Four attempts went into the Avatar primitive — clip, pin both children, move
+into `AvatarFallback`, take it out of flow — and the bug was never in the
+primitive. `data-not-typeset` on the mark ends it, at the component so no call
+site has to remember. **Verified on the deploy: centre delta 0.000px on all
+eight marks, no overflow on any side.**
+
+**The finding under the finding, and it needs a ruling.** This page carried
+`not-prose`, which is Tailwind typography's opt-out. This codebase's opt-out is
+`not-typeset` / `data-not-typeset`. **`not-prose` matches nothing here** — it
+reads as an opt-out and is inert. Nine more sites carry it: `agents/agent-chat`,
+`agents/agents-list`, `agents/discord` (×4), `agents/[slug]`, `bill-text`,
+and /connectors' own table. I did **not** sweep them: those surfaces currently
+render *with* typeset applied and were accepted that way, so flipping them
+changes accepted layout — it is a ruling, not a cleanup. The two /connectors
+wrappers stay as they are; only the card root is now `data-not-typeset`, which
+is what removed the 12.5px margin from its summary.
+
+### 2. The card titles, and one answer instead of four
+
+Measured first: card 202.7px, mark and gap 32, status chip 94.8–105.7, leaving
+33.8px for a name needing 117. Three of four names identified nothing at every
+viewport, because the grid's columns are the same width at all of them.
+
+The name now owns the top row and the status drops to the bottom row beside the
+button. Verified live: `"Google Drive" 90/90`, `"Google Calendar" 117.3/117`,
+`"Slack" 39.8/40`, `"Discord" 53.7/54` — nothing truncated.
+
+The second half was not optional. The chip was **server-rendered**, and the
+server cannot know whether *this browser* holds a Google grant — it always said
+"Not connected" for Drive and Calendar. Beside a button reading "Connected in
+this browser", the row would have contradicted itself in front of Brendan the
+moment his consent landed. So the live check moved into one provider that asks
+the vault once per service and feeds the card's chip, the card's button and the
+table's status cell. **It also stopped asking four times**: the check and the
+connect are the same call and a check opens an authorization session nobody
+walks through — four mounts became **two calls**, measured on the deploy.
+
+Then the chip itself truncated to "Not connect…" beside the button (173.8px
+wanted, 170.7 available) — the same defect one element over. The row wraps
+instead. Now moot at two columns, and correct at any width.
+
+### 3. The payoff pair, built and provable
+
+**Add to calendar** on four surfaces: the real /calendar month page (in the
+event popover — `/calendar` is the calendar app, not the board, which is what
+the first wiring got wrong), the calendar board, the home calendar card, and
+Congress committee meeting rows.
+
+Two facts from the rows shaped it rather than a guess. `time` is often `00:00`
+— **93 of New York's 200** most recent hearings — which is LegiScan holding no
+time, so those go on as **all-day** entries rather than midnight artefacts. And
+a time that *is* held carries no zone, while the reader's own zone is the wrong
+one, so a timed entry is stamped with the **capitol's** timezone, which is where
+a legislature sits. No capitol zone on file → all-day: a day that is right beats
+an hour that might not be. (CA's 200 rows are all exactly `10:00`, which smells
+like a default; we cannot tell a real 10:00 from a defaulted one, so it goes on
+as the record we hold and the event says the time came from the calendar.)
+
+**Two latent bugs in the never-exercised path**, found by reading it rather
+than by a 500 in front of Brendan: an all-day event ended on its own start date
+and Google reads `end.date` as **exclusive** — an empty range, refused; and a
+timed event sent a bare wall-clock `dateTime` with no zone, also refused. Both
+fixed before the first real click.
+
+**Save to Drive** sits beside Copy on every agent reply, and uploads the string
+the reader is looking at — the document cannot differ from the report on the
+page, the same guarantee `deliver_report` gives the loop.
+
+Neither button pre-checks the vault. A month page with forty rows would have
+opened forty authorization sessions for a reader who never clicked; the first
+click is the check, and a reader without a grant goes to /connectors, where what
+connecting means is written down.
+
+**The service-level proof stage 1 could not give.** Clicking Save to Drive from
+a browser with a fresh claim check landed on `/connectors` — which requires
+`GetWorkloadAccessTokenForUserId` **and** `GetResourceOauth2Token` to have both
+succeeded as the Amplify compute role, since any IAM denial returns 502 and
+paints the error red instead. The stage-1 note said the policy simulation was
+"a policy-level proof" and that the service-level proof would be the first
+deployed Connect. **That proof is in.** (Verified with a seeded inbox thread
+rather than a paid agent run — the inbox is localStorage, so a thread can be
+written directly and no tokens were spent to see a button.)
+
+### 4. Ride-along cards — and the FLAG answered, not raised
+
+Docs and Sheets ship as cards whose state **is** Drive's state: one live answer
+feeds all four Google cards, Connect on either reads "Connect Drive" and runs
+the Drive flow, and each says "Included in your Google Drive connection" where
+a reader would otherwise assume a second consent.
+
+**The Cloud-project FLAG needs nothing from Brendan.** Neither the Docs API nor
+the Sheets API has to be enabled: Drive converts on upload — markdown with a
+Docs mimeType becomes a Doc, CSV with a Sheets mimeType becomes a Sheet. The
+Docs path already shipped on that mechanism; Sheets is the same call with a
+different target. So Sheets has a **real** payoff rather than a promise:
+*Export to Sheets* on the calendar board, taking the rows **as filtered**.
+
+Marks are full colour always and ringless, per Brendan — the hairline was the
+Avatar primitive's own `after:` border, drawn for round photo avatars, so it is
+switched off rather than worked around. Popular is two columns.
+
+### 5. FLAG C, taken: /docs/money existed in four links and nowhere else
+
+The rail, the home navigation card, and the next arrows on /docs/directory and
+/docs/laws all pointed at a page that did not exist, so the home page prefetched
+a 404. Ownership accepted. The page exists now and **says what we lack**: both
+money readers (`getLobbying(bill)`, `getFec(member)`) answer for one bill or one
+member, so a Finance surface needs a list query that does not exist — and that
+is a data-layer decision, not this page's. It names what we hold (560,789 LDA
+rows, 5,517 FEC rows) and where the money already surfaces, rather than dressing
+two lookups up as a section. No new SQL was written.
+
+### 6. Two things the lead should know before asking
+
+**Brendan's grant cannot be verified from the CLI.** The token vault exposes no
+list of grants — `bedrock-agentcore-control` offers workload identities only,
+and a grant is keyed to a claim check that lives in his browser and nowhere
+else. So "verify the grant in the vault" resolves to the product flow, exactly
+as the 11:20Z ruling framed it: his /connectors chips flip to *Connected in this
+browser*, and Save to Drive produces a real file. Both are one screenshot.
+
+**Still blocked, nothing else is:** Slack needs `SLACK_CLIENT_ID` /
+`SLACK_CLIENT_SECRET`, which are not in either env file yet. The provider's
+suffixed callback URL will be FLAGged the moment the provider exists, before
+anything is built on it. Discord per-user pricing and §13 (key is in
+`~/Code/livingston/.env.local`) are unblocked and queued behind Brendan's
+clicks.
+
+LANE X STATUS: PARTIAL — §10c items 1, 2, 5 and the payoff pair are shipped and
+verified on the deploy; ride-along cards shipped, their Cloud FLAG dissolved;
+FLAG C closed. Awaiting Brendan's two consents for the aftermath check, and
+Slack's client credentials for item 3. One ruling wanted: the inert `not-prose`
+in nine other places.
