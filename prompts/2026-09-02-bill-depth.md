@@ -530,3 +530,56 @@ status and the forward floor calendar. Three are pure query work over tables
 that are already full. Three need an existing nightly detail window actually
 walked rather than any new harvest.
 
+
+## The close
+
+**Commits.** Pipeline (`~/Code/livingston`): `7c42534` the member record ·
+`abf0ac4` the roll-call tallies · `fddf9c8` the five families · `e9931fb` the
+text formats · `9b6ce98` the report part. Site (`~/Code/govblock`): `61a708b`
+the vote board · `c10fe90` six routes · `136e78f` `609973c` tracker · `c194c4b`
+actions · `eda9191` `2e09f04` committees · `fcd0905` subjects · `34913bd` cost
+estimate · `47fb94e` votes ↔ actions · `9df4110` text formats · `1be8133`
+constitutional authority · `ba094b5` lane U's ask.
+
+**Lane U's ask, done.** Its `canon 11/12` commit asked for `photo_url` and
+`bioguide_id` on the search payload's member rows, which is my route. Both are
+there (`ba094b5`) — `photo_url` covers the 52 legislatures, `bioguide_id`
+reaches the official portrait `congress_members` carries for all 554 members of
+Congress, which is the better picture where there is one and the only picture
+where LegiScan has none.
+
+**Two things left open, deliberately, and neither is mine to close alone.**
+
+1. **The title.** 3,000 of the 18,514 US bills carry a congress.gov display
+   title that differs from what our lists show, because LegiScan concatenates
+   every short title a bill has. H.R. 1 is the worst: our lists call it *FEHB
+   Protection Act of 2025*, a short title belonging to one portion of it, where
+   congress.gov calls it *An act to provide for reconciliation pursuant to title
+   II of H. Con. Res. 14* and gives *One Big Beautiful Bill Act* as its popular
+   title. Both are on `congress_bills` and both are served on `bill-record`.
+   Rendering them is lane U's surface, and putting the join into `getBills` —
+   the bills board's hot query — is a change I did not make unasked.
+2. **`titles` runs 11 against the API's 12 and congress.gov's 10.** Lane C
+   measured the shortfall and the lead ruled it stays; three sources disagree by
+   one and two and topping it up is one request per bill. Unchanged, recorded
+   again because the audit met it head on.
+
+**Operating notes worth carrying.**
+
+- The four-step `dp-congress` had never run as a whole before today. §1 of this
+  brief said it "has run green"; that was true of `sync.mjs` alone. It is true
+  of all four now.
+- **congress.gov's HTML is behind Cloudflare.** `curl` gets an interstitial and
+  so does *headless* Chrome; headed Chrome passes. Any future audit that has to
+  read a tab rather than the API needs a real window.
+- **The Data API sends a `timestamptz` with no zone on it.** Anything reading
+  one into `new Date` gets the reader's local clock, silently. Send instants.
+- **An endpoint keyed less precisely than the table will answer with several
+  records**, and only the row knows which is its own. That is what put "Book 2"
+  on both of H.R. 1's reports.
+- **`/senate-vote/119` is a 404.** congress.gov publishes House votes and
+  nothing else. LegiScan is the only source for the Senate's, and on H.R. 1 that
+  is 44 of 47 roll calls.
+
+LANE D STATUS: COMPLETE — lane C's three items closed and its file signed off; the gap audit filed as one measured table with three flags; five families harvested from the zips at zero API cost and served on six routes; all nine sections rendered, one per commit, and §4.6 shown by measurement to need no code; the four-step nightly green (EXIT=0) with the member backfill surviving it; /blocks/vote drawing 654 House roll calls from Aurora with the fixture cards retired; §6 sized and nothing built. Left open by ruling: titles at 11, and the display-title fix in lists, which is lane U's surface.
+
