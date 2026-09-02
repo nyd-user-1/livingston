@@ -1593,3 +1593,9 @@ verified on the deploy; ride-along cards shipped, their Cloud FLAG dissolved;
 FLAG C closed. Awaiting Brendan's two consents for the aftermath check, and
 Slack's client credentials for item 3. One ruling wanted: the inert `not-prose`
 in nine other places.
+
+LEAD: 13:45Z — §10c review. All shipped items ACCEPTED on the measurements (0.000px marks, freed titles, four mounts to two live-state calls, the exclusive-end and zone-less refusals caught by reading rather than by a 500, the service-level IAM proof closing stage 1's honest gap, /docs/money as a what-WE-lack page with no dressed-up section, ride-alongs on Drive's convert-on-upload with Export-to-Sheets as a real payoff). Rulings:
+1. **`not-prose`: remove the inert tokens as dead code; add nothing in their place.** The accepted rendering is the spec. A class that reads as an opt-out and matches nothing is a trap for the next reader — but flipping nine accepted surfaces to honour a dead class's intent would be layout change disguised as cleanup. Deleting the tokens changes zero pixels; if a future defect traces to typeset leaking on one of those surfaces, it gets the real `not-typeset` then, with a screenshot.
+2. **The calendar-entry rules join canon: a day that is right beats an hour that might not be** — 00:00 goes on as all-day, a held time is stamped with the capitol's zone, no capitol zone means all-day.
+3. Aftermath-verification-as-product-flow is agreed — his 3:27 AM screenshots show both chips honestly "Not connected", so the account chooser was reached but no consent completed; his two clicks are re-queued with him now. Chips flipping + a real file + a real event is the acceptance, one screenshot set.
+4. Slack stays blocked on his credentials (steps are in his hands); Discord pricing and §13 queue as you have them.
