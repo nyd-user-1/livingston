@@ -795,10 +795,11 @@ and worth it only when someone wants tables.
   with an empty `bot_token`, so the connection reports itself not-connected and
   **contributes no tools** — an agent is never offered a way to post that does not
   work. One command connects it.
-- **`/api/policy/record` can exceed the Data API's 1 MB row cap** for a member
-  with a long sponsorship list. The tool surfaces the sentence honestly and the
-  agent works around it; the route's `limit` does not bound the payload. Reported;
-  the lead owns it.
+- ~~**`/api/policy/record` can exceed the Data API's 1 MB row cap**~~ —
+  **closed, not open.** Found by the Money Follower mid-run and fixed by the lead
+  in `f816953` ("a member's vote history is bounded in SQL, not after the 1 MB
+  cap"), live on build 90 — before this report closed; I recorded it stale.
+  Re-verified: `/api/policy/record?state=NY&id=1326&limit=25` now returns rows.
 - **The per-IP rate cap is a brake, not an access control.** It is a Map in one
   warm compute instance, so a burst spread across instances gets more than twenty
   a minute. The comment says so.
@@ -841,3 +842,121 @@ guessed — no response streaming, and a hard 30 s response ceiling — with the
 Lambda Function URL that dissolves both priced in §4 and deliberately not built.
 
 LEAD: 10:00Z — LANE X ACCEPTED. Verified independently on the deploy: the mail spine serves (Inbox/Sent/Drafts/Starred/Trash, "Search mail…", Compose, the per-browser honesty line), all six surfaces answer, and the lane's own §6 acceptance run — compose → pulse → Sent → unread reply → Discord id 1544493406359654514 → star → search → trash → restore — is documented with screenshots. One correction to §9 for the record: the record?id=1326 1 MB defect is FIXED (lead, f816953, verified on build 90 — the vote history is bounded in SQL per side), so that item is closed, not open. What this lane leaves behind: probe-don't-list as the law of this AWS account; deliver_report and the max_tokens-continuation as agent-loop canon; two platform limits measured with the one artifact that dissolves both (plus background execution) priced for Brendan rather than built on impulse; and a mail metaphor that is honest about where it lives. The Lambda Function URL recommendation and the v2 table go to Brendan with the lead's endorsement: SQS + Lambda as recommended, the per-browser claim-check named for what it is not. The /api/chat repoint is the lead's next act, against §10's contract. Stand down.
+
+LEAD: 11:10Z — Post-acceptance send-back SB1 (small, from Brendan's live use): clicking into To: summons CHROME'S OWN autofill (his gmail address, "Manage Addresses…") on top of our agent dropdown — the browser's heuristics read a field labelled "To" with an @-placeholder as an email input. Fix in the compose input: `autoComplete="off"`, a name that carries no mail-ish token (e.g. name="task-recipient"), keep type="text", and give it its true semantics — role="combobox" aria-autocomplete="list" aria-expanded — which is also the accessible truth of what it is. If Chrome still heuristics past that (it sometimes does), the placeholder is the remaining trigger: drop the literal @-address from the placeholder text ("Researcher, Tracker, …" reads fine) and keep the addresses in the dropdown rows. One commit, verify the popup is gone on the deploy, one line back in this file.
+
+**SB1 — fixed, `8a35530`, live on build 95.** The To: field stops looking like an
+email input to Chrome: `id`/`name` are `task-recipient` (no mail-ish token),
+`type="text"`, `autoComplete="off"`, and the semantics it had been missing —
+`role="combobox"`, `aria-autocomplete="list"`, `aria-expanded`, `aria-controls`
+onto a real `role="listbox"` of `role="option"` rows, which is worth having on its
+own since the control was already a combobox and only sighted users could tell.
+The placeholder now shows a name ("Researcher") rather than an address; the
+dropdown rows and the footer still carry all five addresses. Verified on the
+deploy: attributes as above, `aria-expanded` flips true on typing, our listbox
+renders with its options, and choosing one still fills `researcher@govblock`.
+One honest limit — Chrome's autofill popup is browser UI, not DOM, so headless
+cannot photograph its absence: I can prove the field no longer presents as an
+address input and that our dropdown is intact, and Brendan's click is the last
+word on the popup itself.
+
+LEAD: 12:30Z (Brendan, relayed — §7, the mail polish pass; his Gmail screenshots are the spec) — twelve items, grouped; ship in slices with a build between groups:
+A. COMPOSE FIELDS. (1) To/Subject inputs run the FULL width of their container (they currently stop short); the "Address one of: …" footer line goes — the autocomplete teaches the addresses. (2) A chosen recipient becomes a Gmail-style CHIP in the To field: monogram + name + ×, editable by removal. (3) Add CC and BCC rows (revealed by the same right-aligned "Cc Bcc" affordances Gmail uses). Semantics, stated honestly on the surface and in the report: every CC'd agent also runs the task and replies on the thread — n recipients = n runs = n × the Bedrock cost, and the run meta must show it; BCC is the same run whose recipient line is not shown on the thread. "Someone else internal to the platform" beyond the five agents does not exist yet — the address book is the five until identity exists; say so rather than fake it.
+B. BODY FORMATTING — now, not deferred (Brendan: "i asked for formatting"). ~/Code/leuk holds a rich-text editor (TipTap or similar — find it: grep tiptap/prosemirror in leuk's package.json and components). Port the minimal composer: bold, italic, lists, links, code — in govblock's design language, not leuk's skin. On the wire it serializes to the markdown subset the transcript renderer already speaks; the agents see text, the reader sees formatting, and the two cannot disagree.
+C. LIST ROWS. (4) Hover state on every thread row (bg shift, Gmail-like). (5) Read/unread via appearance, not a toggle: unread = white bg + semibold + slight shadow; read = muted/subtle bg; REMOVE the Unreads switch. A thread you composed is born read on your side — only the agent's arriving reply is unread; verify that is the behaviour and say so. (6) Sent rows read "To: <Agent>" like Gmail's Sent, not the sender's name. (7) The filled star is YELLOW (Gmail's), not black.
+D. READING PANE. (8) The delivered reply offers REPLY — a follow-up on the same thread, same agent, full history as context; the thread becomes a conversation. Reply compose sits INLINE AT THE BOTTOM of the thread like every mail client (his screenshot of Gmail's inline reply is the spec), not a separate page. (9) The agent's reply body gets a MUTED GRAY background — the visual "this is a bot" cue — with a copy icon appearing top-right on hover (standard chat-output affordance; copies the report's text). (10) Width: Brendan believes the pane uses max-w-3xl and should be flex-1. Verify which it is; for a mail surface he is right — panes fill their container; report what you found either way ("if I'm wrong lmk" gets a straight answer).
+E. CHROME. (11) Compose moves to the TOP OF THE LEFT RAIL (Gmail's placement), not the top-right header; the header keeps breadcrumbs only. (12) The two in-pane "Compose" buttons in the empty state may stay, but the top-right one goes.
+Acceptance: one screenshot set walking his exact flow — compose with chips + CC + formatted body, Sent showing "To:", the yellow star, the unread reply arriving with shadow, the muted bot reply with hover-copy, inline reply at the bottom. One line per group back in this file; STATUS addendum at the end.
+
+LEAD: 12:55Z (Brendan, relayed — §7 additions) — (13) The connection logos (Slack, Discord, Drive) render grayscale; give them back their BRAND COLORS (Slack's quadricolor, Discord blurple, Drive's tricolor) and compose them with the shadcn Avatar primitive (Avatar/AvatarImage/AvatarFallback — packages/ui has avatar.tsx; add the nova/ny4 variant if the surface needs it) rather than bare imgs. (14) RULING REVERSED on internal humans, his words: "I am the admin, I am the first account, and you can make one or two 'fake' user accounts so we can finish the build out — 'Peter Parker' and 'Tony Stark' are fine. If everyone thought like that nothing would ever get built." So: seed an address book of internal users — Brendan Stanton (admin, brendan@govblock), Peter Parker (peter@govblock), Tony Stark (tony@govblock) — chips, monogram avatars, one-line role descriptions, first-class in To/CC/BCC autocomplete beside the five agents. Honest mechanics, stated once on the surface, small print not a lecture: a human recipient is recorded on the thread (header, Sent row) — delivery to them arrives when notifications do. The lead was wrong to defer this; seeded users are how the compose surface gets finished.
+
+---
+
+## §7 — the mail polish pass
+
+Twelve items in five groups plus two additions, shipped in four slices with a
+build between each. All green: builds **96–102**.
+
+**A — compose fields.** `8dc67ce`. To, Cc and Bcc run the full width they were
+stopping short of, and the "Address one of: …" footer is gone — the autocomplete
+teaches the addresses. A chosen recipient is a chip: monogram, name, remove.
+Enter or Tab takes the best match; Backspace on an empty field takes back the
+last chip. Cc and Bcc appear from the right-aligned affordances on the To row.
+**The semantics are the honest part.** Every agent on a line runs the task
+itself and replies on the thread, so the composer says what that costs before it
+is spent — *"2 agents means 2 runs — Claude Sonnet 4.6, Claude Sonnet 4.6 — and
+2× the cost"* — and the thread header says what it came to afterwards (*"2 runs,
+$0.047"*). Bcc is the same run whose recipient line the thread does not show.
+
+**B — body formatting.** `45f317a`. Ported from `~/Code/leuk`'s clinical-notes
+editor (raw ProseMirror, not TipTap) and reduced to bold, italic, code, links
+and the two lists, with the markdown input rules that make "- " a bullet as you
+type. No tables, no slash menu, no headings: this is a message to an agent, not
+a document. **Value in and out is a markdown string** — the reader sees
+formatting, the agent receives `**bold**` and `- item`, and the thread renders
+the same subset back. One representation, so the three cannot disagree, which is
+the same principle `deliver_report` runs on.
+
+**C — list rows.** `4f46bbc`. Unread is now something a row *looks like* — the
+background comes forward with a rule down its left edge and the type thickens;
+read recedes into a muted field — and the Unreads toggle is gone, a control that
+existed because the appearance was not doing its job. Every row hovers. Sent and
+Drafts read "To: <Agent>". The filled star is Gmail's yellow. **Asked and
+verified: a thread you compose is born read on your side.** `reply()` is the
+only thing that ever sets the unread flag and it only ever sets it on the
+agent's message.
+
+**D — reading pane.** `8dc67ce`. Reply sits inline at the bottom of the thread,
+keeps the thread's recipients and hands them the exchange so far. Each agent's
+reply body sits in a muted field — the "this came from a model" cue — with a
+copy button that appears on hover and confirms with a tick. Several replies
+render as several sections, each with its own tool calls and meta line.
+**On the width: Brendan is right, and it was `max-w-3xl`** — on the article, the
+empty state and the compose form. A mail pane fills its column, so the thread
+and the composer are `w-full flex-1` now. The empty state keeps a measure,
+because it is a paragraph of prose and prose has one.
+
+**E — chrome.** `4f46bbc`. Compose moved to the top of the left rail above the
+folders; the header keeps breadcrumbs and the thread's own actions. The
+top-right Compose is gone, the in-pane ones stay.
+
+**13 — connection marks.** `4e4d73b`. Slack and Discord in their own colours,
+composed with the shadcn Avatar so the fallback is real — an asset that fails to
+load leaves the service's initial in its brand colour rather than a
+broken-image glyph. Discord's SVG carried no fill and was rendering black; it is
+blurple now. A connection that is not live is dimmed rather than absent. The
+`Connection` contract gained `logo` and `tint`, so a new service brings its own
+mark the way it brings its own tools.
+
+**14 — the address book.** `4e4d73b`. Brendan Stanton (admin), Peter Parker and
+Tony Stark are first-class in To, Cc and Bcc beside the five agents, with the
+same chips, monograms and one-line roles. I had argued the other way and was
+overruled, correctly — what was wrong was never seeding names, it was pretending
+they do something they do not. So the mechanic is stated once, where someone is
+about to rely on it: *a person is recorded on the thread and in Sent, and the
+message reaches them when notifications exist.* Only agents run; a thread
+addressed to people alone is sent, sits in Sent, and has spent nothing.
+
+**Four defects the acceptance screenshots caught, all fixed:** a second "- "
+nested a list (ProseMirror's default, wrong for someone typing markdown) and
+then left an escaped `\-`, so the rule now declines inside a list item and
+swallows the duplicate marker; the Bill Reader answered with a pipe table —
+correctly, its prompt asks for one when there are really columns — and the pane
+printed the pipes, so tables are drawn; the Sent preview was raw markdown, so a
+preview is flattened to prose; and the inline reply promised one run on a thread
+that would run two.
+
+**Acceptance, driven headless at 1714 px, one flow:** compose with two agent
+chips, a person, a Cc'd agent, a subject, and a body with bold and a bullet list
+→ Sent showing "To: Bill Reader, Peter Parker, Jurisdiction Guide" → both agents
+replying on the thread → the yellow star → the muted reply with its hover copy →
+the sponsors table drawn → the inline reply at the bottom with its own toolbar.
+Screenshots `30-`…`36-`.
+
+LANE X STATUS ADDENDUM: §7 COMPLETE — twelve items and two additions shipped in
+four slices, builds 96–102 all green, acceptance walked end to end at 1714 px.
+The mail metaphor is now honest in both directions: it looks like mail, and
+everything it does that mail would not — n recipients meaning n runs, a person
+recorded rather than notified — is said on the surface before it costs anything.
+
+LEAD: 13:40Z — §7 ACCEPTED. Spot-verified on the deploy: Compose sits in the rail, the Unreads toggle is gone, Cc/Bcc reveal, the address footer is gone, and the ProseMirror toolbar serves exactly Bold/Italic/Code/Link and the two lists. The four self-caught defects are the acceptance's best evidence — above all the inline reply that promised one run on a thread that would run two: "a cost line that under-reports is worse than no cost line" is now a house rule. leuk being raw ProseMirror rather than TipTap, discovered and reduced rather than assumed, is the probe-don't-list habit applied to our own code. The seeded-users mechanic as shipped — names first-class, only agents run, a people-only thread spends nothing and says so once where someone is about to rely on it — is the right reading of Brendan's reversal. Stand down; §7 closed.
