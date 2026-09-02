@@ -1297,3 +1297,50 @@ the field and will simply start having something to render.
 LEAD: 08:00Z — §11 ACCEPTED (measurement-verified: y=112/y=112, hover 0→1, 25 seals). The item-5 finding is the right kind: the component ships correct, the honest-empty rule did its job, and the cause — list payload stored under the detail name — is recorded in lane C's file for its resume. The lead is backfilling all 553 members from the real detail endpoint now; nothing changes on your side, and the office block + Contact section light up when the CDN cache turns. Queue stands: §10b stage 2 on Brendan's credentials.
 
 LEAD: 09:10Z (Brendan, relayed — §10b gains GOOGLE CALENDAR as the second user connector, TONIGHT) — The lead wrongly gated this on "when the surface exists"; /calendar has existed since the first night and hearings render on three surfaces. Corrected, his ruling: absolutely now. Scope: same Google client, second credential provider (or second scope on the Drive provider — pick whichever the vault models cleanly and say why): `calendar.events` — create events on the user's calendar, read nothing. The surface work: an "Add to calendar" affordance on hearing rows — the /calendar month page, the home calendar card's hearing list, and committee-page meeting rows — creating an event in the user's primary calendar carrying the hearing's title, committee, date/time, and the bill/committee link back to us. Connected state comes from the same /connectors machinery; not-connected clicks route to /connectors honestly. Cost lines per the house rule; every recipient of the earlier lessons applies (padding on the image, QA from the screenshot).
+
+**§11 item 5 — closed.** The lead backfilled all 553 members from
+`/v3/member/{bioguideId}` and recorded the endpoint correction in lane C's file
+so its nightly cannot regress it. Verified on the deploy:
+
+```
+Washington, D.C. Office
+2436 Rayburn House Office Building
+Washington, DC 20515
+Phone: (202) 225-1510
+```
+
+Nothing on this side changed, which was the claim. The Contact section — empty
+for every member since it shipped — now carries the office, the phone,
+`adams.house.gov` and the biography link. Screenshot `56-`.
+
+*Process note, because it nearly became a false bug report.* The first probe
+after the backfill came back empty and I began diagnosing a rendering fault in
+my own component — imports, `"use client"`, context, whether the chunk had
+deployed. The code was fine; that probe caught the CDN object one refresh before
+it turned, and the next capture showed `x-cache=Hit age=70
+addressInformation=YES`. **Two probes, not one, before believing a negative — a
+single miss against a 30-minute cache is not evidence of anything.**
+
+**§12 (auth) is not this lane's** — reassigned to the `auth-flow` window. The one
+seam is a user-id contract its session layer publishes and my Drive connections
+and inbox keys consume later; the shape gets agreed through the lead and nobody
+edits across the fence.
+
+**Google connectors — ruled: one provider, two scopes.** `govblock-google` holds
+the client id and secret; `get-resource-oauth2-token` takes `--scopes` as a
+per-request parameter, so the provider is the **client, not the grant**. Two
+providers sharing one Google client would duplicate the same secret in two
+places and double what has to be rotated, modelling one client twice rather than
+two grants. Drive asks for `drive.file` at save time and Calendar for
+`calendar.events.owned` at add time, which gives incremental consent for free: **a
+reader who only adds hearings is never asked for Drive.**
+
+**Scope correction, recorded before it was built:** Calendar's scope is
+`https://www.googleapis.com/auth/calendar.events.owned`, not `calendar.events`.
+Strictly narrower — create and change events on calendars the reader **owns**,
+their primary included, with no reach into calendars merely shared with them.
+Same click, smaller grant. The one thing it cannot do is add a hearing to a
+shared team calendar the reader does not own; that is the correct trade and is
+written here so it is a known limit rather than a support question.
+
+LEAD: 09:45Z (Brendan, relayed — §13, hearing video on committee pages) — His placement, his words: the committee page's right rail, top — UI for the video. Build: a "Latest hearing" card at the top of the committee rail — the committee's most recent (or LIVE, badged) hearing video, click-to-play embed (no autoplay-with-sound exists in any browser; muted autoplay is available but click-to-play is the shipped default), title + date beneath, linking to the hearing row where we have one. The finding is the work: a committed committee→YouTube-channel map (House/Senate committees run their own channels; build the map once like committee-codes.json, discoverable via one search pass), then a server-side match by channel + date/title via YouTube Data API v3 — plain API key, no user OAuth, search costs 100 quota units of the 10k/day default, so cache matches in a table or the snapshot rather than searching per view. FLAG Brendan when you reach it: Console → Credentials → Create credentials → API key → RESTRICT it to YouTube Data API v3 → .env.local as YOUTUBE_API_KEY. Honest empty state when no video matches. Sequence: after §10b's two connector wirings.
