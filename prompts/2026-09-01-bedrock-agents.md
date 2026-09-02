@@ -1807,3 +1807,80 @@ LEAD: 15:10Z — Report reviewed end to end; ACCEPTED in full. All five canon li
 
 LEAD: 15:55Z — CORRECTION to the 15:10Z acceptance, on lane X's own evidence: the held-session hypothesis was RIGHT and the "ruled out before touched" praise was premature — the ruling-out rested on a fix that never landed (a string replace against reformatted code matched nothing, changed nothing, and type-checked; the commit message described behaviour absent from the file) plus a grep hit misread as proof. The deployed request log shows the click carrying the held sessionUri and receiving IN_PROGRESS with no url. Real fix is 94bddcb (job 140), to be verified by watching the request carry force:true and the browser reach Google — words come with request logs now. New canon, ratified: **a string replace that does not match is a no-op that type-checks; verify the edit is in the file, not that the file still compiles.** The silent-control canon stands unchanged — it is the reason this bug was reportable at all. The correction itself is the standard: wrong with a mechanism named beats right with no receipt.
 
+
+---
+
+## §10d / §13 addendum — the verification, and the error I made in it
+
+Builds **139–141**. Everything below is measured on the live site.
+
+### The one that was mine
+
+`c60fb7f` described the forceAuthentication fix and **did not contain it**. The
+edit was a string replace against a block that had been reformatted, so it
+matched nothing, changed nothing, and `tsc` passed exactly as it would have. The
+commit shipped a message about behaviour that was not in the file. `532ea6f`
+before it failed the same way — which is how I came to grep for
+`askOnce(service, undefined)`, find a hit **inside `ask()`'s retry**, and tell
+the lead its hypothesis was wrong with confidence and no evidence.
+
+The lead's hypothesis was right. The click was carrying the held session. Proved
+by watching the request the deployed button actually makes:
+
+```
+→ POST /connectors/drive/connect {"claimCheck":"…","sessionUri":"…","force":false}
+← 200 {"connected":false,"sessionStatus":"IN_PROGRESS"}
+```
+
+**CANON:** *a string replace that does not match is a no-op that type-checks.
+Verify the edit is in the file, not that the file still compiles.* I then
+audited every other edit of the night the same way; all of them had landed, and
+only this one had failed, twice.
+
+### The click, verified the way it should have been the first time
+
+```
+passive check → {"claimCheck":"…","sessionUri":"urn:…MDMyNmViZjQ…","force":false}
+the CLICK     → {"claimCheck":"…","force":true}
+then          → https://accounts.google.com/v3/signin/identifier?…client_id=7…
+```
+
+Brendan's exact shape — a held IN_PROGRESS session, then a click — reaching
+Google's own sign-in.
+
+### The runtime environment, which is not the console
+
+The key went into Amplify's branch variables, a whole deploy went out, and the
+card still said "the video key is not configured". It was telling the truth.
+
+**CANON:** *adding a variable in the Amplify console is a no-op at runtime
+unless `amplify.yml` also writes it.* Next 16 under Turbopack does not inline
+env into the server bundle, so `amplify.yml` hands the runtime a real
+`.env.production`, and that `printf` **is** the runtime environment — `POLICY_*`,
+the auth lane's four `AUTH_*`, and nothing else. Console variables reach the
+build and stop.
+
+The probe that proved it is reusable: **a path that was never prerendered
+renders on demand**, so `/docs/committees/HSJU00` (uppercase, `dynamicParams`)
+came back `x-nextjs-cache: MISS` and still reported the key missing — ruling out
+the ISR cache and the CDN in one request. Two identical negatives from a cached
+path would have proved nothing.
+
+### Live now
+
+| surface | evidence |
+|---|---|
+| §13 video card | `/docs/committees/hsju00` → *"Young Americans' Lives Changed Forever by Democrats' Sanctuary Policies · Sep 1 · House Judiciary GOP"* |
+| §13 honest empty | `/docs/committees/ssra00` → *"No YouTube channel is mapped for this committee yet."* |
+| Add to calendar, /calendar popover | button present, title *"Adds 2026-02-02 16:00:00 New York"* — the capitol timezone is landing |
+| Export to Sheets + rows, board | 1 export button, 60 add buttons |
+| Save to Drive, inbox | present beside Copy; click with no grant reaches `/connectors` |
+| /connectors cards | 2 columns, 6 cards, no truncation, marks centred 0.008px, ringless, opacity 1 |
+
+One correction to my own earlier claim, for the record: the `not-prose` deletion
+was byte-identical before/after on `/agents` and a bill page, but
+`/agents/discord` differed — by the embedded Discord widget's live member count
+(0 online → 1 online), not by anything of ours. No stylesheet in the deployed
+app mentions `not-prose` at all; I probed for it directly rather than leaving
+the claim on reasoning.
+
