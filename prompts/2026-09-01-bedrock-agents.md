@@ -1038,3 +1038,58 @@ each nav panel, and the changelog.
 
 LEAD: 02:50Z — §8 group lines read. The composer redo stands verified from my side too (nine controls in the Send row, nothing above the writing surface, wire format proven on the deploy). The changelog's two repurposes are exactly right and worth naming: releases from govblock's OWN git log instead of inherited shadcn release notes ("somebody else's release notes on our page" ends today), and no new dependency where the transcript renderer already serves; dropping RSS rather than shipping a dead button is the honest call. The nav observation — four whole document families existed with nothing in the header pointing at them — is the argument for the rework in one sentence.
 LEAD: §9 ruling on your (b), and your instinct is correct: NO localStorage stand-in for the thread reader. A surface titled Discord that shows one browser's runs would misrepresent what the channel holds — and the inbox already shows this browser's runs under its own honest name. Order: build the WIDGET CARD now (honest not-enabled state + the FLAG with Brendan's Server Settings clicks); the thread reader ships as its honest not-connected state with the bot-token FLAG and renders nothing until the token exists. Both connections in the Slack shape, as you said. Go.
+
+---
+
+## §9 — Discord, both directions
+
+`/agents/discord`, in the Agents panel. Builds **108–112** (108 red on a
+server-only import, fixed in 109). Screenshots `47-`…`49-`.
+
+**1 — the widget.** Live, and **no FLAG is needed: the widget is already
+switched on.** The probe came back with the server, its instant invite and its
+channels, so the card renders rather than asking for something already done. It
+is our chrome — mark, server name, online count, Join — wrapped around Discord's
+own iframe, which is the point of embedding the official one: it is theirs and
+it is live, and reimplementing it would mean inventing presence we cannot see.
+The theme is read on the client because ours is, so it does not flash. The
+switched-off state is still written, with the four clicks that fix it
+(Server Settings → Widget → Enable Server Widget → pick an invite channel),
+because the switch can be turned back off and the page should say which one.
+
+**2 — the threads, honestly empty.** A webhook can write and cannot read — the
+URL is a one-way door — so rendering PolicyBot's threads on our pages needs a
+read-only bot, and `govblock/discord-bot` holds no token. Per the ruling,
+nothing stands in: the runs kept in one browser under a heading that says
+Discord would be a different claim than the heading makes, and they are already
+on the Agentic Inbox under a name that tells the truth about where they live.
+The page says exactly that and links there.
+
+**FLAG — Brendan's step, five minutes at
+`https://discord.com/developers/applications`:**
+
+1. **New Application** → name it `govblock` → **Bot** → **Reset Token** → copy it.
+2. **Bot → Privileged Gateway Intents: leave all three OFF.** Reading threads
+   needs none of them, and turning them on would be asking for more than the job.
+3. **OAuth2 → URL Generator** → scope **`bot`** → permissions **View Channels**
+   and **Read Message History** only → open the URL → add it to the server.
+4. Right-click the PolicyBot channel → **Copy Channel ID** (Settings → Advanced
+   → Developer Mode if it is not there).
+5. `./scripts/agents/connect-discord-bot.sh <token> <channel-id>` — it asks
+   Discord who the bot is and whether it can see that channel before it writes
+   anything, and the token is never echoed, never on disk, never committed.
+
+The secret exists empty at `govblock/discord-bot` and the compute role can read
+it. Nothing else is owed.
+
+**One defect fixed along the way, and it took three tries:** the connection
+marks had been rendering their logo hanging below its box since §7 item 13. The
+Avatar root is a flex *row*, so an image and a fallback rendered together sit
+side by side and the second falls out of a 24-pixel box. My first fix clipped
+the overflow, which hid the logo entirely — worse than the bug — and the second
+pinned both children and still left the image low. The mark now rides inside
+`AvatarFallback`, which is already `flex size-full items-center justify-center`
+and is exactly the box a small square mark wants. Verified against the deploy
+each time rather than reasoned about, which is how the first two went wrong.
+
+LEAD: 03:25Z — §9 ACCEPTED, verified live: /agents/discord serves 200 with the real widget iframe (the server was already switched on — probing before FLAGging saved Brendan a step, which is the right order of operations), the threads section says plainly what a webhook cannot do and where this browser's runs honestly live, and the bot FLAG's two safety lines (all privileged intents OFF; View Channels + Read Message History only) are the minimal-grant discipline this file has kept all night. The avatar postmortem is accepted with credit precisely because it was self-reported: two attempts reasoned about the primitive, the third started with the screenshot — that sentence is the QA method of this whole project in miniature, and it is now written where the next person will find it. Stand down; §9 closed. The lane's remaining external dependency is Brendan's five-minute bot token, and nothing blocks on it.
