@@ -187,3 +187,220 @@ every 45 minutes; `FLAG: …` for rulings; the last line, once:
 ---
 
 ## Report — worker appends below this line
+### 2026-09-02 — lane U
+
+`HEARTBEAT 12:45Z edit 3/10 9d096b3 job 152 next the committee page's Bills table`
+
+**Method.** Playwright from `~/Code/livingston/node_modules`, 1714 px, against
+`https://policy.nysgpt.com` after the Amplify job goes green — lane P's method,
+unchanged. Shots in
+`/private/tmp/claude-501/-Users-brendanstanton-Code-livingston/dc01e9aa-359c-4e5c-b445-acdd94c5a5ab/scratchpad/shots/`.
+
+**The canon lives in `apps/web/components/policy/record-item.tsx`** — `RecordList`,
+`RecordItem`, `RecordSeal`. No `"use client"` on it, deliberately: the member and
+committee pages are server components and the bills / federal lists are client
+components, and both graphs render the same file. What varies list to list is
+arguments — `avatar`, the bold `title`, `lead` (row 1's muted tail), `meta[]`
+(joined with ` · `, falsy entries dropped) and `description` — never shape.
+
+| # | edit | commit | job | shot |
+|---|---|---|---|---|
+| 1 | member page stat pills | `272e48c` | 149 | `e01-pills.png` |
+| 2 | member Record list = the canon | `6a3e24c` | 151 | `e02-canon-top.png` |
+| 3 | `/docs/bills` on the canon | `9d096b3` | 152 | `e03-bills.png`, `e03-bills-hover.png` |
+
+**Edit 2, the 8 px question, answered by looking.** The description's `mt-2`
+does not read tight — but only because the column's `gap-1` came off with it.
+Left in place, the gap and the margin stack and the row would have sat at 12 px,
+which is the number Brendan wrote once and did not mean twice. The two rows now
+carry explicit `mt-1` (meta) and `mt-2` (description), so 8 px is 8 px. No FLAG.
+
+**FLAG (edit 3, non-blocking) — the Text button is gone.** The canon does not
+carry one, so `/docs/bills` no longer does. The item still links to the bill,
+and the bill page has carried the full text timeline since lane P — Introduced
+through Enrolled, each version with its date — so the button led to a subset of
+where the row already goes. One line to restore if Brendan wants the shortcut.
+
+`HEARTBEAT 14:02Z edit 10/12 95ab2f7 job 164 next search results (11), then the sponsors listing (12)`
+
+Edits 1–10 are committed, deployed and looked at. Two arrived after I started —
+11 and 12 — and are next, in order.
+
+| # | edit | commit | job | shot |
+|---|---|---|---|---|
+| 4 | committee page Bills table → canon | `9e0674b` | 153 | `e04-committee.png` |
+| 5 | nominations · reports · laws | `951079e` `1d19b83` | 154, 156 | `e05-nominations-fixed.png` `e05-reports.png` `e05-laws.png` |
+| 6 | Records panel, 4 × 2, icons | `29e0c11` | 157 | `e06-records-panel.png` |
+| 7–9 | the two home cards, the pill | `c8c0840` | 159 | `e07-notifications.png` `e08-committee-votes.png` `e09-pill-tooltip.png` |
+| 10 | the Text block | `95ab2f7` | 164 | `e10-after.png`, vs `e10-congressgov.png` |
+
+**Job 164, not a job of its own.** Amplify builds the branch head when a build
+*starts*, not every commit, and lane D's nine bill-page commits were landing
+through the same queue — so `95ab2f7` never got its own job number and was built
+inside 164 (`47fb94e`). Verified by ancestry (`git merge-base --is-ancestor`)
+and then by the pixels, which is the check that counts.
+
+#### Edit 5 — the seal manifest
+
+**81 organizations resolved**, committed under `apps/web/public/seals` at 144 px
+(an avatar is 36 CSS px; Veterans Affairs' original is a 2 MB SVG). Every file,
+its Commons file page and its licence are in `apps/web/public/seals/SOURCES.md`;
+`apps/web/lib/seals.ts` is the map. All public domain, except the NEH seal,
+which is CC0 — recorded as CC0, not laundered into "public domain".
+
+**Six fall back to the Senate seal**, which is the chamber the nomination is
+before: African Development Bank · European Bank for Reconstruction and
+Development · Federal Agricultural Mortgage Corporation · Foreign Service ·
+United States International Development Finance Corporation · United States
+Postal Service. Plus the 17 rows whose `organization` is `None`.
+
+Two near-misses were rejected on purpose and are named in `SOURCES.md`: the
+Postal **Inspection** Service seal, and the Post Office Department seal
+(1837–1970), which USPS replaced in 1971. Neither is the Postal Service.
+
+**Worth carrying to other lanes: ranking Commons search hits is not good
+enough.** A scored search pass over the same 86 names gave the Army the
+**National Guard's** seal, the Department of Transportation **Alabama's**, the
+Judiciary **Mississippi's**, the Navy the **Junior ROTC's**, the Postal Service
+the **Inspection Service's**, Peace Corps and TVA their **Inspector General's**,
+NASA a flag, NSF a flag, and the Foreign Service the **Republic of China's**
+foreign ministry, 1931. Every hit was public domain and every hit scored well.
+The fix was to name the exact file for each organization by hand and verify it
+exists and is PD — 76 of 87 hit on the first candidate.
+
+#### Edit 10 — beside congress.gov
+
+`e10-congressgov.png` is the reference and `e10-after.png` is ours. Same two
+bold lines, same verbatim `<pre>`, same monospace, no View Code strip; ours is
+centred, which is the one difference Brendan allowed.
+
+**congress.gov cannot be screenshotted headless** — Cloudflare serves
+"Performing security verification" to headless Chromium. The reference shot is a
+headed run with `--disable-blink-features=AutomationControlled`; noting it so
+nobody else spends the twenty minutes.
+
+**One honest difference, and it is in the data, not the rendering.** GPO's own
+file has six blank lines between `<DOC>` and `119th CONGRESS`; the row we hold
+has one. Confirmed against Aurora (`select replace(left(text,160), chr(10), …)`)
+— the collapse is LegiScan's copy, not our `<pre>`. We render what we hold
+verbatim rather than padding it back out to match a file we are not serving.
+
+**The date is the document's, not ours.** `BillTexts.fetched_at` is the night we
+pulled the file — the same trap lane P hit on `text-versions.date` — so
+`getBillText` now also selects `Documents.date`, which is 2026-08-27 for
+HB10171 and is what "(08/27/2026)" prints. No document row, no date: the line
+prints the version alone.
+
+**FLAG (edit 10) — `bill-text.tsx` is shared, and the change lands on lane D's
+page.** `/docs/bills/[id]` §Text and the version timeline in `bill-congress.tsx`
+render through it, so both lose the View Code strip and the drawn title page.
+That reads right to me — "bill text is not code" is not a claim about one page —
+but it moved without lane D touching it, and the lead should rule. Neither call
+site passes `version`, so neither grows the "Shown Here:" header.
+
+**FLAG (edit 8) — the chart tooltip still says "Price".** The brief said the
+chart stays as it is, and `chartConfig` is part of the chart, so it does. On
+hover the Committee Votes card reads "Price 118". It is a label on a demo series
+either way, which is why it is Brendan's call and not mine.
+
+**FLAG (edit 6) — the panel entry reads "News Room", not "Newsroom".** The
+top-level nav has said "News Room" since it shipped and rule 3 says a surface
+does not get renamed; two spellings of one page in one menu is worse than
+either spelling. Trivial to flip.
+
+`HEARTBEAT 14:49Z edit 12/12 858354b job 174 next nothing`
+
+### Acceptance — twelve edits, twelve looks
+
+Shots at 1714 px in
+`/private/tmp/claude-501/-Users-brendanstanton-Code-livingston/dc01e9aa-359c-4e5c-b445-acdd94c5a5ab/scratchpad/shots/`.
+
+| # | edit | commit(s) | job | shot |
+|---|---|---|---|---|
+| 1 | member stat pills | `272e48c` | 149 | `e01-pills` |
+| 2 | member Record list = the canon | `6a3e24c` | 151 | `e02-canon-top` |
+| 3 | `/docs/bills` | `9d096b3` | 152 | `e03-bills`, `e03-bills-hover` |
+| 4 | committee Bills table → list | `9e0674b` | 153 | `e04-committee` |
+| 5 | nominations · reports · laws | `951079e`, `1d19b83` | 154, 156 | `e05-nominations-fixed`, `e05-reports`, `e05-laws`, `seal-sheet` |
+| 6 | Records panel 4 × 2, icons | `29e0c11` | 157 | `e06-records-panel` |
+| 7–9 | two home cards, the pill | `c8c0840` | 159 | `e07-notifications`, `e08-committee-votes`, `e09-pill-tooltip` |
+| 10 | the Text block | `95ab2f7` | 164 | `e10-after` vs `e10-congressgov` |
+| 11 | search results | `824b394` | 167 | `e11-search-bills`, `-text`, `-members`, `-committees` |
+| 12 | one sponsors listing | `65d65d1`, `65e2bf9`, `858354b` | 171, 173, 174 | `e12-sponsors-collapsed`, `-expanded`, `-state` |
+
+**Edit 9, for the record:** the "pill tooltip" is the `01 02 03 04 05` strip
+under the preview, and hovering `03` now reads **Text**. `?item=article` is
+untouched.
+
+**Edit 12, on the numbers.** HB2102 (338 cosponsors): prime sponsor on his own
+line, one table, ten rows then a scroll, `Show all 338`. **185 original / 153
+not**, and **0 of 338** unresolved names.
+
+#### Three defects the deploy showed and the code did not
+
+Each was found by looking at the pixels or the DOM after the build went green,
+which is the whole argument for the method.
+
+1. **`PN730-2` broke across two lines** — the bold slot had no `shrink-0`, and a
+   nomination number split in half reads as two nominations (`1d19b83`).
+2. **338 cosponsors all read "Yes" under Original**, including one who joined
+   five months after introduction. `/api/policy/cosponsors` answers
+   `isOriginalCosponsor` as the text `"True"` / `"False"` where the committed
+   record has a real boolean — and `"False"` is truthy. Read through a `truth()`
+   that takes either shape (`65e2bf9`). **Worth carrying: any lane reading that
+   route's booleans has the same bug.**
+3. **The ten-row box cut its tenth row in half on a state bill.** It measured
+   the eleventh row's top inside a plain `<div>` and then applied that height to
+   a scroll container — and a scroll container does not collapse its child's top
+   margin while a plain div does, so the list dropped by its own `<ul>` margin
+   after the measurement. The wrapper carries `overflow-y-auto` from the first
+   render now, so the box measured and the box constrained are the same box
+   (`858354b`). The congress.gov table never showed it; a table's margin does
+   not collapse either way.
+
+#### Open FLAGs, all non-blocking, none of them mine to rule on
+
+- **Edit 3 — the Text button is gone.** The canon has none. The item still links
+  to the bill, and the bill page has carried the full text timeline since lane
+  P, so the button led to a subset of where the row already goes.
+- **Edit 6 — the panel entry reads "News Room", not "Newsroom".** Rule 3: the
+  top-level nav has said "News Room" since it shipped, and two spellings of one
+  page in one menu is worse than either.
+- **Edit 8 — the Committee Votes chart tooltip still reads "Price".** The brief
+  said the chart stays as it is and `chartConfig` is part of the chart. It is a
+  label on a demo series either way.
+- **Edit 10 — `bill-text.tsx` is shared.** `/docs/bills/[id]` §Text and the
+  version timeline in `bill-congress.tsx` also lost the View Code strip and the
+  drawn title page. Right, I think — but it landed on lane D's surface without
+  lane D touching it.
+- **Edit 12 — NY K-resolutions list many "prime sponsors".** Carl Heastie gets
+  the prime line and ten more rows below him also say "prime sponsor", because
+  LegiScan gives `sponsor_type_id = 1` to every one of them. Faithful, and it
+  reads as a contradiction. Pre-existing; a rule that picks one would be
+  inventing one.
+
+#### Two asks for other lanes
+
+- **Lane D / `app/api/policy`:** the `search` payload's member rows carry no
+  `photo_url` or `bioguide_id`, so search results draw `MemberPortrait`'s
+  chamber-seal fallback rather than a face. One column and they look like the
+  directory.
+- **Anyone reading `/api/policy/cosponsors`:** see defect 2 above.
+
+#### Seam with lane D
+
+`app/docs/bills/[id]/page.tsx` was touched only inside the Sponsors block, plus
+the four declarations that block was the sole user of (`SPONSOR_TYPE`,
+`MAX_SPONSORS`, `district`, and the two `shownSponsors`/`moreSponsors` lines),
+which would otherwise be dead. `lib/policy/db-queries.ts`, `app/api/policy` and
+`scripts/` were never opened. `lib/policy/queries.ts` gained two columns —
+`Documents.date` (edit 10) and `People.bioguide_id` on the sponsor rows (edit
+12); it is not named in rule 6, and it was clean on every pull.
+
+**Note on job numbers:** Amplify builds the branch head when a build *starts*,
+not one job per commit, and lane D's bill-page commits were landing through the
+same queue all afternoon. Two of my commits therefore have no job of their own
+and were built inside a later one — ancestry checked with
+`git merge-base --is-ancestor`, then confirmed by the pixels.
+
+LANE U STATUS: COMPLETE
