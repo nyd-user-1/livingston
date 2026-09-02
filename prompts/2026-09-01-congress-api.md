@@ -442,3 +442,95 @@ LANE C STATUS: PARTIAL — §5.0 and §5.1 complete and verified on the deploy; 
 LEAD: 16:45Z — §5.0/§5.1 accepted. Rulings: titles stay at 11 with the gap recorded — 18,500 requests for one title each is not worth it. Fix the `items(b.summaries)` child-name bug in `scripts/pipeline/native/us.mjs` now — one line in a file you already edited this round; it writes to Neon today and will write to Aurora after the cutover, and a known-empty column is worse than a fixed one. The part-number key, the dedupe of the API's own byte-identical duplicates and the stale-row cleanup are all correct; write "a key change without a cleanup is a silent doubling" into the closing notes. Now §5.2 → §5.5 in one run — do not stop between them; one report and one STATUS line at the end.
 
 LEAD: 2026-09-02 08:00Z (for lane C's RESUME — a §7 item found in production) — `congress_members.payload` held congress.gov's LIST shape (nine keys), not the DETAIL: the pipeline stored the roster page's rows under the name member-detail, so `addressInformation`, `officialWebsiteUrl` and `birthYear` were never fetched and the member pages' Contact sections have been silently empty since they shipped (found by lane X building the office block; the component was correct and the data was absent). The lead has BACKFILLED all 553 rows from `/v3/member/{bioguideId}` directly into Aurora on 2026-09-02. YOUR fix on resume: whichever job refreshes congress_members must call the detail endpoint per member (553 requests against 20,000/h — trivial), or the next refresh silently regresses the backfill to list rows. Same child-name caution as everything govinfo/congress: verify the shape, not the name.
+
+### Lane C — round 3, closed by lane D, 2026-09-02 13:2xZ
+
+Lane C's window closed mid-poll on 2026-09-01 at 16:50Z, a minute before its
+last pass finished, so this file has carried no closing report. Lane D inherits
+it. What lane C actually landed, verified this morning on Aurora and box 2:
+
+| Family | State on Aurora | Commit |
+|---|---|---|
+| §5.2 house votes with per-member positions, CRS, the Record, communications | landed | `e598d14` |
+| cosponsors (from BILLSTATUS) | 172,684 rows | |
+| §6.1 real stage dates on text versions | 21,264 dates | `964192b` `22f1a07` |
+| §6.2 policyArea on laws | 104 of 104 | `d2692b1` |
+| §6.3 bill→report and committee→report links; report detail | 901 linked, 921 detailed | `e2d9ee2` |
+| §6.4 amendment sponsors (detail pass, tmux on box 2) | 7,035 of 7,035 | |
+
+The amendment pass's own last line, from `~/logs/c-amend.log` on box 2 —
+16:51:50Z, a minute after the window closed:
+
+```
+16:51:50 congress_amendments: 7035 rows · 7035 detailed · 7064 requests · 23.8 min
+16:51:50 harvest done: 1 families · 7064 requests total
+```
+
+Both checkouts were clean; nothing was half-committed.
+
+**The two open items are fixed.**
+
+**1. The member refresh no longer regresses the address backfill** (`7c42534`).
+`harvest.mjs` read `/member/congress/119` — the roster page, nine keys — and
+stored those rows under the name `member-detail`. The office address, the
+official website and the birth year exist only on `/member/{bioguideId}`, so
+every member page's Contact section was empty from the day it shipped, and the
+lead's backfill of all 553 rows would have been overwritten by the next nightly
+run. Two changes, because either alone still regresses: the members family gets
+a detail pass (553 requests, with a floor so `--detail-limit` cannot truncate
+it), and **the list pass no longer writes over a detailed payload** — the roster
+record is kept in its own `list_payload` column and `payload` belongs to the
+detail pass. Merging the two by name would have been worse than either: a
+member's `terms` is `{item:[…]}` in the roster and a bare array in the record.
+
+The same clobber was latent in every other detail family — amendments,
+committee reports, meetings, CRS reports, the daily Record — whose typed columns
+survived a refresh while their payloads regressed. One fix covers all of them.
+
+Proved on box 2 under the runner's own conditions:
+
+```
+run 1: 554 rows · 554 detailed · 557 requests · 1.2 min
+run 2: 554 rows ·   0 detailed ·   3 requests · 0.0 min
+
+total 554 · addressInformation 538 · officialWebsiteUrl 539 · birthYear 552
+terms as array 554 · list_payload kept 554
+```
+
+538 and 554 rather than the lead's 537 and 553 because the roster gained a
+member — Blair, Everton (D–GA-13) — between the backfill and this run.
+
+**2. Yea/nay tallies on `congress_house_votes`** (`abf0ac4`, site `61a708b`),
+aggregated from `congress_house_vote_positions` and served on the `house-votes`
+envelope. **647 of 647 roll calls carry a tally.**
+
+The trap in it: *"Yea" is not the only way the House says yes.* A Recorded Vote
+in the Committee of the Whole is cast **Aye/No** — 153 of the 647, including
+H.R. 1's final passage — so a tally counting only `Yea` would have drawn 153
+cards reading 0–0. Three roll calls have no yes or no in them at all: two
+quorum calls, and the election of the Speaker, where 434 members cast a
+candidate's *name*. `casts` keeps the whole distribution, so those are drawn
+with the count they have rather than as 0–0:
+
+```
+H.R. 1  roll 145  Yea-and-Nay   215–214–1   (Passed)
+        roll 144  Yea-and-Nay   212–216     (Failed)
+        roll 190  Recorded Vote 218–214     (Passed — the Aye/No one)
+Speaker           Johnson (LA) 218 · Jeffries 215 · Emmer 1
+```
+
+Also kept: `voteQuestion` — "On Passage", "On Motion to Recommit" — which is on
+the `/members` envelope this step already fetched and was throwing away.
+Without it a card is titled by its procedure ("Yea-and-Nay") rather than by
+what it decided. Backfilled for all 647.
+
+**One correction to the brief for the record.** §1's premise that the four-step
+`dp-congress` "has run green" is true of its first step only: `run-due` has
+launched `dp-congress` exactly once, 2026-09-01 15:37Z, when the manifest held
+`sync.mjs --days 7` alone (`EXIT=0`, 470 bills, 472 requests, 1.1 min). The
+`billstatus`, `harvest` and `house-votes` steps were added afterwards and the
+job has not come due since. Lane D proves the four-step manifest under the
+runner's own conditions in its own report.
+
+LANE C STATUS: COMPLETE
+
