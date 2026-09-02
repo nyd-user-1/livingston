@@ -319,3 +319,105 @@ publish dead links. `sync.mjs` already fetches `/bill/…/text` for every bill
 whose text moved — free — so it will store the formats as it goes, with a
 bounded backfill for the archive. Cost recorded, not hidden.
 
+
+`HEARTBEAT 13:58Z §4 nine sections committed (136e78f…1be8133) next the nightly and the side-by-side`
+
+## §3 — the harvest
+
+Everything below came from the eight govinfo zips `billstatus.mjs` already
+downloads. **18,514 bills, 51 MB, 90 seconds, zero API requests.** No new API
+detail pass was needed at all — §3 said to add one "only where the zips do not
+carry the field", and the one field they do not carry turned out to be
+derivable instead (see FLAG 3's resolution below).
+
+| table | rows | H.R. 1 | congress.gov's count for H.R. 1 |
+|---|---:|---:|---:|
+| `congress_bills` | 18,514 | 1 | — |
+| `congress_bill_actions` | 70,759 | 59 | 140 (its own merge; see FLAG 1) |
+| `congress_bill_committees` | 29,576 | 3 activity rows | 1 shown, 2 filed "Unknown" |
+| `congress_bill_subjects` | 52,750 | 239 + 1 policy area | 239 + 1 |
+| `congress_cbo_estimates` | 1,115 | 9 | 9 |
+| `congress_text_formats` | 21,515 | 6 | 6 |
+
+Every one of the 18,514 carries a sponsor bioguide; 6,977 carry a
+constitutional authority statement; 1 carries a popular title (CRS assigns them
+that rarely — H.R. 1's is *One Big Beautiful Bill Act*).
+
+Six routes serve them, all scoped by `bill=` and all echoing the scope:
+`actions` (paged) · `bill-record` · `bill-sponsors` · `bill-committees` ·
+`bill-subjects` · `cbo-estimates`.
+
+**Two of those names wear a prefix the brief did not ask for.** §3 named
+`subjects` and `sponsors`; both were already taken and mean something else for
+all 52 jurisdictions — `subjects` is the jurisdiction's subject list behind the
+bills board's filter, and `sponsors` is its top-sponsor table. Quietly making
+either mean *one bill's* would have broken a board. That is the trap `hearings`
+set for lane C and this is the same answer.
+
+**Four decisions worth naming.**
+
+1. **The sponsor is a column on a per-bill table, not a table of its own.**
+   `<sponsors>` is a list element and the whole list is kept in `payload`, so a
+   second sponsor is not dropped — but every bill in the 119th has exactly one,
+   and a table would buy a join for a lookup the page makes on every render.
+   The same row carries the constitutional authority statement and the display
+   and popular titles: the other facts a bill has exactly one of.
+2. **That payload is the bill's scalars, not the whole `<bill>` element.**
+   H.R. 1's is a two-megabyte document. Ten thousand of those in memory before
+   a flush is several gigabytes against a 2 GB heap; the five families drain
+   every 4,000 rows instead of at the end of a bill type.
+3. **Actions are keyed on their own identity** — date, type, code and a hash of
+   the text — not on their position. BILLSTATUS lists them newest first, so an
+   ordinal key rewrites every row of every bill the moment one action lands.
+4. **Committee activities are three levels of `<item>`.**
+   `<committees><item>` may carry `<subcommittees><item>`, each with its own
+   `<activities><item>`. Checked on H.R. 3617 — Energy and Commerce → Energy
+   Subcommittee → Reported by, Markup by, Referred to — rather than assumed.
+
+### FLAG 3, resolved without the 18,500 requests
+
+The other renderings of each text version are **derived from the govinfo
+package id, not fetched**. govinfo's package layout is uniform —
+`/content/pkg/{pkg}/pdf/{pkg}.pdf`, `/html/{pkg}.htm` — and it was checked
+before it was trusted: 28 of 28 packages across five bill types and both
+`BILLS-` and `PLAW-` answer 200. What is *not* derivable is which XML flavour a
+package has (a bill carries `/xml/{pkg}.xml`; a public law carries
+`/uslm/{pkg}.xml` and no `/xml`), so that one is taken from BILLSTATUS as
+published and never guessed — guessing it would have published a dead link on
+all 104 laws.
+
+That also closed the 5-versus-6 gap. 107 of the 21,515 rows carry no
+`document_id`, and that is the point: H.R. 1's Public Law rendering has no
+version code, so it has no slot in the synthetic id table three files share and
+no row in `Documents`. It is listed now, with its links and an honest "Not
+held" where its body would be, without touching that table.
+
+## §4 — the nine sections
+
+| # | section | commit |
+|---|---|---|
+| 1 | Tracker | `136e78f`, `609973c` after the look |
+| 2 | Actions | `c194c4b` |
+| 3 | Committees | `eda9191` |
+| 4 | Subjects | `fcd0905` |
+| 5 | Cost estimate | `34913bd` |
+| 6 | Sponsor → member page | **no code needed — measured** |
+| 7 | Votes ↔ actions | `47fb94e` |
+| 8 | Text formats | `9df4110` |
+| 9 | Constitutional authority / Notes | `1be8133` |
+
+**§4.6 needed no code, and the audit row that asked for it was wrong.** All
+18,470 US bills already carry a prime sponsor from LegiScan and every sponsor
+line already links to its member page: H.R. 1's Arrington resolves to
+`/docs/directory/18286`, which is the same `people_id` the new bioguide mapping
+resolves to. The bioguide is on `bill-sponsors` for anything that wants it. 11
+of 18,470 congress.gov sponsors have no `people_id`, and LegiScan sponsors all
+11 anyway.
+
+**The look at §4.1 found two things the data could not.** H.R. 1 was *reported*
+as an original measure, so it has no "Introduced in House" action at all and
+the first rung stood dateless while the other five carried theirs — the bill
+record has the day regardless, and that is the day congress.gov prints. And six
+rungs at a 7 rem minimum are 672 px inside a 640 px column, so "Became Law"
+wrapped onto a line of its own under a full-width bar.
+
