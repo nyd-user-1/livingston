@@ -1,6 +1,7 @@
 #!/usr/bin/env node
-// scripts/pipeline/congress/billstatus.mjs — summaries, titles, related bills, and
-// the bill each amendment and committee report belongs to, from the govinfo
+// scripts/pipeline/congress/billstatus.mjs — the bill record, its actions,
+// committees, subjects, CBO estimates, summaries, titles, related bills, and the
+// bill each amendment and committee report belongs to, from the govinfo
 // BILLSTATUS zips, into Aurora.
 //
 //   node scripts/pipeline/congress/billstatus.mjs            # 119th
@@ -22,6 +23,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { createRequire } from "node:module";
 import { execFileSync } from "node:child_process";
+import { createHash } from "node:crypto";
 import { unzipSync } from "fflate";
 
 const REPO = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../../..");
@@ -103,6 +105,52 @@ for (const [table, cols] of [
   // /bill/{congress}/{type}/{number}/cosponsors — the same arithmetic that
   // refused the titles top-up.
   ["congress_cosponsors", `bill_id bigint, bill_number text, bioguide_id text, people_id bigint, full_name text, party text, state text, sponsorship_date text, is_original_cosponsor text, sponsorship_withdrawn_date text`],
+
+  // One row per bill, for the facts a bill has exactly one of. The sponsor
+  // lives here as columns rather than in a table of its own: `<sponsors>` is a
+  // list element, and the whole list is kept in `payload`, but every bill in the
+  // 119th has exactly one and a table would buy a join for a one-row lookup the
+  // page makes on every render. The prime sponsor is the column; a second, if
+  // one ever appears, is in the payload and is not silently dropped.
+  //
+  // `constitutional_authority` is HTML — a <pre> block quoting the Congressional
+  // Record — and is stored as published rather than flattened, because the
+  // citation inside it is a link.
+  ["congress_bills", `bill_id bigint, bill_number text, bill_type text, number text,
+      display_title text, popular_title text, origin_chamber text, introduced_date text,
+      policy_area text, constitutional_authority text, latest_action_date text, latest_action text,
+      sponsor_bioguide text, sponsor_people_id bigint, sponsor_name text, sponsor_party text,
+      sponsor_state text, sponsor_district text, sponsor_by_request text`],
+
+  // The bill's own actions. Not a replacement for "History Table" — measured on
+  // H.R. 1, LegiScan holds 141 rows and congress.gov's Actions tab shows 140,
+  // while BILLSTATUS holds 59, of which 53 are already in LegiScan's verbatim.
+  // What is here and nowhere else is the *structure*: the stage (`type`), the
+  // action code, the system that reported it, the committee that acted, and the
+  // roll call it produced with the Clerk's own URL.
+  //
+  // actionDate/actionTime are Eastern as published (14:31:38 is congress.gov's
+  // "2:31pm"); the recorded vote's own date is UTC. Both are stored as they came.
+  ["congress_bill_actions", `bill_id bigint, bill_number text, action_date text, action_time text,
+      text text, action_type text, action_code text, source_system text, source_code text,
+      committee_codes text, committee_names text, roll_number text, roll_chamber text,
+      roll_url text, roll_session text, roll_date text, sequence int`],
+
+  // One row per committee (or subcommittee) activity: Referred to, Markup by,
+  // Reported by. `<committees><item>` may carry `<subcommittees><item>`, each
+  // with its own `<activities><item>` — three levels, all named `item`, checked
+  // rather than assumed.
+  ["congress_bill_committees", `bill_id bigint, bill_number text, system_code text, name text,
+      chamber text, committee_type text, subcommittee_code text, subcommittee_name text,
+      activity text, activity_date timestamptz`],
+
+  // Up to 240 per bill. The policy area is one row among them, flagged, so the
+  // page can print it first without a second read.
+  ["congress_bill_subjects", `bill_id bigint, bill_number text, name text, is_policy_area boolean`],
+
+  // Metadata only. Lane B found the numbers behind DataDome; the title, the date
+  // and the URL are free, and are all a link needs.
+  ["congress_cbo_estimates", `bill_id bigint, bill_number text, pub_date text, title text, url text, description text`],
 ]) {
   await db.query(`create table if not exists ${table} (
     key text primary key, congress int, payload jsonb, updated_at timestamptz not null default now(), ${cols})`);
@@ -156,9 +204,25 @@ for (const type of ONLY_TYPE ? [ONLY_TYPE] : TYPES) {
   const names = Object.keys(files).filter((n) => n.endsWith(".xml"));
 
   const sums = [], titles = [], related = [], cosponsors = [];
+  const bills = [], actions = [], billCommittees = [], subjects = [], cbo = [];
   const docDates = [];
   const lawAreas = [];
   const amendLinks = [], reportLinks = [];
+
+  // The five new families are drained as the type is walked rather than at the
+  // end of it: `hr` alone is ten thousand bills, and subjects run to 240 apiece.
+  const NEW_FAMILIES = [
+    ["congress_bills", bills, ["key", "congress", "payload", "bill_id", "bill_number", "bill_type", "number", "display_title", "popular_title", "origin_chamber", "introduced_date", "policy_area", "constitutional_authority", "latest_action_date", "latest_action", "sponsor_bioguide", "sponsor_people_id", "sponsor_name", "sponsor_party", "sponsor_state", "sponsor_district", "sponsor_by_request"]],
+    ["congress_bill_actions", actions, ["key", "congress", "payload", "bill_id", "bill_number", "action_date", "action_time", "text", "action_type", "action_code", "source_system", "source_code", "committee_codes", "committee_names", "roll_number", "roll_chamber", "roll_url", "roll_session", "roll_date", "sequence"]],
+    ["congress_bill_committees", billCommittees, ["key", "congress", "payload", "bill_id", "bill_number", "system_code", "name", "chamber", "committee_type", "subcommittee_code", "subcommittee_name", "activity", "activity_date"]],
+    ["congress_bill_subjects", subjects, ["key", "congress", "payload", "bill_id", "bill_number", "name", "is_policy_area"]],
+    ["congress_cbo_estimates", cbo, ["key", "congress", "payload", "bill_id", "bill_number", "pub_date", "title", "url", "description"]],
+  ];
+  const drain = async (force = false) => {
+    for (const [table, rows, cols] of NEW_FAMILIES) {
+      if (force ? rows.length : rows.length >= 4000) await flush(table, cols, rows.splice(0));
+    }
+  };
 
   for (const name of names) {
     let b;
@@ -205,6 +269,113 @@ for (const type of ONLY_TYPE ? [ONLY_TYPE] : TYPES) {
       }
     }
 
+    /* ---- the bill record, and the families congress.gov shows and we did not ---- */
+    const apiKey = `${CONGRESS}-${API_TYPE[type]}-${number}`;
+    const area0 = txt(b.policyArea?.name);
+    const sponsor = items(b.sponsors)[0] ?? null;
+    const sponsorBio = String(txt(sponsor?.bioguideId) ?? "").toUpperCase() || null;
+    // <titles> holds <item>; the display title is also the bill's own <title>,
+    // and the popular title is the row CRS assigns. Both are free here and both
+    // are better than the short title LegiScan picks off one portion of a bill —
+    // H.R. 1 is "FEHB Protection Act of 2025" on our lists today.
+    const titleRows = items(b.titles);
+    const titleOf = (want) => titleRows.find((t) => String(txt(t.titleType) ?? "").toLowerCase().includes(want));
+    // The payload is the bill's own scalars and its sponsors — NOT the whole
+    // <bill> element. H.R. 1's is a two-megabyte document (493 amendments, 239
+    // subjects, 5 summaries), and ten thousand of those held in memory before a
+    // flush is several gigabytes against a 2 GB heap. Everything trimmed out of
+    // here has a table of its own three lines below.
+    const record = {
+      congress: CONGRESS, type: API_TYPE[type], number: String(number),
+      title: txt(b.title), originChamber: txt(b.originChamber), introducedDate: txt(b.introducedDate),
+      updateDate: txt(b.updateDate), updateDateIncludingText: txt(b.updateDateIncludingText),
+      legislationUrl: txt(b.legislationUrl),
+      policyArea: area0 ? { name: area0 } : null,
+      latestAction: { actionDate: txt(b.latestAction?.actionDate), text: plain(txt(b.latestAction?.text)) },
+      sponsors: items(b.sponsors).map((sp) => ({
+        bioguideId: txt(sp.bioguideId), fullName: txt(sp.fullName), firstName: txt(sp.firstName),
+        lastName: txt(sp.lastName), middleName: txt(sp.middleName), party: txt(sp.party),
+        state: txt(sp.state), district: txt(sp.district), isByRequest: txt(sp.isByRequest),
+      })),
+      constitutionalAuthorityStatementText: txt(b.constitutionalAuthorityStatementText),
+      laws: items(b.laws).map((l) => ({ type: txt(l.type), number: txt(l.number) })),
+    };
+    bills.push({
+      key: apiKey, congress: CONGRESS, payload: JSON.stringify(record), bill_id: billId, bill_number: bn,
+      bill_type: API_TYPE[type], number: String(number),
+      display_title: txt(b.title), popular_title: txt(titleOf("popular")?.title),
+      origin_chamber: txt(b.originChamber), introduced_date: txt(b.introducedDate),
+      policy_area: txt(b.policyArea?.name),
+      // Published as HTML and stored as published: the <pre> block quotes the
+      // Congressional Record and the citation inside it is a link.
+      constitutional_authority: txt(b.constitutionalAuthorityStatementText),
+      latest_action_date: txt(b.latestAction?.actionDate), latest_action: plain(txt(b.latestAction?.text)),
+      sponsor_bioguide: sponsorBio, sponsor_people_id: sponsorBio ? (byBioguide.get(sponsorBio) ?? null) : null,
+      sponsor_name: txt(sponsor?.fullName), sponsor_party: txt(sponsor?.party),
+      sponsor_state: txt(sponsor?.state), sponsor_district: txt(sponsor?.district),
+      sponsor_by_request: txt(sponsor?.isByRequest),
+    });
+
+    // Actions. Keyed on the action's own identity rather than its position:
+    // BILLSTATUS lists newest first, so an ordinal key rewrites every row of
+    // every bill the moment one action lands.
+    items(b.actions).forEach((a, i) => {
+      const date = txt(a.actionDate) ?? "";
+      const body = plain(txt(a.text));
+      const code = txt(a.actionCode) ?? "";
+      const kind = txt(a.type) ?? "";
+      const cms = items(a.committees);
+      const rv = kids(a.recordedVotes, "recordedVote")[0] ?? null;
+      actions.push({
+        key: `${apiKey}-${date}-${createHash("sha1").update(`${kind}|${code}|${body}`).digest("hex").slice(0, 10)}`,
+        congress: CONGRESS, payload: JSON.stringify(a), bill_id: billId, bill_number: bn,
+        action_date: date || null, action_time: txt(a.actionTime), text: body,
+        action_type: kind || null, action_code: code || null,
+        source_system: txt(a.sourceSystem?.name), source_code: txt(a.sourceSystem?.code),
+        committee_codes: cms.length ? cms.map((c) => txt(c.systemCode)).filter(Boolean).join(",") : null,
+        committee_names: cms.length ? cms.map((c) => txt(c.name)).filter(Boolean).join("; ") : null,
+        roll_number: txt(rv?.rollNumber), roll_chamber: txt(rv?.chamber), roll_url: txt(rv?.url),
+        roll_session: txt(rv?.sessionNumber), roll_date: txt(rv?.date), sequence: i,
+      });
+    });
+
+    // Committees and their activities, and the subcommittees' own. Three levels
+    // of <item>, checked on H.R. 3617 (Energy and Commerce → Energy
+    // Subcommittee → Reported by / Markup by / Referred to) rather than assumed.
+    for (const cm of items(b.committees)) {
+      const base = { bill_id: billId, bill_number: bn, system_code: txt(cm.systemCode), name: txt(cm.name),
+                     chamber: txt(cm.chamber), committee_type: txt(cm.type) };
+      const push = (subCode, subName, act) => {
+        const when = txt(act.date) ?? "";
+        billCommittees.push({ key: `${apiKey}-${subCode ?? base.system_code}-${txt(act.name)}-${when}`,
+          congress: CONGRESS, payload: JSON.stringify(act), ...base,
+          subcommittee_code: subCode, subcommittee_name: subName,
+          activity: txt(act.name), activity_date: when || null });
+      };
+      for (const act of items(cm.activities)) push(null, null, act);
+      for (const sub of items(cm.subcommittees)) {
+        for (const act of items(sub.activities)) push(txt(sub.systemCode), txt(sub.name), act);
+      }
+    }
+
+    // Subjects. The policy area is one row among them, flagged, so a page can
+    // print it first without a second read.
+    if (area0) subjects.push({ key: `${apiKey}-policyArea`, congress: CONGRESS, payload: JSON.stringify(b.policyArea),
+      bill_id: billId, bill_number: bn, name: area0, is_policy_area: true });
+    for (const sj of items(b.subjects?.legislativeSubjects)) {
+      const nm = txt(sj.name);
+      if (nm) subjects.push({ key: `${apiKey}-${nm}`, congress: CONGRESS, payload: JSON.stringify(sj),
+        bill_id: billId, bill_number: bn, name: nm, is_policy_area: false });
+    }
+
+    for (const est of items(b.cboCostEstimates)) {
+      const url = txt(est.url);
+      if (!url) continue;
+      cbo.push({ key: `${apiKey}-${url}`, congress: CONGRESS, payload: JSON.stringify(est),
+        bill_id: billId, bill_number: bn, pub_date: txt(est.pubDate), title: txt(est.title),
+        url, description: plain(txt(est.description)) });
+    }
+
     // A law is a bill, and policyArea is on the bill record — not on the /law
     // list the family is cut from.
     const area = txt(b.policyArea?.name);
@@ -227,6 +398,8 @@ for (const type of ONLY_TYPE ? [ONLY_TYPE] : TYPES) {
       const an = txt(a.number);
       if (at && an && billId) amendLinks.push([`${CONGRESS}-${at}-${an}`, billId, bn]);
     }
+    await drain();
+
     for (const cr of kids(b.committeeReports, "committeeReport")) {
       // The API carries the ",Book N" suffix too — I had assumed only BILLSTATUS
       // did and stripped it, which broke the match for exactly the reports that
@@ -241,6 +414,7 @@ for (const type of ONLY_TYPE ? [ONLY_TYPE] : TYPES) {
     }
   }
 
+  await drain(true);
   await flush("congress_summaries", ["key", "congress", "payload", "bill_id", "bill_number", "action_date", "action_desc", "version_code", "text"], sums.splice(0));
   await flush("congress_titles", ["key", "congress", "payload", "bill_id", "bill_number", "title_type", "title", "chamber"], titles.splice(0));
   await flush("congress_related_bills", ["key", "congress", "payload", "bill_id", "bill_number", "related_bill_id", "related_bill_number", "relationship"], related.splice(0));
@@ -306,6 +480,10 @@ for (const type of ONLY_TYPE ? [ONLY_TYPE] : TYPES) {
 }
 
 const counts = await db.query(`select
+  (select count(*) from congress_bills) b, (select count(*) from congress_bill_actions) ba,
+  (select count(*) from congress_bill_committees) bc, (select count(*) from congress_bill_subjects) bs,
+  (select count(*) from congress_cbo_estimates) cbo,
+  (select count(*) from congress_bills where sponsor_bioguide is not null) sp,
   (select count(*) from congress_summaries) s, (select count(*) from congress_titles) t,
   (select count(*) from congress_related_bills) r, (select count(*) from congress_cosponsors) cs,
   (select count(*) from "Documents" where document_type='text' and date is not null) dd,
@@ -313,6 +491,7 @@ const counts = await db.query(`select
   (select count(*) from congress_committee_reports where bill_id is not null) cr`);
 const c = counts.rows[0];
 log(`billstatus done: ${tally.bills} bills · ${tally.zips} zips · ${(tally.bytes / 1e6).toFixed(0)} MB · 0 API requests`);
+log(`  congress_bills ${c.b} (${c.sp} with a sponsor bioguide) · congress_bill_actions ${c.ba} · congress_bill_committees ${c.bc} · congress_bill_subjects ${c.bs} · congress_cbo_estimates ${c.cbo}`);
 log(`  congress_summaries ${c.s} · congress_titles ${c.t} · congress_related_bills ${c.r} · congress_cosponsors ${c.cs} · text dates ${c.dd} · amendments linked ${c.a} · reports linked ${c.cr}`);
 
 await db.end();
