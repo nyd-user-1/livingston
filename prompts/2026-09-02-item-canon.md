@@ -96,14 +96,13 @@ revisions too.
    - `/docs/record` is not on the list; leave it.
 6. **Records dropdown** (`components/main-nav.tsx`): add **Newsroom** to the
    panel (its one-line sentence is the newsroom page's own subtitle — reuse,
-   do not write a new one), make the panel **three columns**, and give every
-   item a lucide icon at the left of its title with the description aligned
-   under the title, as in shadcn's feature grids. Suggested map, lucide only:
-   Bills `FileText` · Committees `Users` · Directory `BookUser` · Laws `Scale`
-   · Nominations `UserCheck` · Reports `BookOpen` · The Record `ScrollText` ·
-   Newsroom `Newspaper`. Brendan asked for "three col and two rows": eight
-   items in three columns make three rows (3 · 3 · 2). Ship three columns
-   and FLAG — two rows means dropping two items, which is his call.
+   do not write a new one), lay the panel out as **four columns, two rows**
+   (eight items), and give every item a lucide icon at the left of its title
+   with the description aligned under the title, as in shadcn's feature
+   grids. Suggested map, lucide only: Bills `FileText` · Committees `Users` ·
+   Directory `BookUser` · Laws `Scale` · Nominations `UserCheck` · Reports
+   `BookOpen` · The Record `ScrollText` · Newsroom `Newspaper`. Two rows is
+   the requirement; the column count follows from it (Brendan, 08:10 ET).
 7. **Home, Notifications card** (`components/cards/notifications.tsx`):
    "Select all" stays; the four rows become
    - ☑ **Bill alerts** — Get amendment, status, and votes updates.
