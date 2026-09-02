@@ -960,3 +960,81 @@ everything it does that mail would not — n recipients meaning n runs, a person
 recorded rather than notified — is said on the surface before it costs anything.
 
 LEAD: 13:40Z — §7 ACCEPTED. Spot-verified on the deploy: Compose sits in the rail, the Unreads toggle is gone, Cc/Bcc reveal, the address footer is gone, and the ProseMirror toolbar serves exactly Bold/Italic/Code/Link and the two lists. The four self-caught defects are the acceptance's best evidence — above all the inline reply that promised one run on a thread that would run two: "a cost line that under-reports is worse than no cost line" is now a house rule. leuk being raw ProseMirror rather than TipTap, discovered and reduced rather than assumed, is the probe-don't-list habit applied to our own code. The seeded-users mechanic as shipped — names first-class, only agents run, a people-only thread spends nothing and says so once where someone is about to rely on it — is the right reading of Brendan's reversal. Stand down; §7 closed.
+
+LEAD: 14:10Z (Brendan, relayed — §8, and read the first line twice) — His words on the §7 composer: "stop half assing it… that whole section is a live writing surface and the formatting options are shit! and located in the wrong spot. I gave you a bunch of screenshots and was specific." He is right, and the lead co-owns the miss for accepting it: his Gmail screenshots put formatting in the BOTTOM BAR beside Send; we shipped six icons at the top. §8, three items:
+1. **The composer, done right.** Port the REAL editor: `~/Code/policy/src/components/TipTapEditor.tsx` — TipTap 3.x with link, color, placeholder, table extensions already in that package.json. Reduce to the mail-appropriate set but generously (bold, italic, underline, strike, lists, quote, code, link — what Gmail's Aa row offers), skinned govblock, serializing to the same markdown subset on the wire (tables only if the renderer already draws them — it does, from §7's defect fix). PLACEMENT is the point: the toolbar lives in the BOTTOM-LEFT of the compose, in one row with Send — Gmail's exact arrangement: [Send] [formatting controls] … [Save draft · Discard right or overflow]. The body is a clean writing surface with nothing above it. His screenshots are the spec; hold them up against the result before calling it done.
+2. **The nav, approved as proposed.** Five top-level via shadcn navigation-menu (add the primitive if packages/ui lacks it): Home · Records ▾ (Bills, Committees, Directory, Laws, Nominations, Reports, The Record — panel with one-line descriptions) · News Room · Agents ▾ (the five + Agentic Inbox, specialty lines) · Workspace ▾ (Blocks, Charts, Typeset, Create, Calendar, Changelog). Duplicate top-levels (Committees, Directory) fold in. main-nav.tsx and config navItems are yours for this slice; keep the header's right side untouched.
+3. **Port the changelog** from `~/Code/livingston-v3/apps/v4/app/(app)/changelog/page.tsx` — faithful port per the standing rule (markup and classNames kept, repurpose by content only); it joins Workspace in the nav; the /changelog 404 dies.
+One slice per item, build between, screenshots against his originals. No STATUS needed until all three land; group lines in the file as before.
+
+LEAD: 02:15Z (Brendan, relayed — §9, Discord on-platform; APPROVED options 1 and 3; do after §8's three slices) —
+1. **Official widget embed.** The guild is 1537459604626219018 (from the webhook's own GET). Build the surface for it in govblock's design language (an iframe of discord.com/widget?id=…&theme= matching our mode) — placement: a card on /agents or beside the inbox, your judgment, small. It renders only after Brendan enables it: FLAG him the exact clicks (Discord → Server Settings → Widget/Engagement → Enable Server Widget, pick the invite channel) and render an honest "widget not enabled yet" state until then.
+2. **PolicyBot threads rendered on-platform.** We write every digest/report to that forum, so we hold the content first — but reading the channel's threads back (including any human replies in them) needs a READ-ONLY bot: FLAG Brendan the exact steps when you reach it (discord.com/developers → New Application "govblock reader" → Bot → disable all privileged intents, needs MESSAGE CONTENT intent for text → invite URL scoped to View Channels + Read Message History on the PolicyBot channel only → token via a connect-discord-bot.sh in the shape of connect-slack.sh, into Secrets Manager govblock/discord-bot). The surface: a govblock-native thread list + reader (our design language, flags/subjects as elsewhere), each thread with an "open in Discord" link; poll on view with the existing cache discipline, no gateway socket. Until the token exists, the surface renders from what we posted ourselves (we hold every digest already) and says that is what it is showing.
+Both are additions to the connections layer, which was built for exactly this. §8 finishes first.
+
+---
+
+## §8 — the redo, the nav, the changelog
+
+Three slices, a build between each. Builds **103–107** (103 red on a type, fixed
+in 104).
+
+**1 — the composer, done right.** `269d28b` · `11f4f51` · `0e14ff5`. Brendan:
+*"stop half assing it… the formatting options are shit! and located in the wrong
+spot."* Both halves were fair. I built a small ProseMirror of my own when the
+brief named a real editor, and I put six icons on top of the surface someone is
+trying to write on when the screenshots put them in the bottom bar.
+
+Now it is TipTap 3, ported from `~/Code/policy/src/components/TipTapEditor.tsx`,
+offering what Gmail's row offers — **bold, italic, underline, strike, bulleted
+and numbered lists, quote, code, link** — each with an active state that follows
+the caret. StarterKit 3 already carries Link and Underline, so the extension
+list is short on purpose rather than by omission. **The placement was the part I
+got wrong and it is now Gmail's:** Send first, the formatting row immediately
+beside it, everything else pushed right, and nothing at all above the writing
+surface. The starters step aside the moment there is a paragraph, so the bar
+sits directly under what you wrote.
+
+Markdown stays the wire format — verified on the deploy, this is what a formatted
+message actually serialises to:
+
+```
+Plain, **bold**, *italic*, <u>underline</u>, ~~strike~~, `code`,
+
+- one
+- two
+```
+
+Underline has no markdown of its own. Rather than drop a button Gmail has or
+invent a syntax, it travels as `<u>…</u>` — legal markdown, readable to an agent
+as text, and now drawn by the transcript renderer along with `~~strike~~` and
+`> quote`. Silently losing a format the reader applied would have been worse.
+
+**2 — the nav.** `0cd7351`. Five entries, three of them panels: **Home ·
+Records ▾ · News Room · Agents ▾ · Workspace ▾**. Committees and Directory used
+to sit in the header beside the Docs they belong inside, and Laws, Nominations,
+Reports and The Record had no way in at all — they existed and nothing pointed at
+them. Each panel line carries the sentence that says what the page is for, which
+is not decoration: the nav is the only place most people will ever read what The
+Record contains, and a bare list of nouns makes a reader guess. shadcn's
+navigation-menu was missing from `packages/ui` and is added in the ny4 set on the
+same `radix-ui` import the other primitives use. The header's right side is
+untouched.
+
+**3 — the changelog.** `cf3bbcd`. `/changelog` 404'd and the nav points at it.
+Ported from `livingston-v3/apps/v4/app/(app)/changelog/page.tsx` with its markup
+and classNames intact — the sticky hero, the star field, the timeline with its
+indicator line and version dots. Two things repurposed by content: the releases
+come from **this repository's own `git log`** (`scripts/changelog/build.mjs`
+groups commits by day and by subject prefix, so "agents: …" becomes an Agents
+section) rather than fetching shadcn-ui/ui's GitHub releases through ungh.cc,
+which is what v3 inherited — somebody else's release notes on our page; and the
+notes render through the same markdown renderer the agents' transcripts use
+rather than adding a second one for one page. The RSS button is gone because
+govblock has no feed to point it at, and a dead button is worse than one fewer.
+
+Screenshots `40-`…`46-`: the composer with its bottom bar, the same mid-writing,
+each nav panel, and the changelog.
+
+LEAD: 02:50Z — §8 group lines read. The composer redo stands verified from my side too (nine controls in the Send row, nothing above the writing surface, wire format proven on the deploy). The changelog's two repurposes are exactly right and worth naming: releases from govblock's OWN git log instead of inherited shadcn release notes ("somebody else's release notes on our page" ends today), and no new dependency where the transcript renderer already serves; dropping RSS rather than shipping a dead button is the honest call. The nav observation — four whole document families existed with nothing in the header pointing at them — is the argument for the rework in one sentence.
+LEAD: §9 ruling on your (b), and your instinct is correct: NO localStorage stand-in for the thread reader. A surface titled Discord that shows one browser's runs would misrepresent what the channel holds — and the inbox already shows this browser's runs under its own honest name. Order: build the WIDGET CARD now (honest not-enabled state + the FLAG with Brendan's Server Settings clicks); the thread reader ships as its honest not-connected state with the bot-token FLAG and renders nothing until the token exists. Both connections in the Slack shape, as you said. Go.
