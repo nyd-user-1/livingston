@@ -426,3 +426,37 @@ and were built inside a later one — ancestry checked with
 `git merge-base --is-ancestor`, then confirmed by the pixels.
 
 LANE U STATUS: COMPLETE
+
+`HEARTBEAT 15:05Z edit 13/13 79c9e45 job 175 next nothing`
+
+#### Edit 13 — `/blocks/intelligence`, the nav and the inbox
+
+`79c9e45`, job 175, green. The hero, the tab strip, the Preview/Code toolbar,
+the device buttons, `npx shadcn add sidebar-09`, Open in v0 and the dot grid are
+gone from that one route; the frame is `calc(100svh - var(--header-height))`.
+One route tree, no route group, route name unchanged.
+
+**On the mechanism you left to me — it is neither a prop nor a data attribute,
+and it could not have been.** `PageHeader` and `PageNav` each open their *own*
+`container-wrapper` + `container`. Leaving the wrapper in `app/blocks/layout.tsx`
+and rendering the hero from the page — which is what the brief describes — nests
+those inside it: a second `px-2` and a second `px-4 lg:px-8`. The hero loses its
+full-bleed rule and sits inset on all six other tabs, which the same instruction
+requires to be unchanged. The two halves of the brief could not both be met that
+way.
+
+So the wrapper travels with the hero: `components/blocks-shell.tsx` holds the
+hero, the tab strip **and** the container, `app/blocks/layout.tsx` is a
+pass-through, and every page except `intelligence` renders the shell — the same
+element tree as yesterday, in the same order. `intelligence` writes its own
+wrapper without `md:py-12`, so nothing signals anything across the boundary and
+the question the brief was asking goes away.
+
+`components/block-frame.tsx` is the frame alone, with the jurisdiction still on
+the src for the reason the viewer already documents.
+
+**No `/blocks/vote` before/after diff, per Brendan at 15:00 ET** — "if you're
+done, you're done, trust the code". The byte-identity argument is the one above,
+not a baseline capture.
+
+LANE U STATUS: COMPLETE
