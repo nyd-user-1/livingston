@@ -1093,3 +1093,113 @@ and is exactly the box a small square mark wants. Verified against the deploy
 each time rather than reasoned about, which is how the first two went wrong.
 
 LEAD: 03:25Z — §9 ACCEPTED, verified live: /agents/discord serves 200 with the real widget iframe (the server was already switched on — probing before FLAGging saved Brendan a step, which is the right order of operations), the threads section says plainly what a webhook cannot do and where this browser's runs honestly live, and the bot FLAG's two safety lines (all privileged intents OFF; View Channels + Read Message History only) are the minimal-grant discipline this file has kept all night. The avatar postmortem is accepted with credit precisely because it was self-reported: two attempts reasoned about the primitive, the third started with the screenshot — that sentence is the QA method of this whole project in miniature, and it is now written where the next person will find it. Stand down; §9 closed. The lane's remaining external dependency is Brendan's five-minute bot token, and nothing blocks on it.
+
+LEAD: 05:20Z (Brendan, relayed — §10, and the card first) —
+**§10a, ship alone first: the HOME connect card.** His screenshot is the home dashboard's "Not connected" card — item 13's fix colored the agents surfaces and missed this card entirely; he has now asked twice. (1) Logos back in BRAND COLOR, composed exactly as the shadcn AvatarGroup example he pasted: Avatar > AvatarImage + AvatarFallback inside AvatarGroup (overlapping), no grayscale class. (2) MOVE the card: last column of the home stacks, directly to the RIGHT of the Committees widget and ATOP the Calendar widget (components/cards/index.tsx stacks). (3) Its Connect action points at the real thing: /connectors once §10b exists; /agents/discord until then.
+**§10b: Connectors, the real thing.** His words: "When I work in Claude chat I connect that chat to Slack, Google Drive, etc. through a connector… allow users to connect the drive/slack/etc to this platform so that they can work in platform and save directly to Google Drive." His Claude Connectors screenshot is the spec: a /connectors surface — Popular row, then the table (icon · name · type · status · Connect/Reconnect) — govblock's design language. This is USER-level OAuth, not the platform-level webhook/bot work done so far, and it is the exact trigger the FLAG-B ruling named for adopting AgentCore Identity (SlackOauth2 and GoogleOauth2 credential providers; 44b's live providers are the precedent to read). Stage it:
+1. The /connectors surface with honest not-connected states + §10a's card pointing at it.
+2. AgentCore Identity wiring for GOOGLE DRIVE first — the concrete win is "Save to Drive" on a delivered report in the Agentic Inbox (report → a Google Doc/markdown file in the user's own Drive). FLAG Brendan the exact Google Cloud Console steps (OAuth client, consent screen, scopes drive.file ONLY — the narrowest scope that can save a file) when you reach them; build behind the honest state until the client id exists.
+3. Slack as the second provider (send a digest to YOUR workspace), Discord stays platform-level as built.
+Identity binding, stated honestly on the surface: connections key to the per-browser token (the claim check §4 named — it is not authentication and the surface says so); they upgrade to real accounts when accounts exist. Price the AgentCore Identity setup as you build (44b precedent says near-zero idle), and every cost line follows the house rule. Measured evaluation first if anything smells like it fights the Data API or Amplify limits — you know the drill.
+
+---
+
+## §10a — the home connect card
+
+`9c7d51c`, build **115**. Shipped alone, as ruled.
+
+The card kept its `grayscale` class: item 13 coloured the connection marks on
+the agents surfaces and never touched this one, which is why the ask came twice.
+Fixed, and the composition Brendan pasted is unchanged — `AvatarGroup` of
+`Avatar` with `AvatarImage` and `AvatarFallback`, overlapping. Two changes the
+small marks had already taught me carried over: the padding goes **on the image,
+not the Avatar**, because the root is a flex row and a padded root with a
+`size-full` child pushes the mark out from under itself; and `object-contain`,
+because Discord's and Drive's logos are not square and the default
+`object-cover` crops them.
+
+Moved to the **head of the last column** — beside Committees, above Calendar.
+Verified by geometry rather than by eye: Connect at x=1275 y=434, Committees at
+x=869 **y=434** (same row, one column left), Calendar at x=1275 **y=777**
+(directly below). It is an invitation, and an invitation four cards down the
+page is a footnote.
+
+Connect points at `/agents/discord` — the connection that actually exists — and
+becomes `/connectors` when §10b lands. Screenshots `50-`, `51-`.
+
+---
+
+## §10b stage 1 — the connectors surface, and the FLAG-B objection resolved
+
+`/connectors`, builds **116–117**. Screenshot `52-`.
+
+**The surface.** A Popular row and a status table, every state read live rather
+than declared. The page leads with the distinction because it is the whole
+point: a connector marked **the site's** is one credential govblock holds —
+every reader shares its destination — and a connector marked **yours** is an
+OAuth grant to your own account that nobody else can see. Discord is the first;
+Google Drive and Slack are the second and neither exists yet. "Not available
+yet" says which piece is missing and who has to create it, and where there is
+nothing to click there is no button. The home card and the Agents panel both
+point here.
+
+The claim check is written on the page rather than left to be discovered: a
+connection will be keyed to a token minted in this browser, that token says
+*this browser made that connection* and nothing more, it does not prove who you
+are, anyone with your browser has it, and clearing site storage revokes it.
+
+### The measurement the lead asked for — and FLAG B is resolved
+
+The original objection to AgentCore Identity was that reading a token back needs
+a **workload-identity token**, which a Next.js SSR route has no way to mint.
+That was true for a machine credential. **It is not true for a user-level flow,
+and here is the proof rather than the hope:**
+
+```
+$ aws bedrock-agentcore-control create-workload-identity --name govblock
+  → arn:…:workload-identity-directory/default/workload-identity/govblock
+
+$ aws bedrock-agentcore get-workload-access-token-for-user-id \
+    --workload-name govblock --user-id probe-<ts>
+  → MINTED — token length 1778
+```
+
+`get-workload-access-token-for-user-id` takes **a workload name and an arbitrary
+user id**, and is authorised by the ordinary signed AWS call our compute role
+already makes. No container, no AgentCore Runtime, no second deployment. The
+`--user-id` is exactly the shape of the per-browser claim check, which means the
+thing that made the objection fatal before is the thing that makes it fit now.
+
+Also created and registered, because the 3LO redirect needs it:
+`allowedResourceOauth2ReturnUrls = ["https://policy.nysgpt.com/api/connectors/callback"]`.
+
+`get-resource-oauth2-token` then takes that token plus
+`--resource-credential-provider-name`, `--scopes` and `--oauth2-flow`
+(`USER_FEDERATION` for 3LO). Cost: AgentCore Identity is consumption-priced with
+no idle compute — 44b's providers have cost **$0.0000918 over 23 days**.
+
+### FLAG — Brendan's step, Google Cloud Console, before stage 2 can finish
+
+The only thing now missing is an OAuth client. At
+`https://console.cloud.google.com`:
+
+1. Create or pick a project (`govblock` is fine).
+2. **APIs & Services → Library → Google Drive API → Enable.**
+3. **APIs & Services → OAuth consent screen** → External → app name `govblock`,
+   your support email, developer email. **Scopes: add `.../auth/drive.file`
+   ONLY** — the narrowest scope that can save a file. It grants access to files
+   this app creates and *cannot read anything else in the Drive*, which is why
+   it is the one to ask for.
+4. While the app is unverified, add yourself under **Test users**.
+5. **Credentials → Create Credentials → OAuth client ID → Web application.**
+   Authorised redirect URI, exactly:
+   `https://bedrock-agentcore.us-east-1.amazonaws.com/identities/oauth2/callback`
+   — the token vault completes the exchange, not our domain, which is the point
+   of using it.
+6. Send the **client ID and client secret** to me and I will put them straight
+   into the credential provider; they never touch the repo.
+
+Nothing else is owed and nothing blocks on it — the surface tells the truth in
+the meantime.
+
+LEAD: 06:10Z — §10b stage 1 ACCEPTED, verified live: /connectors serves with the Popular row, the live-read states, the site's-credential vs your-grant distinction leading rather than buried, the claim check written in plain terms, and — as specified — no button where there is nothing to click. The FLAG-B dissolution is the finding of the section: get-workload-access-token-for-user-id minted a real token (length 1778) from the ordinary signed call the compute role already makes, no runtime, no container — and its --user-id parameter is the per-browser claim check's exact shape. "The thing that made Identity a bad fit for one bot is the thing that makes it the right fit for per-user grants" goes in the closing notes. The Google Cloud FLAG is with Brendan now with the two lines that matter (drive.file ONLY; the redirect URI is the vault's callback, not our domain); his client id and secret arrive via .env.local like the webhook did, never the repo. Proceed on his credentials.
