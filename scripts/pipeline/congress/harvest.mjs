@@ -89,7 +89,24 @@ const FAMILIES = [
     cols: { bioguide_id: (r) => r.bioguideId, name: (r) => r.name, party: (r) => r.partyName,
             state: (r) => r.state, district: (r) => n(r.district),
             // The official portrait — the one thing LegiScan's People rows do not carry.
-            portrait_url: (r) => r.depiction?.imageUrl ?? null } },
+            portrait_url: (r) => r.depiction?.imageUrl ?? null },
+    // The roster page and the member record are two different documents wearing
+    // one name. `/member/congress/119` returns nine keys — bioguideId, name,
+    // party, state, district, a two-field `terms`, a portrait and a URL. The
+    // office address, the official website and the birth year exist only on
+    // `/member/{bioguideId}`, and storing the roster rows under the name
+    // `member-detail` is why every member page's Contact section was empty from
+    // the day it shipped. 553 requests against 20,000/hour: verify the shape,
+    // not the name.
+    //
+    // `floor` is why this family cannot be truncated by --detail-limit: 553
+    // members half-detailed is 553 members whose Contact section is a coin flip.
+    detail: { since: 3650, floor: 600, path: (r) => `/member/${r.bioguideId}`, unwrap: (d) => d.member,
+              cols: { address_information: (r) => (r.addressInformation ? JSON.stringify(r.addressInformation) : null),
+                      official_website_url: (r) => r.officialWebsiteUrl ?? null,
+                      birth_year: (r) => r.birthYear ?? null,
+                      party_history: (r) => (r.partyHistory ? JSON.stringify(r.partyHistory) : null),
+                      current_member: (r) => (r.currentMember == null ? null : String(r.currentMember)) } } },
   { table: "congress_amendments", path: (c) => `/amendment/${c}`, listKey: "amendments",
     key: (r) => `${r.congress}-${r.type}-${r.number}`,
     cols: { amendment_type: (r) => r.type, number: (r) => String(r.number), description: (r) => r.description ?? null,
@@ -217,7 +234,17 @@ for (const fam of FAMILIES) {
     // without a migration and without dropping what is already there.
     await db.query(`alter table ${fam.table} add column if not exists ${c} text`);
   }
-  if (fam.detail) await db.query(`alter table ${fam.table} add column if not exists detail_fetched_at timestamptz`);
+  if (fam.detail) {
+    await db.query(`alter table ${fam.table} add column if not exists detail_fetched_at timestamptz`);
+    // The list record is kept in its own column rather than in `payload`,
+    // because for a family with a detail endpoint the two are different
+    // documents and `payload` belongs to the fuller one. A member's `terms` is
+    // `{item:[…]}` in the roster and a bare array in the record; merging them
+    // by name would have written the roster's shape over the record's every
+    // night. The detail pass reads `list_payload` for its path and merges the
+    // fresh roster fields under the fresh record.
+    await db.query(`alter table ${fam.table} add column if not exists list_payload jsonb`);
+  }
 
   let rows = 0, written = 0;
   try {
@@ -233,11 +260,21 @@ for (const fam of FAMILIES) {
         })];
         const placeholders = cols.map((_, i) => `$${i + 5}`).join(", ");
         const setters = cols.map((c) => `${c} = excluded.${c}`).join(", ");
+        // For a detail family the list pass refreshes the typed columns and the
+        // list record, and leaves `payload` alone once the detail pass has
+        // written it — otherwise every nightly run silently regressed the
+        // richer record to the thinner one, which is exactly what happened to
+        // all 553 members. The detail pass rewrites `payload` whenever the
+        // API's own updateDate moves past the last fetch.
+        const payloadSetter = fam.detail
+          ? `list_payload = excluded.payload,
+             payload = case when ${fam.table}.detail_fetched_at is null then excluded.payload else ${fam.table}.payload end`
+          : `payload = excluded.payload`;
         await db.query(
-          `insert into ${fam.table} (key, congress, update_date, payload${cols.length ? ", " + cols.join(", ") : ""})
-           values ($1,$2,$3,$4${cols.length ? ", " + placeholders : ""})
+          `insert into ${fam.table} (key, congress, update_date, payload${fam.detail ? ", list_payload" : ""}${cols.length ? ", " + cols.join(", ") : ""})
+           values ($1,$2,$3,$4${fam.detail ? ", $4" : ""}${cols.length ? ", " + placeholders : ""})
            on conflict (key) do update set congress = excluded.congress, update_date = excluded.update_date,
-             payload = excluded.payload, updated_at = now()${cols.length ? ", " + setters : ""}`,
+             ${payloadSetter}, updated_at = now()${cols.length ? ", " + setters : ""}`,
           values,
         );
         written += 1;
@@ -250,22 +287,26 @@ for (const fam of FAMILIES) {
     let detailed = 0;
     if (fam.detail && !has("--no-detail")) {
       const cutoff = new Date(Date.now() - fam.detail.since * 86400e3).toISOString();
+      const detailLimit = Math.max(Number(val("--detail-limit", "400")), fam.detail.floor ?? 0);
       const targets = await db.query(
-        `select key, payload from ${fam.table}
+        `select key, coalesce(list_payload, payload) as list_payload from ${fam.table}
           where update_date >= $1 and (detail_fetched_at is null or detail_fetched_at < update_date)
           order by update_date desc limit $2`,
-        [cutoff, Number(val("--detail-limit", "400"))],
+        [cutoff, detailLimit],
       );
       for (const t of targets.rows) {
         try {
-          const raw = await api(fam.detail.path(t.payload));
+          const raw = await api(fam.detail.path(t.list_payload));
           const rec = fam.detail.unwrap ? fam.detail.unwrap(raw) : raw;
           if (!rec) continue;
           const dcols = Object.keys(fam.detail.cols);
           const setters = dcols.map((c, i) => `${c} = $${i + 3}`).join(", ");
           await db.query(
             `update ${fam.table} set payload = $2, detail_fetched_at = now()${dcols.length ? ", " + setters : ""} where key = $1`,
-            [t.key, JSON.stringify({ ...t.payload, ...rec }), ...dcols.map((c) => { const v = fam.detail.cols[c](rec); return v == null ? null : String(v); })],
+            // The record wins on every key it has; the roster's extras — a
+            // member's name and party, which the record spells differently and
+            // the pages read — ride underneath it.
+            [t.key, JSON.stringify({ ...t.list_payload, ...rec }), ...dcols.map((c) => { const v = fam.detail.cols[c](rec); return v == null ? null : String(v); })],
           );
           detailed += 1;
         } catch (e) { log(`  ${label} detail ${t.key}: ${String(e.message).slice(0, 80)}`); }
