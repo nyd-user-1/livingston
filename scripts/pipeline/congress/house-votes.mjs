@@ -92,6 +92,19 @@ await db.query(`create table if not exists congress_house_vote_positions (
 await db.query(`create index if not exists congress_house_vote_positions_people_idx on congress_house_vote_positions (people_id)`);
 await db.query(`alter table congress_house_votes add column if not exists positions_fetched_at timestamptz`);
 await db.query(`alter table congress_house_votes add column if not exists positions int`);
+// The tally the vote board draws. congress.gov's house-vote LIST carries no
+// counts at all — they exist only as 434 rows of positions per roll call, which
+// is not something a board of 647 cards can ask for one request at a time. So
+// the count is made once here, where the positions already are.
+for (const c of ["yea", "nay", "present", "not_voting"]) {
+  await db.query(`alter table congress_house_votes add column if not exists ${c} int`);
+}
+await db.query(`alter table congress_house_votes add column if not exists casts jsonb`);
+// The question the House was actually asked — "On Passage", "On Motion to
+// Recommit". It is on the /members envelope and not on the list record, so
+// without it a card is titled by its procedure ("Yea-and-Nay") rather than by
+// what it decided. Same request; it was simply being thrown away.
+await db.query(`alter table congress_house_votes add column if not exists vote_question text`);
 
 // bioguide -> our people_id, so a position lands on the member the rest of the
 // app links to rather than on a string.
@@ -103,7 +116,7 @@ log(`${byBioguide.size.toLocaleString()} members carry a bioguide`);
 
 const votes = (await db.query(
   `select key, session_number, roll_call_number from congress_house_votes
-    where congress = $1 ${has("--all") ? "" : "and positions_fetched_at is null"}
+    where congress = $1 ${has("--all") ? "" : "and (positions_fetched_at is null or vote_question is null)"}
     order by start_date desc nulls last ${LIMIT ? `limit ${LIMIT}` : ""}`,
   [CONGRESS],
 )).rows;
@@ -135,7 +148,14 @@ for (const v of votes) {
         params,
       );
     }
-    await db.query(`update congress_house_votes set positions_fetched_at = now(), positions = $2 where key = $1`, [v.key, results.length]);
+    await db.query(
+      `update congress_house_votes
+          set positions_fetched_at = now(), positions = $2, vote_question = coalesce($3, vote_question),
+              payload = payload || $4::jsonb
+        where key = $1`,
+      [v.key, results.length, inner.voteQuestion ?? null,
+       JSON.stringify({ voteQuestion: inner.voteQuestion ?? null })],
+    );
     tally.votes += 1; tally.positions += results.length;
   } catch (e) {
     tally.failed += 1;
@@ -143,6 +163,48 @@ for (const v of votes) {
   }
 }
 
+/* ---- the tally, counted from the positions --------------------------------
+ * "Yea" is not the only way the House says yes. A Recorded Vote in the
+ * Committee of the Whole is cast Aye/No, not Yea/Nay — 153 of the 647 roll
+ * calls of the 119th — so counting only Yea would have drawn 153 cards reading
+ * 0–0 and nobody would have known why. Two of the 647 are quorum calls with no
+ * yes or no in them, and one is the election of the Speaker, where 434 members
+ * cast a candidate's *name*.
+ *
+ * So: yea and nay are counted across both vocabularies, and `casts` keeps the
+ * whole distribution verbatim — which is the only honest record of a vote whose
+ * answers were "Johnson (LA)", "Jeffries" and "Emmer".
+ */
+const counted = await db.query(`
+  with casts as (
+    select vote_identifier, vote_cast, count(*)::int n
+      from congress_house_vote_positions
+     where vote_cast is not null and vote_cast <> ''
+     group by 1, 2),
+  agg as (
+    select vote_identifier,
+           coalesce(sum(n) filter (where lower(vote_cast) in ('yea','aye')), 0)::int  as yea,
+           coalesce(sum(n) filter (where lower(vote_cast) in ('nay','no')), 0)::int   as nay,
+           coalesce(sum(n) filter (where lower(vote_cast) = 'present'), 0)::int       as present,
+           coalesce(sum(n) filter (where lower(vote_cast) = 'not voting'), 0)::int    as not_voting,
+           coalesce(sum(n), 0)::int                                                   as total,
+           jsonb_object_agg(vote_cast, n)                                             as casts
+      from casts group by 1)
+  update congress_house_votes v
+     set yea = a.yea, nay = a.nay, present = a.present, not_voting = a.not_voting,
+         positions = a.total, casts = a.casts
+    from agg a
+   where a.vote_identifier = v.key
+     and (v.yea is distinct from a.yea or v.nay is distinct from a.nay
+       or v.present is distinct from a.present or v.not_voting is distinct from a.not_voting
+       or v.positions is distinct from a.total or v.casts is distinct from a.casts)`);
+
+const shape = (await db.query(`select
+    count(*) filter (where yea is not null) tallied,
+    count(*) filter (where yea + nay = 0) no_yes_or_no,
+    count(*) total from congress_house_votes where congress = $1`, [CONGRESS])).rows[0];
+
 log(`house-votes done: ${tally.votes} votes · ${tally.positions.toLocaleString()} positions · ${tally.unplaced} unplaced members · ${tally.failed} failed · ${requests} requests`);
+log(`  tallies: ${counted.rowCount} rewritten · ${shape.tallied} of ${shape.total} roll calls carry one · ${shape.no_yes_or_no} have no yes or no in them (quorum calls and the Speaker election)`);
 await db.end();
 process.exit(0);
