@@ -1,6 +1,6 @@
-# Lane U — the item canon, and eleven small UI edits
+# Lane U — the item canon, and twelve small UI edits
 
-**Brendan, 2026-09-02 07:30–08:01 ET, from screenshots.** He started dictating
+**Brendan, 2026-09-02 07:30–08:31 ET, from screenshots.** He started dictating
 "a couple of small UI edits" and ended with a list; the lead wrote it up. Every
 edit below is his, in his order, with his screenshots described where the
 words alone are ambiguous. Where he said two things, the lead ruled and says
@@ -28,6 +28,12 @@ is the one you use.
    on Wikimedia Commons, fall back to the chamber seal and say so in the report.
 5. `HEARTBEAT` every 45 min, `FLAG:` for rulings (keep going on the rest),
    one `LANE U STATUS: COMPLETE | PARTIAL — <what> | STOPPED — <why>` at the end.
+6. **Seam with lane D** (`prompts/2026-09-02-bill-depth.md`, same checkout,
+   same bill page): you own the item component, every list, the search
+   results and the bill page's **Sponsors** section (edit 12). Lane D adds
+   *new* sections to the bill page and owns `lib/policy/db-queries.ts`,
+   `app/api/policy` and the pipeline. Pull before every commit; touch
+   `app/docs/bills/[id]/page.tsx` only inside the Sponsors block.
 
 ## 1. The item canon
 
@@ -133,17 +139,48 @@ revisions too.
     - The one permitted difference: the block is **centered** in the container.
     Screenshot it beside the congress.gov page in the report. If Brendan's
     meaning differs he will say so on the deploy; that is why it is one commit.
+11. **Search results** (`app/search/page.tsx`: the Bills, Text, Members,
+    Committees, Topics and Pages sections) — every result row becomes the
+    canon item, to the extent the convention fits each family. Today a row is
+    a flag, an underlined number, an underlined title or snippet, and
+    `In House Committee · 2025-09-16` right-aligned. It becomes: the
+    jurisdiction **flag** in the avatar slot (results span jurisdictions —
+    keep the flag, not the chamber seal); bold number + the title in muted
+    text on row 1; the meta line (`Sep 16, 2025 · In House Committee`, dates
+    written the canon's way) in `text-xs`; for **Text** results the
+    highlighted snippet is the description, highlights kept; no underlines —
+    the whole item is the link; hover + ↗; 1 px bottom border. Members carry
+    the portrait, committees the chamber seal, topics and pages whatever
+    they have today.
+12. **Sponsors on the bill page — one listing, not two**
+    (`app/docs/bills/[id]/page.tsx` ~108–121, `BillCosponsorDates` in
+    `components/policy/bill-congress.tsx`). Brendan asked "were we
+    duplicating sponsorship listing?" — yes. On a Congress bill the section
+    renders LegiScan's sponsor list (bullets, "…and 64 more co-sponsors")
+    and then congress.gov's cosponsor table (Cosponsor · Joined · Withdrawn):
+    the same people twice from two sources. Make it one:
+    - the **prime sponsor** first, on its own line, linked to the member page;
+    - then **one table** — Name (first-name-first from `People`, party–state,
+      linked to the member page through `bioguide_id`; where no People row
+      matches, congress.gov's own name as-is) · Joined · Original · Withdrawn;
+    - **more than 10 rows → a fixed-height box** showing 10, the rows
+      scrolling inside it, and a **"Show all N"** control that expands the box
+      to full height and collapses it again;
+    - the LegiScan bullet list goes on Congress bills. State bills keep the
+      LegiScan list (there is no congress.gov table for them) under the same
+      10-row box rule.
 
 ## 3. Acceptance — the output, not the assertion
 
 For each edit: the commit hash, the Amplify job number, and one screenshot of
 the deployed page at 1714 px. For edit 3 also a screenshot of the hover state.
 For edit 5 the seal manifest and the fallback list. For edit 10 the side by
-side with congress.gov.
+side with congress.gov. For edit 12 a bill with 80+ cosponsors (S. 1 of the
+119th has 84) collapsed and expanded.
 
 ## 4. Reporting — the lead monitors this file
 
-Append below the marker. `HEARTBEAT <UTC> edit N/10 <commit> job <n> next …`
+Append below the marker. `HEARTBEAT <UTC> edit N/12 <commit> job <n> next …`
 every 45 minutes; `FLAG: …` for rulings; the last line, once:
 `LANE U STATUS: COMPLETE | PARTIAL — <what> | STOPPED — <why>`.
 
