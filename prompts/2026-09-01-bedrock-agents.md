@@ -1203,3 +1203,95 @@ Nothing else is owed and nothing blocks on it — the surface tells the truth in
 the meantime.
 
 LEAD: 06:10Z — §10b stage 1 ACCEPTED, verified live: /connectors serves with the Popular row, the live-read states, the site's-credential vs your-grant distinction leading rather than buried, the claim check written in plain terms, and — as specified — no button where there is nothing to click. The FLAG-B dissolution is the finding of the section: get-workload-access-token-for-user-id minted a real token (length 1778) from the ordinary signed call the compute role already makes, no runtime, no container — and its --user-id parameter is the per-browser claim check's exact shape. "The thing that made Identity a bad fit for one bot is the thing that makes it the right fit for per-user grants" goes in the closing notes. The Google Cloud FLAG is with Brendan now with the two lines that matter (drive.file ONLY; the redirect URI is the vault's callback, not our domain); his client id and secret arrive via .env.local like the webhook did, never the repo. Proceed on his credentials.
+
+**IAM prerequisite, done and scoped.** The compute role had no `bedrock-agentcore`
+permissions, so the Drive flow would have failed at the first Connect. Added to
+the same `govblock-data-access` inline policy as a new `AgentCoreIdentity`
+statement: `GetWorkloadAccessTokenForUserId` and `GetResourceOauth2Token`, on
+the `govblock` workload identity by name and `govblock-*` credential providers
+by prefix — so the role can mint its own tokens and read its own grants and
+**cannot read 44b's provider sitting in the same vault**.
+
+Verified as far as it can honestly be verified from here:
+
+| check | result |
+|---|---|
+| both actions on our workload identity | **allowed** |
+| `GetResourceOauth2Token` on `govblock-google-drive` | **allowed** |
+| `GetResourceOauth2Token` on `44b-gateway-oauth` | **implicitDeny** |
+
+That is `iam simulate-principal-policy`, which is a **policy-level** proof. The
+role's trust policy names `amplify.amazonaws.com` alone, so it cannot be assumed
+from a CLI and no real call can be made as it from here. **The service-level
+proof is the first deployed Connect**, and this says so rather than implying
+more — the whole reason the grant went in early is that my earlier probes ran as
+an admin user and proved the API's shape, not the role's reach.
+
+**Credential handoff:** Brendan's habit file is `~/Code/livingston/.env.local`;
+mine was `apps/web/.env.local`. Either works — when he says done I check both,
+prefer whichever holds the values, and never echo them. Both are gitignored
+(`.gitignore:38` matches `.env*`, `git check-ignore` confirms, no env file is
+tracked anywhere in the repo), which matters because this repo is public.
+
+LEAD: 06:55Z (Brendan, relayed — §11, member-page polish; his screenshots are the spec) — six items, one slice or two, verify against his images:
+1. **+12 px top margin** on the Record filter pill row (Sponsored/AYE/NAY).
+2. **+24 px top margin** on the record timeline list beneath it.
+3. **Hover state on every record item**: background shift plus an up-right arrow (↗) appearing in the item's top-right corner on hover — the standard "this row goes somewhere" affordance; the whole row already links to the bill.
+4. **Header alignment**: on /docs/bills the h1 top-aligns with the Copy Page control; on the member page the portrait+name block sits BELOW it. Top-align the member header with the Copy Page row exactly as the bills page does.
+5. **The header stat line goes** ("367 sponsored · 249 aye · 226 nay in the 2025 session" — the Record pills already carry those numbers). In its place: the member's WASHINGTON OFFICE block — his sample is Adams's real office ("Washington, D.C. Office / 2436 Rayburn House Office Building / Washington, DC 20515 / Phone: (202) 225-1510"), so it ships as DATA, never pasted text: congress member-detail's addressInformation (officeAddress, city, zip, phoneNumber) renders it per member; a member without address data (state legislators) shows nothing there rather than a fake.
+6. **Timeline markers**: the numbered circles become the appropriate SEAL — the chamber seal of the bill's body (House/Senate; state chamber seals where hasSeal() says we hold one). No seal or flag on file → the grey numbered circle stays, as he ruled. Use the existing ChamberSeal/hasSeal machinery; QA from the screenshot, not the primitive.
+
+LEAD: 07:20Z (Brendan, relayed — §12, the /auth flow; his words: "we likely need to set up an /auth flow at this point") — He is right and the sequence has earned it: connections, inbox threads, seeded humans and v2 delivery all currently key to a browser token that the surfaces honestly call "not authentication." §12 makes it authentication. EVALUATE FIRST, build second:
+1. **The evaluation, 30 minutes each with evidence, recommendation before any code:** (a) **Amazon Cognito** — the AWS-standard lean he has mandated before: user pool + Google as a federated IdP, hosted UI or Amplify Auth; measure the real setup against OUR constraints (does the hosted-UI redirect play with policy.nysgpt.com; token handling in SSR under the 30 s/buffering limits; does Cognito's `sub` slot cleanly into the workload-identity user-id the vault already keys on — that last one is the prize). (b) **Auth.js (NextAuth) with Google** — in-app, fewer AWS moving parts, and the same Google client could serve both sign-in (openid/email/profile) and the Drive connect grant (drive.file) — name whether sharing one client is wise or sloppy. Reject or adopt with reasons; the lead's prior is Cognito for stack coherence, overridden happily by evidence.
+2. **Staged build after the ruling:** sign-in (Google first, email second) → session available to SSR → the MIGRATION: everything keyed to the browser claim check (inbox threads, connections, tasks) gains a user key with a one-time merge path ("this browser's history becomes yours on first sign-in" — honest, once, not silent), and the claim check remains the anonymous fallback. Peter Parker and Tony Stark stay seeded beside real users.
+3. Surfaces: /auth (sign-in/out), the header gains the account affordance (small, right side — the one part of the header §8 left untouched; design from the site's own vocabulary), and every "kept in this browser" sentence updates to tell the new truth when signed in.
+FLAGs to Brendan expected: the Google client gains the sign-in redirect URI for whichever path wins (Cognito's domain or /api/auth/callback/google), and test-user emails while the consent screen is in Testing. Cost lines per the house rule. One slice per build.
+
+---
+
+## §11 — member-page polish
+
+`ac4e8eb`, build **119**. Screenshots `53-`–`55-`.
+
+Five of six verified on the deploy by measurement, not by eye:
+
+| item | proof |
+|---|---|
+| 1. +12 px above the Record pills | `TabsList mt-3` |
+| 2. +24 px above the timeline | the feed's own `mt-6` |
+| 3. hover + ↗ on every record row | background `rgba(0,0,0,0)` → `oklab(…/0.5)`, arrow opacity **0 → 1** |
+| 4. header top-aligned with Copy Page | h1 at **y=112**, Copy Page at **y=112** |
+| 6. chamber seals as markers | **25** `[data-slot=chamber-seal]` on Adams's record |
+
+The record feed stopped being a `.steps` counter and became explicit rows,
+because each entry needed three things a counter cannot give it — a hover state,
+an arrow in its own corner, and a marker that means something. The row has
+linked to the bill since the page landed and never looked like it. Where the
+record holds no seal the grey ordinal stays, as ruled.
+
+### Item 5 ships correct and invisible, and the reason is a data gap
+
+The office block is built and renders nothing, because **`addressInformation` is
+null for every member we hold**. Checked four bioguides: each `member-detail`
+row carries exactly nine keys — `url, name, state, terms, district, depiction,
+partyName, bioguideId, updateDate` — which is congress.gov's **member *list***
+shape. The **detail** endpoint is the one that adds `addressInformation`,
+`officialWebsiteUrl`, `birthYear`. We stored the list row under the name detail.
+
+So the spec's own rule is what you see: *a member without address data shows
+nothing rather than a fake.* Brendan's sample is real — congress.gov has Adams's
+Rayburn office — we simply have not fetched it.
+
+**Consequence worth naming, because it is older than this item:** `MemberContact`
+reads the same field, so the Contact section's office and website have been
+silently empty for every member since that section shipped. `MemberToc` even
+gates the "Contact" heading on `addressInformation`, so the heading appears from
+the phone alone and the two lines under it never had a source.
+
+**FLAG — not my file:** whichever job populates `member-detail` should call
+congress.gov's `/member/{bioguideId}` rather than reading the list payload. One
+endpoint change fills the office block, the Contact section and the website link
+at once. Nothing on my side changes when it lands: the component already reads
+the field and will simply start having something to render.
+
+LEAD: 08:00Z — §11 ACCEPTED (measurement-verified: y=112/y=112, hover 0→1, 25 seals). The item-5 finding is the right kind: the component ships correct, the honest-empty rule did its job, and the cause — list payload stored under the detail name — is recorded in lane C's file for its resume. The lead is backfilling all 553 members from the real detail endpoint now; nothing changes on your side, and the office block + Contact section light up when the CDN cache turns. Queue stands: §10b stage 2 on Brendan's credentials.
