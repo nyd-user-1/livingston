@@ -192,3 +192,130 @@ Append below the marker. `HEARTBEAT <UTC> §N <where> <commit> next …`;
 ---
 
 ## Report — worker appends below this line
+
+### Lane D — 2026-09-02
+
+`HEARTBEAT 12:49Z §1 harvest.mjs 7c42534 next the vote tallies`
+`HEARTBEAT 13:10Z §2 the gap audit — measured, table below next §3 harvest`
+
+**§1 is done, all three items.** The member fix is `7c42534`, the tallies
+`abf0ac4` + site `61a708b`, and lane C's file is closed with a round-3 report
+and a `LANE C STATUS: COMPLETE` line (`6724c43`). The detail is in that file
+rather than repeated here; the two things worth carrying forward are that the
+member clobber was **latent in every other detail family** (amendments,
+committee reports, meetings, CRS, the daily Record — their typed columns
+survived a nightly refresh, their payloads did not) and that a tally counting
+only `Yea` would have drawn 153 cards reading 0–0, because a Recorded Vote in
+the Committee of the Whole is cast **Aye/No**.
+
+---
+
+## §2 — the gap audit, H.R. 1 (119th)
+
+Ours is `/docs/bills/2032901` (`HB1`), not 2157698 — that is HB10171, as the
+brief says. Measured 2026-09-02 12:55–13:10Z. congress.gov's numbers come from
+opening each tab in a real browser: `curl` and headless Chrome both get a
+Cloudflare interstitial, headed Chrome does not, so the audit was driven
+through a real window.
+
+**Three sources, three different numbers, and they are all correct.**
+congress.gov's *page* is not the congress.gov *API*, and neither is the
+govinfo BILLSTATUS zip. Every row below names which one it means.
+
+| § | congress.gov's tab | ours today | where the data lives | on Aurora? | cost |
+|---|---|---|---|---|---|
+| Tracker | 6 stages, **Became Law** current | — | derived from `<actions>` `type`/`actionCode` | no | 0 calls (derived) |
+| Actions | **140** (52 bill + 88 amendment, its own filter counts) | **141** LegiScan rows — see the flag | BILLSTATUS `<actions>` = **59**; API `/actions` = **59** | no | 8 zips |
+| Recorded votes on actions | 47 roll calls (3 House, 44 Senate) | Votes table, **47**, tallies and all | `<recordedVotes>` on 26 of the 59 | House only | 8 zips |
+| Committees | 1 committee, 1 activity row | — | `<committees><item><activities>` — 1 committee, **3** activities, 2 of them named "Unknown" | no | 8 zips |
+| Subjects | policy area + **239** legislative subjects (67/page, paginated) | — | `<subjects><legislativeSubjects>` **239**; API **240** | no | 8 zips |
+| Sponsor | Rep. Arrington, Jodey C. [R-TX-19], linked | LegiScan's name, **no bioguide, no link** | `<sponsors><item><bioguideId>` | no | 8 zips |
+| CBO cost estimates | **9** | — | `<cboCostEstimates>`: pubDate, title, url, description | no | 8 zips |
+| Text versions | **6** | **5** — Public Law missing | `<textVersions>` | partial | 8 zips (a bug, not a cost) |
+| Text formats | 6 versions × up to 4 formats | .htm body only, no format links | API `/bill/…/text` `formats[]`. **BILLSTATUS carries only the XML url** | no | free where `sync` already walks; ~18.5k for the archive |
+| Constitutional authority | not on H.R. 1; on ordinary House bills | — | `<constitutionalAuthorityStatementText>` (HTML) | no | 8 zips |
+| Titles | 10 | **11** | BILLSTATUS 11 · API 12 | yes | — |
+| Related bills | 34 | **39** | BILLSTATUS 29 one-directional · API 38 · ours is the union | yes | — |
+| Summaries | 5 | **5** ✓ | `<summaries>` | yes | — |
+| Amendments | 493 | **493** ✓ | `<amendments>` + API | yes | — |
+| Cosponsors | 0 | **0** ✓ | `<cosponsors>` | yes | — |
+| Committee reports | 2 | **2** ✓ | `<committeeReports>` | yes | — |
+| Policy area · Public law | Economics and Public Finance · PL 119-21 | both, in the callout ✓ | `<policyArea>`, `<laws>` | yes | — |
+| Committee meetings | 2, on the overview | — | no BILLSTATUS element; `congress_committee_meetings` holds the list | list only | detail bounded (lane C's ruling) |
+| Related CRS products | "CRS Reports on H.R.1" | — | **no bill→CRS join in the API** | n/a | not available |
+| Notes | no Notes tab on H.R. 1 | — | no `<notes>` in BILLSTATUS; API `notes` is `null` on every bill sampled | n/a | rare; say nothing |
+| Most-viewed · Bill Searches and Lists | shown | — | **not in the API at all** | n/a | cannot; do not fake |
+
+### FLAG 1 — §4.2 would delete 87 rows a reader can see today
+
+The brief says *"on a Congress bill the BILLSTATUS actions are the canon and
+LegiScan's history is not shown twice."* Measured, that is backwards.
+
+```
+LegiScan history rows : 141 (140 distinct)   ← our History table
+BILLSTATUS <actions>  :  59 ( 55 distinct)   ← and the API's /actions, same 59
+exact (date, text) in both                : 53
+in BILLSTATUS and not in LegiScan          :  2
+in LegiScan and not in BILLSTATUS          : 87
+```
+
+congress.gov's Actions tab shows **140**. Our History shows **141**. They are
+the same list. The 87 LegiScan-only rows are the amendment actions —
+`S.Amdt.2360 Amendment SA 2360 ruled in order by the Chair.` — which
+congress.gov merges into its 140 from each amendment's own record and which
+neither the API's `/actions` nor BILLSTATUS's `<actions>` returns in one list.
+The 2 BILLSTATUS-only rows are congress.gov's own *Actions Overview* summary
+lines (`Passed/agreed to in House: On passage Passed by the Yeas and Nays…`),
+not new information.
+
+**LegiScan is also our only source for Senate roll calls.** `/senate-vote/119`
+is a 404 — the congress.gov API publishes House votes and nothing else. Our
+Votes section shows 47 roll calls, **44 Senate and 3 House**, which is
+congress.gov's own split exactly. Dropping LegiScan on federal bills would
+take the Senate's votes off the page.
+
+So what BILLSTATUS adds to Actions is **not rows, it is fields**: `type` (the
+stage, which is the tracker's input), `actionCode`, `sourceSystem`, the
+`committees` that acted (25 of 59), and `<recordedVotes>` with the roll number
+and the Clerk's URL (26 of 59). Those attach to 53 of our 141 rows by an exact
+`(date, text)` match.
+
+**What I am building unless overruled:** harvest `congress_bill_actions` from
+the zips as specified, and render the Actions section as **our 141 rows
+enriched from BILLSTATUS**, not replaced by its 59 — stage, code, acting
+committee and roll-call link on the rows that have them, plain text on the
+rest. LegiScan's History heading becomes "Actions" on a Congress bill so it is
+not shown twice under two names. State bills are untouched.
+
+### FLAG 2 — two dates on this page are wrong, and one title is
+
+1. **`Enrolled` reads 2026-08-28.** H.R. 1 was enrolled in July 2025.
+   BILLSTATUS gives that version **no date at all**, and the row kept the night
+   of the govinfo backfill instead. Lane C's own rule — *a wrong date is worse
+   than a missing one* — says this should render blank. Fixing in §3.
+2. **BILLSTATUS timestamps are UTC and congress.gov renders them Eastern.**
+   H.R. 1's committee activity is `2025-05-21T03:55:00Z`; congress.gov shows
+   **05/20/2025**. A `slice(0,10)` puts every evening action on the wrong day.
+   Every new date on this page goes through `America/New_York`.
+3. **Our title for H.R. 1 is `FEHB Protection Act of 2025`** — a short title
+   for a *portion* of the bill, which LegiScan picked. congress.gov's display
+   title is `An act to provide for reconciliation pursuant to title II of
+   H. Con. Res. 14.` and its popular title is `One Big Beautiful Bill Act`.
+   BILLSTATUS carries both, free, in `<title>` and `<titles>`. The bill page's
+   own blurb is fine (it reads `description`), but the title is what lists,
+   search and `generateMetadata` show. **I will land the data** (a display
+   title and a popular title on the bill); the lists that render it are lane
+   U's, so that half is theirs to pick up.
+
+### FLAG 3 — text formats cannot come from the zips
+
+The brief says to link the other formats "from `textVersions[].formats`".
+BILLSTATUS's `<formats>` holds **only the XML url** — measured on H.R. 1 (6
+versions, 1 format each) and on HB10160 (1 version, 1 format). The API's
+`/bill/…/text` holds all four (Formatted Text, PDF, Formatted XML, USLM). They
+are *not* derivable by convention: `BILLS-119hr1enr` has both `.xml` and
+`_uslm.xml`, `PLAW-119publ21` has `_uslm.xml` and no `.xml`, so guessing would
+publish dead links. `sync.mjs` already fetches `/bill/…/text` for every bill
+whose text moved — free — so it will store the formats as it goes, with a
+bounded backfill for the archive. Cost recorded, not hidden.
+
