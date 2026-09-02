@@ -1,0 +1,68 @@
+state,bill_number,date,chamber,description,yea,nay
+CA,SCA4,2009-02-19,Senate,W/O REF. TO FILE SCA4 Maldonado,27,12
+CA,SCA4,2009-02-19,Assembly,SCA4 Maldonado  Senate Third Reading  By CALDERON,54,20
+CO,SB058,2026-02-24,Senate,"Senate State, Veterans, &amp; Military Affairs: Postpone Sen",3,2
+CO,SB058,2026-02-24,Senate,"Senate State, Veterans, &amp; Military Affairs: Refer Senate",2,3
+ID,S1202,2011-04-04,Senate,Senate Third Reading,25,10
+ID,S1202,2011-04-06,House,House Third Reading,44,22
+IL,SB1666,2009-04-01,Senate,Third Reading in Senate,15,35
+KY,SB190,2023-03-07,Senate,Senate: Third Reading RSN# 2552,35,0
+KY,SB190,2023-03-16,House,House: Third Reading RCS# 305,96,1
+KY,SB190,2023-03-16,Senate,Senate: Third Reading RSN# 2708,37,0
+LA,HB292,0000-00-00,Senate,"Senate Vote on HB 292, ADOPT (#1731)",35,0
+LA,HB292,0000-00-00,House,"House Vote on HB 292, MOTION TO ADOPT (#1442)",76,16
+LA,HB292,0000-00-00,House,"House Vote on HB 292, REJECT SENATE AMENDMENTS (#1006)",89,2
+LA,SB796,0000-00-00,Senate,"Senate Vote on SB 796, FINAL PASSAGE (#670)",29,5
+LA,HB292,0000-00-00,Senate,"Senate Vote on HB 292, FINAL PASSAGE (#680)",31,5
+LA,HB292,0000-00-00,Senate,"Senate Vote on HB 292, AMENDMENT # 3107 BY AMEDEE (#679)",23,14
+LA,HB292,0000-00-00,House,"House Vote on HB 292, FINAL PASSAGE (#149)",71,27
+MD,HB156,2026-03-11,House,Third Reading Passed,110,26
+ME,LD78,2017-05-16,House,Acc Maj Ought Not To Pass Rep RC #104,99,42
+ME,LD114,2019-05-23,House,Acc Maj Ought Not To Pass Rep RC #124,111,24
+ME,LD211,2019-05-23,House,Acc Maj Ought Not To Pass Rep RC #126,89,45
+ME,LD211,2019-05-23,House,Table Until Later RC #125,22,113
+ME,LD211,2019-05-28,Senate,Accept Maj Ontp Rpt RC #139,18,16
+ME,LD231,2021-06-08,Senate,Accept Maj Otp-a Rpt RC #253,27,7
+ME,LD231,2021-06-09,House,Acc Maj Otp As Amended Rep RC #194,92,52
+ME,LD1320,2023-05-23,Senate,Accept Majority Ought Not To Pass Report RC #161,20,13
+MT,SB408,2013-04-04,Senate,(S) 2nd Reading Passed,28,22
+MT,SB408,2013-04-05,Senate,(S) 3rd Reading Passed,28,0
+MT,SB408,2013-04-16,House,(H) 2nd Reading Concurred as Amended,58,42
+MT,SB408,2013-04-17,House,(H) 3rd Reading Concurred,57,43
+MT,SB408,2013-04-18,Senate,(S) 2nd Reading House Amendments Concurred,30,20
+MT,SB408,2013-04-19,Senate,(S) 3rd Reading Passed as Amended by House,29,20
+MT,SB566,2023-04-03,Senate,(S) 2nd Reading Motion to Amend Carried,34,16
+MT,SB566,2023-04-03,Senate,(S) 2nd Reading Passed as Amended,27,23
+MT,SB566,2023-04-03,Senate,(S) State Administration Committee Executive Action--Bill Pa,6,4
+MT,SB566,2023-04-04,Senate,(S) 3rd Reading Passed,27,23
+MT,SB562,2025-04-02,Senate,(S) State Administration--To Table,9,0
+NY,A05735,2017-06-06,Assembly,Assembly Election Law Committee: Favorable refer to committe,13,3
+NY,A05735,2017-06-12,Assembly,Assembly Rules Committee: Favorable,27,0
+NY,A05735,2017-06-19,Assembly,Assembly Floor Vote - Final Passage,100,44
+NY,S00496,2019-06-03,Senate,Senate Floor Vote - Final Passage,43,19
+NY,S00496,2019-06-03,Senate,Senate Rules Committee Vote,15,4
+NY,S03596,2025-05-28,Senate,COMMITTEE,6,1
+NY,S03596,2025-05-28,Senate,Senate Elections Committee Vote,6,1
+SD,HB1054,0000-00-00,Senate,Senate Local Government Do Pass,6,0
+SD,HB1054,0000-00-00,House,House of Representatives Do Pass,67,2
+SD,HB1054,0000-00-00,House,House Local Government Do Pass,12,0
+SD,HB1054,0000-00-00,Senate,Senate Do Pass,34,0
+SD,SB175,0000-00-00,Senate,Senate Local Government Do Pass,3,2
+SD,SB175,0000-00-00,Senate,Senate Local Government Report out of committee without reco,4,1
+TN,HB1616,2024-02-20,House,HOUSE LOCAL GOVERNMENT COMMITTEE: Rec. for pass; ref to Fina,14,6
+TN,SB2631,2024-03-27,Senate,SENATE STATE & LOCAL GOVERNMENT COMMITTEE: Failed in Senate ,2,5
+UT,HB0262,2013-01-28,House,House Comm - Favorable Recommendation,7,0
+UT,HB0262,2013-02-01,House,House/ passed 3rd reading,63,0
+UT,HB0262,2013-02-06,Senate,Senate Comm - Favorable Recommendation,4,1
+UT,HB0262,2013-02-07,Senate,Senate/ passed 2nd reading,24,4
+UT,HB0262,2013-02-08,Senate,Senate/ uncircled (Voice Vote),0,0
+UT,HB0262,2013-02-08,Senate,Senate/ circled (Voice Vote),0,0
+UT,HB0262,2013-02-08,Senate,Senate/ passed 3rd reading,23,6
+VA,HJR541,2017-01-30,House,House: Subcommittee recommends laying on the table (4-Y 3-N),4,3
+VA,HJR635,2017-01-30,House,House: Subcommittee recommends laying on the table (4-Y 3-N),4,3
+VA,HB1129,2018-02-01,House,House: Subcommittee recommends passing by indefinitely (5-Y ,5,1
+VA,HB1056,2026-02-03,House,Subcommittee recommends striking from the docket (8-Y 0-N),8,0
+WV,HB2438,2011-01-26,House,Passage,95,0
+WV,HB2438,2011-03-09,House,Passage-senate Amended Hb,99,0
+WY,SF0096,2011-01-25,Senate,Motion to Do Pass Failed,2,3
+WY,SF0077,2014-02-11,Senate,S Failed Introduction,8,22
