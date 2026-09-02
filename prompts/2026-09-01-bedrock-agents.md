@@ -1927,3 +1927,44 @@ holds a working Discord webhook, and one line per failed connect attempt would
 be readable and permanent — noisy, semi-public, and strictly better than
 nothing, which is what we have.
 
+
+### Durable trail — priced, three options, none built
+
+The response body carries the diagnosis today, but it lives only as long as a
+screenshot. What a durable trail costs:
+
+**A. The Discord webhook we already hold.** Infrastructure cost **zero** — the
+connection exists, works, and has posted real content. One line per FAILED
+attempt only (never per check: the page makes three on every load and that would
+be a firehose), deduped per reader per hour with a hard cap, because Discord
+rate-limits ~5/s per webhook and a broken connector would otherwise pour into
+the channel. Build: an hour, mostly the cap.
+
+**The caveat, written beside it because it is the deciding fact, not a
+footnote.** That channel is semi-public — everyone in the server sees it. An
+8-hex reader id is not reversible to a claim check, but it *is a stable
+pseudonym*: an observer can count how many distinct people tried to connect,
+watch one of them retry, and read the provider's error text. That is metadata
+about govblock's readers in a room govblock does not control. It is a real
+trade, not a formality, and per the lead's ruling it **ships only on Brendan's
+explicit word with that trade named to him.**
+
+**B. Aurora, via the Data API we already call — the recommended one.** The
+compute role's `PolicyDataApi` statement already permits `ExecuteStatement`
+against the cluster, and `POLICY_CLUSTER_ARN`/`POLICY_SECRET_ARN` are already in
+the runtime environment. A `connector_trace` table (timestamp, event, service,
+reader, carried, force, answer, status, message) would be **private, durable and
+queryable** — every property Discord's option lacks — and the trail could then
+be read with the same SQL the rest of the site uses. Not verified: whether the
+DB user holds INSERT, which is one grant and one migration in Brendan's
+database, so it is his to approve rather than mine to try. Build: an hour if the
+grant exists.
+
+**C. Amplify compute logging.** Unknown whether it can be enabled for this app
+at all — there is no flag on the app record, the role already has the
+permissions, and deliberate logging produced no group. Investigating it is the
+priced item, not building it, and B makes it optional rather than blocking.
+
+Recommendation: **B**, and A only if Brendan wants something tonight-cheap and
+accepts the channel trade. Neither is built.
+
