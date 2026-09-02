@@ -1344,3 +1344,60 @@ shared team calendar the reader does not own; that is the correct trade and is
 written here so it is a known limit rather than a support question.
 
 LEAD: 09:45Z (Brendan, relayed — §13, hearing video on committee pages) — His placement, his words: the committee page's right rail, top — UI for the video. Build: a "Latest hearing" card at the top of the committee rail — the committee's most recent (or LIVE, badged) hearing video, click-to-play embed (no autoplay-with-sound exists in any browser; muted autoplay is available but click-to-play is the shipped default), title + date beneath, linking to the hearing row where we have one. The finding is the work: a committed committee→YouTube-channel map (House/Senate committees run their own channels; build the map once like committee-codes.json, discoverable via one search pass), then a server-side match by channel + date/title via YouTube Data API v3 — plain API key, no user OAuth, search costs 100 quota units of the 10k/day default, so cache matches in a table or the snapshot rather than searching per view. FLAG Brendan when you reach it: Console → Credentials → Create credentials → API key → RESTRICT it to YouTube Data API v3 → .env.local as YOUTUBE_API_KEY. Honest empty state when no video matches. Sequence: after §10b's two connector wirings.
+
+---
+
+## §13 — queued (after the §10b wirings)
+
+A "Latest hearing" video card at the top of the committee page's right rail:
+click-to-play embed of the committee's most recent or live hearing, badged when
+live, title and date beneath, linked to our hearing row where one exists.
+
+**Where nothing matches there is no card at all** — the lead's sharpening of my
+"honest empty state", and it is the better rule. An empty video card says *this
+committee has no hearings*, which is a lie about the world rather than a fact
+about us; absence says only that we have nothing to show. Same precedent as the
+roster: absent rather than empty.
+
+**Two flags, raised now rather than when I reach them.**
+
+1. **The YouTube key, while Brendan is already in the console.** He is in Google
+   Cloud Console this minute for the OAuth scopes, and the API key is a
+   different credential in the same project: **Credentials → Create credentials
+   → API key → Restrict key → API restrictions → YouTube Data API v3** (and
+   enable that API under Library). Then `YOUTUBE_API_KEY=…` in `.env.local`.
+   Batching it with the OAuth work saves a second trip.
+
+2. **Scope of the map, sized before anyone expects more.** Congress has **61**
+   committees on our record; New York alone has **82**, and there are 51 other
+   jurisdictions. Official YouTube channels exist for federal committees and
+   essentially not for state ones. So the committed map is a **Congress-only**
+   artefact and the card is Congress-only in practice — every state committee
+   shows the honest empty state. Worth saying before the first screenshot, so
+   the absence reads as the known shape rather than as a bug.
+
+On the quota arithmetic the brief already names: `search.list` costs 100 units
+of 10,000 a day, so **matching is a build/refresh step whose result is cached,
+never a per-view call** — 61 committees is 6,100 units, comfortably one refresh
+a day with headroom, and zero units on a page view.
+
+**Still blocked ahead of this:** the §10b wirings wait on
+`GOOGLE_OAUTH_CLIENT_ID`, which does not exist in either env file yet — the
+scopes are right, the client is not created.
+
+LEAD: 10:05Z — §13 rulings on both flags: (1) The Congress-only truth is accepted and pre-empted the right way. Sharpen it one step further: an unmapped committee gets NO card, not an empty one — absent rather than empty, the same precedent as the roster section ("an empty roster reads as 'nobody sits on this committee'"; an empty video card would read as "this committee has no hearings"). The map is a Congress artefact and says so in its own file header. (2) LIVE freshness: hourly-refresh truth is the v1 ruling — the badge is as fresh as the cache and that is acceptable; do NOT spend search quota chasing minutes. The named upgrade path if Brendan ever wants true-to-the-minute: when the cache says a broadcast is live or upcoming, ONE videos.list confirm (1 quota unit) per page view on just that video id — cheap because the expensive part (finding) stays cached. Priced, not built. (3) The key request is with Brendan this minute, batched with his open console session.
+
+**Rulings recorded.** Congress-only accepted. **LIVE is hourly-refresh truth in
+v1** — the badge is as fresh as the last refresh and no fresher, which is what
+the cached-matching design costs. The priced upgrade, **not built without
+Brendan's ask**: a 1-unit `videos.list` confirm per view against the cached live
+id only. That splits the cost the right way — *finding* a hearing is the
+expensive call and stays cached; *confirming* one already found is a single
+unit, so minute-fresh LIVE is affordable precisely because the search is not
+repeated.
+
+LEAD: 10:40Z (Brendan, relayed — §14, real email delivery from the Agentic Inbox; his words: "empowering the agents to email the answers to the end-user's inbox… taking the concept we've already built out on the site and making it real. we can do this can't we?") — We can, and the architecture ruling is: PLATFORM OUTBOUND EMAIL, not Gmail scopes (gmail.send sends as the connected user from their own address — wrong shape — and is a restricted scope carrying Google's heaviest review; he has been told to check no Gmail boxes). Build:
+1. **v1 on Resend** — RESEND_API_KEY and RESEND_FROM_EMAIL already sit in ~/Code/livingston/.env.local. A delivered report (and each agent reply thread) gains "Email me this": sends the report from an agent-branded sender via Resend to the reader's address. **Double opt-in is non-negotiable on a public site**: an address receives a confirmation link first; only confirmed addresses ever receive a report; confirmations and sends are rate-capped per address and per IP (the cost-line and brake disciplines apply). The confirmed address keys to the per-browser claim check now and migrates to the auth identity later (coordinate the seam with lane AUTH through me).
+2. **The inbox UI evolves honestly**: a thread whose report was emailed shows the delivery (address elided sensibly, message id from Resend as proof, per the proof-not-assertion rule).
+3. **v2, EVALUATE AND PRICE ONLY: Amazon SES** — the AWS lean, cheaper at scale, and the path to INBOUND agent addresses (researcher@policy.nysgpt.com receives a task by email and the agent replies — the AgentMail-shaped full circle). Name the pieces (domain verification DKIM records in Cloudflare — a Brendan FLAG; production-access request and its ~24 h; inbound receipt rules → the task queue, which composes with the v2 SQS+Lambda close-the-tab work already priced). Brendan buys v2 from the table.
+Sequence: after §10b's connector wirings land and verify. Sender domain choice (send from policy.nysgpt.com vs Resend's shared domain) is a one-line Brendan FLAG when you reach it — his DNS, his call.
