@@ -127,7 +127,8 @@ export const neonConfig = {};
  * neon(url) → sql. sql`…` and sql(text, params) return a lazy query — a
  * thenable that runs when awaited and remembers its text, which is what lets
  * sql.transaction([sql`a`, sql`b`]) replay them inside BEGIN … COMMIT the way
- * the HTTP driver did. sql.query(text, params) runs at once. All return rows.
+ * the HTTP driver did. sql.query(text, params) is the same lazy query. All
+ * return rows.
  */
 export function neon(url) {
   const pool = poolFor(url);
@@ -153,7 +154,9 @@ export function neon(url) {
     }
     return lazy(String(strings), values[0] ?? []);
   };
-  sql.query = (text, params = []) => run(pool, text, params);
+  // Lazy too: the HTTP driver's query() ran only when awaited, and the
+  // handlers build transactions as [sql.query(…), sql.query(…)].
+  sql.query = (text, params = []) => lazy(text, params);
   sql.unsafe = (text) => lazy(text, []);
   sql.transaction = async (queries) => {
     const list = typeof queries === "function" ? queries(sql) : queries;
