@@ -27,6 +27,7 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { policyUrl } from "../../box/policy-db.mjs";
 
 export const REPO = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..", "..", "..");
 
@@ -63,10 +64,18 @@ function loadPg() {
  */
 export async function connect({ label = "pipeline" } = {}) {
   loadEnv();
+  // Aurora since 2026-09-03 (scripts/box/policy-db.mjs): a Neon URL in the
+  // environment is replaced, and a box that cannot reach the secret exits 2.
+  policyUrl(label);
   const dsn = process.env.POLICY_DATABASE_URL;
   if (!dsn) { console.error(`${label}: POLICY_DATABASE_URL is required`); process.exit(2); }
   const pg = loadPg();
-  const c = new pg.Client({ connectionString: dsn, application_name: `livingston-${label}` });
+  const c = new pg.Client({
+    connectionString: dsn,
+    // Aurora's certificate chain is Amazon's, not in Node's store: lane C's answer.
+    ssl: /sslmode=(require|verify)/.test(dsn) ? { rejectUnauthorized: false } : undefined,
+    application_name: `livingston-${label}`,
+  });
   await c.connect();
   await c.query(`CREATE SCHEMA IF NOT EXISTS openstates`);
   // pg_catalog last, public NOT on the path: an unqualified INSERT cannot find

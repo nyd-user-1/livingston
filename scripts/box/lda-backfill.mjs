@@ -24,7 +24,9 @@ import { spawn } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { neon } from "@neondatabase/serverless";
+import { neon, policyUrl } from "./policy-db.mjs";
+// Aurora, not Neon, since 2026-09-03 — see policy-db.mjs.
+policyUrl("lda-backfill");
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const REPO = path.resolve(HERE, "..", "..");

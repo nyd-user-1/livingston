@@ -31,6 +31,7 @@
 //             2 = usage / missing handler (the job never ran).
 
 import { build } from "esbuild";
+import { policyUrl } from "./policy-db.mjs";
 import { spawn } from "node:child_process";
 import fs from "node:fs";
 import os from "node:os";
@@ -83,6 +84,10 @@ function loadEnv(file) {
   }
 }
 loadEnv(path.join(REPO, ".env.local"));
+// Aurora, resolved once here and handed to the handler as POLICY_DATABASE_URL
+// (scripts/box/policy-db.mjs). The bundle below swaps the Neon HTTP driver for
+// the pg-backed one in that same file: Aurora is not behind Neon's proxy.
+policyUrl("run-handler");
 
 /* ---- the state CA bundle ------------------------------------------------ */
 
@@ -139,6 +144,7 @@ async function main() {
       banner: { js: 'import { createRequire as __createRequire } from "node:module"; const require = __createRequire(import.meta.url);' },
       target: "node22",
       logLevel: "warning",
+      alias: { "@neondatabase/serverless": path.join(REPO, "scripts", "box", "policy-db.mjs") },
     });
     // A temp file, not a data: URL — a stack trace out of a 250 KB data URL is
     // unreadable, and having the path on disk is worth it when a bundle misbehaves.

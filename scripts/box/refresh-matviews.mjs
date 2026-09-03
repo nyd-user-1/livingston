@@ -8,7 +8,9 @@
 // build; ~45 s on Neon. Exits non-zero on failure so run-due records it.
 
 import process from "node:process"
-import { neon } from "@neondatabase/serverless"
+import { neon, policyUrl } from "./policy-db.mjs";
+// Aurora, not Neon, since 2026-09-03 — see policy-db.mjs.
+policyUrl("refresh-matviews");
 
 const url = process.env.POLICY_DATABASE_URL
 if (!url) {
