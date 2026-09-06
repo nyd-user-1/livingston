@@ -134,7 +134,7 @@ const FAMILIES = [
     // dashes on H.R. 1. The detail has it. `since` is wide because the pass is
     // gated on detail_fetched_at: the first run pays for all 7,035, a later one
     // only for amendments that have moved.
-    detail: { since: 3650, path: (r) => `/amendment/${r.congress}/${String(r.type).toLowerCase()}/${r.number}`,
+    detail: { since: 3650, floor: 8000, refreshWhenNull: "actions_count", path: (r) => `/amendment/${r.congress}/${String(r.type).toLowerCase()}/${r.number}`,
               unwrap: (d) => d.amendment,
               cols: { sponsors: (r) => (r.sponsors ? JSON.stringify(r.sponsors) : null),
                       sponsor_name: (r) => (r.sponsors?.[0]?.fullName ?? null),
@@ -171,7 +171,7 @@ const FAMILIES = [
             received_date: (r) => r.receivedDate ?? null, latest_action: (r) => r.latestAction?.text ?? null },
     // The record: the nominees with their positions, whether it is privileged,
     // and the counts that decide which children are worth a request.
-    detail: { since: 3650, floor: 3000, path: (r) => ownPath(r), unwrap: (d) => d.nomination,
+    detail: { since: 3650, floor: 3000, refreshWhenNull: "actions_count", path: (r) => ownPath(r), unwrap: (d) => d.nomination,
               cols: { nominees: (r) => json(r.nominees), is_privileged: (r) => (r.isPrivileged == null ? null : String(r.isPrivileged)),
                       authority_date: (r) => r.authorityDate ?? null, latest_action_date: (r) => r.latestAction?.actionDate ?? null,
                       actions_count: (r) => r.actions?.count ?? null, committees_count: (r) => r.committees?.count ?? null,
@@ -204,7 +204,7 @@ const FAMILIES = [
     // order. Taking [0] gave both of H.R. 1's rows Book 2's record, so the page
     // printed "H. Rept. 119-106,Book 2" twice where congress.gov prints Book 1
     // and Book 2. The part is already in the key; it has to be in the unwrap.
-    detail: { since: 3650, path: (r) => `/committee-report/${r.congress}/${r.type}/${r.number}`,
+    detail: { since: 3650, floor: 1200, refreshWhenNull: "text_count", path: (r) => `/committee-report/${r.congress}/${r.type}/${r.number}`,
               unwrap: (d, row) => {
                 const all = Array.isArray(d.committeeReports) ? d.committeeReports : [d.committeeReports].filter(Boolean);
                 const want = String(row?.part ?? 1);
@@ -236,7 +236,7 @@ const FAMILIES = [
     // establishing authority, its subcommittees, its website, and how much of
     // each family it has referred to it. 236 requests, once; then the ones
     // whose updateDate moves.
-    detail: { since: 3650, floor: 400, path: (r) => `/committee/${chamberPath(r)}/${r.systemCode}`, unwrap: (d) => d.committee,
+    detail: { since: 3650, floor: 400, refreshWhenNull: "is_current", path: (r) => `/committee/${chamberPath(r)}/${r.systemCode}`, unwrap: (d) => d.committee,
               cols: { is_current: (r) => (r.isCurrent == null ? null : String(r.isCurrent)),
                       website_url: (r) => r.committeeWebsiteUrl ?? null,
                       history: (r) => json(r.history), subcommittees: (r) => json(r.subcommittees),
@@ -272,7 +272,7 @@ const FAMILIES = [
   { table: "congress_committee_prints", path: (c) => `/committee-print/${c}`, listKey: "committeePrints",
     key: (r) => String(r.jacketNumber ?? `${r.congress}-${r.chamber}-${r.number}`),
     cols: { jacket_number: (r) => String(r.jacketNumber ?? ""), chamber: (r) => r.chamber ?? null, number: (r) => String(r.number ?? "") },
-    detail: { since: 3650, floor: 1000, path: (r) => `/committee-print/${r.congress}/${chamberPath(r)}/${r.jacketNumber}`,
+    detail: { since: 3650, floor: 1000, refreshWhenNull: "title", path: (r) => `/committee-print/${r.congress}/${chamberPath(r)}/${r.jacketNumber}`,
               unwrap: (d) => (Array.isArray(d.committeePrint) ? d.committeePrint[0] : d.committeePrint),
               cols: { title: (r) => r.title ?? null, citation: (r) => r.citation ?? null, committees: (r) => json(r.committees),
                       committee_code: (r) => r.committees?.[0]?.systemCode ?? null, associated_bills: (r) => json(r.associatedBills),
@@ -287,7 +287,7 @@ const FAMILIES = [
     key: (r) => `${r.congress}-${r.number}-${r.suffix ?? ""}`,
     cols: { number: (r) => String(r.number ?? ""), suffix: (r) => r.suffix ?? null, topic: (r) => r.topic ?? null,
             transmitted_date: (r) => r.transmittedDate ?? null },
-    detail: { since: 3650, floor: 200, path: (r) => ownPath(r), unwrap: (d) => d.treaty,
+    detail: { since: 3650, floor: 200, refreshWhenNull: "actions_count", path: (r) => ownPath(r), unwrap: (d) => d.treaty,
               cols: { title: (r) => r.titles?.[0]?.title ?? null, titles: (r) => json(r.titles), parts: (r) => json(r.parts),
                       countries_parties: (r) => json(r.countriesParties), index_terms: (r) => json(r.indexTerms),
                       resolution_text: (r) => r.resolutionText ?? null, in_force_date: (r) => r.inForceDate ?? null,
@@ -321,7 +321,7 @@ const FAMILIES = [
     // the transcript is, as formatted text and as PDF. 934 requests, once.
     // The transcript text itself is fetched by hearing-texts.mjs from the
     // formatted-text URL, the way the text walk fetches a bill.
-    detail: { since: 3650, floor: 2000, path: (r) => `/hearing/${r.congress}/${chamberPath(r)}/${r.jacketNumber}`, unwrap: (d) => d.hearing,
+    detail: { since: 3650, floor: 2000, refreshWhenNull: "title", path: (r) => `/hearing/${r.congress}/${chamberPath(r)}/${r.jacketNumber}`, unwrap: (d) => d.hearing,
               cols: { title: (r) => r.title ?? null, citation: (r) => r.citation ?? null,
                       hearing_date: (r) => r.dates?.[0]?.date ?? null, dates: (r) => json(r.dates),
                       committee_code: (r) => r.committees?.[0]?.systemCode ?? null, committee_name: (r) => r.committees?.[0]?.name ?? null,
@@ -337,7 +337,7 @@ const FAMILIES = [
             vote_type: (r) => r.voteType ?? null, start_date: (r) => r.startDate ?? null },
     // The vote's own record: the question, the party totals, the amendment
     // where it was one. Positions stay with house-votes.mjs.
-    detail: { since: 3650, floor: 1000, path: (r) => `/house-vote/${r.congress}/${r.sessionNumber}/${r.rollCallNumber}`, unwrap: (d) => d.houseRollCallVote,
+    detail: { since: 3650, floor: 1000, refreshWhenNull: "vote_question", path: (r) => `/house-vote/${r.congress}/${r.sessionNumber}/${r.rollCallNumber}`, unwrap: (d) => d.houseRollCallVote,
               cols: { vote_question: (r) => r.voteQuestion ?? null, vote_party_total: (r) => json(r.votePartyTotal),
                       amendment_author: (r) => r.amendmentAuthor ?? null, amendment_type: (r) => r.amendmentType ?? null,
                       amendment_number: (r) => r.amendmentNumber ?? null, legislation_url: (r) => r.legislationUrl ?? null } } },
@@ -499,9 +499,14 @@ for (const fam of FAMILIES) {
     if (fam.detail && !has("--no-detail")) {
       const cutoff = new Date(Date.now() - fam.detail.since * 86400e3).toISOString();
       const detailLimit = Math.max(Number(val("--detail-limit", "400")), fam.detail.floor ?? 0);
+      // A family that grew a detail column after its rows were first detailed
+      // names it in `refreshWhenNull`, so the rows are read again once to fill
+      // it — otherwise a count the children are gated on stays null forever
+      // and the child pass walks nothing (amendments, 2026-09-06).
+      const stale = fam.detail.refreshWhenNull ? ` or ${fam.detail.refreshWhenNull} is null` : "";
       const targets = await db.query(
         `select key, coalesce(list_payload, payload) as list_payload from ${fam.table}
-          where update_date >= $1 and (detail_fetched_at is null or detail_fetched_at < update_date)
+          where update_date >= $1 and (detail_fetched_at is null or detail_fetched_at < update_date${stale})
           order by update_date desc limit $2`,
         [cutoff, detailLimit],
       );
