@@ -540,11 +540,15 @@ for (const fam of FAMILIES) {
     // nomination that has not moved costs nothing tonight.
     let childRows = 0;
     if (fam.children && !has("--no-children")) {
-      await db.query(`alter table ${fam.table} add column if not exists children_fetched_at timestamptz`);
       const childLimit = Number(val("--child-limit", "5000"));
       for (const child of fam.children) {
         const clabel = child.label ?? child.table;
         const ccols = Object.keys(child.cols);
+        // The stamp is per child, not per parent: with one stamp the first
+        // child marked every parent covered and the second found none
+        // (nomination committees and hearings wrote nothing, 2026-09-06).
+        const stamp = `child_${child.table.replace(/^congress_/, "")}_at`;
+        await db.query(`alter table ${fam.table} add column if not exists ${stamp} timestamptz`);
         await db.query(`create table if not exists ${child.table} (
           key text primary key,
           parent_key text not null,
@@ -557,7 +561,7 @@ for (const fam of FAMILIES) {
         const parents = await db.query(
           child.mode === "since"
             ? `select * from ${fam.table} order by key limit $1`
-            : `select * from ${fam.table} where children_fetched_at is null or (detail_fetched_at is not null and detail_fetched_at > children_fetched_at) order by update_date desc nulls last limit $1`,
+            : `select * from ${fam.table} where ${stamp} is null or (detail_fetched_at is not null and detail_fetched_at > ${stamp}) order by update_date desc nulls last limit $1`,
           [childLimit],
         );
         let took = 0, wrote = 0;
@@ -591,7 +595,7 @@ for (const fam of FAMILIES) {
         }
         // Stamp the parents this pass covered, so the default mode can skip them next time.
         if (child.mode !== "since" && parents.rows.length) {
-          await db.query(`update ${fam.table} set children_fetched_at = now() where key = any($1)`, [parents.rows.map((r) => r.key)]);
+          await db.query(`update ${fam.table} set ${stamp} = now() where key = any($1)`, [parents.rows.map((r) => r.key)]);
         }
         childRows += wrote;
         log(`  ${clabel}: ${took} parents · ${wrote} rows`);
