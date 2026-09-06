@@ -1,0 +1,13 @@
+{
+  "job": "dp-cloudflare",
+  "repo": "livingston",
+  "cadence": "nightly",
+  "enabled": true,
+  "heap_mb": 1024,
+  "steps": [
+    "scripts/pipeline/cloudflare-pull.mjs"
+  ],
+  "_why": "Cloudflare keeps the zone's hourly split for three days and the per-host and per-path split for eight; Amplify keeps GovBlock's own metrics for fifteen months. The Traffic page in the Admin experience reads the copies Aurora keeps, so a nightly pull is what makes its history longer than the vendors' windows (Brendan, 2026-09-06).",
+  "_env": "CLOUDFLARE_API_TOKEN, POLICY_CLUSTER_ARN, POLICY_SECRET_ARN in .env.local; AWS credentials from the instance role for the RDS Data API and CloudWatch. Needs @aws-sdk/client-rds-data and @aws-sdk/client-cloudwatch in node_modules.",
+  "_also": "The page itself re-reads both sources when its copy is older than six hours, so the dashboard stays live even when no box has run."
+}
