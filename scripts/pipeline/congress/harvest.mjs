@@ -15,6 +15,16 @@
 // list record to be worth serving; the ones that do not (committee-meeting and
 // hearing are an eventId and a URL) need one detail request each and are marked
 // `detail: true` so the cost is a decision rather than a surprise.
+//
+// Since 2026-09-05 (Brendan: "we should get everything"), a family can also
+// carry `children`: lists that hang off one record — a committee's nominations
+// and communications, a nomination's actions, an issue's articles. Each child
+// is its own table keyed on the parent, walked once per parent row, and gated
+// on the count the detail record reports where it reports one, so a nomination
+// with no hearings costs no request. `--since` rides along as fromDateTime.
+//   node scripts/pipeline/congress/harvest.mjs --family committees
+//   node scripts/pipeline/congress/harvest.mjs --family hearings --detail-limit 2000
+//   node scripts/pipeline/congress/harvest.mjs --no-children
 
 import fs from "node:fs";
 import path from "node:path";
@@ -80,6 +90,15 @@ async function api(q) {
   throw new Error("gave up after 5 attempts");
 }
 
+/* ---- helpers ------------------------------------------------------------- */
+// The API names each record's own address in `url`; the path after /v3 is the
+// detail path, and the children hang off it. Reading it beats rebuilding it:
+// a nomination is /nomination/119/1201-7, and the part is in the URL, not a
+// field one could guess the separator for.
+const ownPath = (r) => (r?.url ? String(r.url).replace(/^https?:\/\/api\.congress\.gov\/v3/, "").replace(/\?.*$/, "") : null);
+const json = (v) => (v == null ? null : JSON.stringify(v));
+const chamberPath = (r) => String(r?.chamber ?? "").toLowerCase().replace("house of representatives", "house");
+
 /* ---- the families -------------------------------------------------------- */
 // `key` must be the API's own identity for the record, so a re-run upserts.
 const n = (v) => (v == null || v === "" ? null : Number(v));
@@ -120,12 +139,57 @@ const FAMILIES = [
               cols: { sponsors: (r) => (r.sponsors ? JSON.stringify(r.sponsors) : null),
                       sponsor_name: (r) => (r.sponsors?.[0]?.fullName ?? null),
                       sponsor_bioguide: (r) => (r.sponsors?.[0]?.bioguideId ?? null),
-                      purpose: (r) => r.purpose ?? null } } },
+                      purpose: (r) => r.purpose ?? null,
+                      actions_count: (r) => r.actions?.count ?? null, cosponsors_count: (r) => r.cosponsors?.count ?? null,
+                      text_versions_count: (r) => r.textVersions?.count ?? null,
+                      amended_bill: (r) => json(r.amendedBill), chamber: (r) => r.chamber ?? null } },
+    // An amendment's own actions, cosponsors and text, only where the record
+    // says it has any: most have one action and no cosponsors.
+    children: [
+      { table: "congress_amendment_actions", listKey: "actions", when: (row) => Number(row.actions_count ?? 1) > 0,
+        path: (row) => `/amendment/${row.congress}/${String(row.amendment_type).toLowerCase()}/${row.number}/actions`,
+        key: (r, row) => `${row.key}|${r.actionDate}|${r.actionTime ?? ""}|${String(r.text ?? "").slice(0, 80)}`,
+        cols: { action_date: (r) => r.actionDate ?? null, action_time: (r) => r.actionTime ?? null, text: (r) => r.text ?? null,
+                action_type: (r) => r.type ?? null, recorded_votes: (r) => json(r.recordedVotes), source_system: (r) => r.sourceSystem?.name ?? null } },
+      { table: "congress_amendment_cosponsors", listKey: "cosponsors", when: (row) => Number(row.cosponsors_count ?? 0) > 0,
+        path: (row) => `/amendment/${row.congress}/${String(row.amendment_type).toLowerCase()}/${row.number}/cosponsors`,
+        key: (r, row) => `${row.key}|${r.bioguideId}`,
+        cols: { bioguide_id: (r) => r.bioguideId ?? null, name: (r) => r.fullName ?? null, party: (r) => r.party ?? null,
+                state: (r) => r.state ?? null, sponsorship_date: (r) => r.sponsorshipDate ?? null,
+                is_original: (r) => (r.isOriginalCosponsor == null ? null : String(r.isOriginalCosponsor)) } },
+      { table: "congress_amendment_texts", listKey: "textVersions", when: (row) => Number(row.text_versions_count ?? 0) > 0,
+        path: (row) => `/amendment/${row.congress}/${String(row.amendment_type).toLowerCase()}/${row.number}/text`,
+        key: (r, row) => `${row.key}|${r.date ?? ""}|${r.type ?? ""}`,
+        cols: { version_type: (r) => r.type ?? null, version_date: (r) => r.date ?? null, formats: (r) => json(r.formats),
+                text_url: (r) => r.formats?.find((f) => /text/i.test(f.type))?.url ?? null,
+                pdf_url: (r) => r.formats?.find((f) => /pdf/i.test(f.type))?.url ?? null } },
+    ] },
   { table: "congress_nominations", path: (c) => `/nomination/${c}`, listKey: "nominations",
     key: (r) => `${r.congress}-${r.number}-${r.partNumber ?? 0}`,
     cols: { number: (r) => String(r.number), part_number: (r) => String(r.partNumber ?? ""), citation: (r) => r.citation ?? null,
             description: (r) => r.description ?? null, organization: (r) => r.organization ?? null,
-            received_date: (r) => r.receivedDate ?? null, latest_action: (r) => r.latestAction?.text ?? null } },
+            received_date: (r) => r.receivedDate ?? null, latest_action: (r) => r.latestAction?.text ?? null },
+    // The record: the nominees with their positions, whether it is privileged,
+    // and the counts that decide which children are worth a request.
+    detail: { since: 3650, floor: 3000, path: (r) => ownPath(r), unwrap: (d) => d.nomination,
+              cols: { nominees: (r) => json(r.nominees), is_privileged: (r) => (r.isPrivileged == null ? null : String(r.isPrivileged)),
+                      authority_date: (r) => r.authorityDate ?? null, latest_action_date: (r) => r.latestAction?.actionDate ?? null,
+                      actions_count: (r) => r.actions?.count ?? null, committees_count: (r) => r.committees?.count ?? null,
+                      hearings_count: (r) => r.hearings?.count ?? null } },
+    children: [
+      { table: "congress_nomination_actions", listKey: "actions", when: (row) => Number(row.actions_count ?? 1) > 0,
+        path: (row) => `${ownPath(row.payload)}/actions`, key: (r, row) => `${row.key}|${r.actionDate}|${String(r.text ?? "").slice(0, 80)}`,
+        cols: { action_date: (r) => r.actionDate ?? null, text: (r) => r.text ?? null, action_type: (r) => r.type ?? null,
+                committees: (r) => json(r.committees) } },
+      { table: "congress_nomination_committees", listKey: "committees", when: (row) => Number(row.committees_count ?? 1) > 0,
+        path: (row) => `${ownPath(row.payload)}/committees`, key: (r, row) => `${row.key}|${r.systemCode}`,
+        cols: { system_code: (r) => r.systemCode ?? null, name: (r) => r.name ?? null, chamber: (r) => r.chamber ?? null,
+                activities: (r) => json(r.activities) } },
+      { table: "congress_nomination_hearings", listKey: "hearings", when: (row) => Number(row.hearings_count ?? 0) > 0,
+        path: (row) => `${ownPath(row.payload)}/hearings`, key: (r, row) => `${row.key}|${r.jacketNumber ?? r.number ?? r.date}`,
+        cols: { jacket_number: (r) => String(r.jacketNumber ?? ""), hearing_date: (r) => r.date ?? null, citation: (r) => r.citation ?? null,
+                number: (r) => String(r.number ?? ""), part_number: (r) => String(r.partNumber ?? "") } },
+    ] },
   { table: "congress_committee_reports", path: (c) => `/committee-report/${c}`, listKey: "reports",
     // The citation alone is NOT the identity: H. Rept. 119-608 exists as part 1
     // and part 2, two different documents, and keying on the citation dropped
@@ -150,7 +214,15 @@ const FAMILIES = [
                       committee_code: (r) => (r.committees?.[0]?.systemCode ?? null),
                       committee_name: (r) => (r.committees?.[0]?.name ?? null),
                       title: (r) => r.title ?? null,
-                      issue_date: (r) => r.issueDate ?? null } } },
+                      issue_date: (r) => r.issueDate ?? null,
+                      text_count: (r) => r.text?.count ?? null, associated_bill: (r) => json(r.associatedBill) } },
+    children: [
+      { table: "congress_report_texts", listKey: "text", when: (row) => Number(row.text_count ?? 1) > 0,
+        path: (row) => `/committee-report/${row.congress}/${row.report_type}/${row.number}/text`,
+        key: (r, row) => `${row.key}|${r.formats?.[0]?.url ?? ""}`,
+        cols: { formats: (r) => json(r.formats), text_url: (r) => r.formats?.find((f) => /text/i.test(f.type))?.url ?? null,
+                pdf_url: (r) => r.formats?.find((f) => /pdf/i.test(f.type))?.url ?? null, part: (r) => r.part ?? null } },
+    ] },
   { table: "congress_laws", path: (c) => `/law/${c}`, listKey: "bills",
     key: (r) => `${r.congress}-${r.type}-${r.number}`,
     cols: { bill_type: (r) => r.type, number: (r) => String(r.number), title: (r) => r.title ?? null,
@@ -159,14 +231,77 @@ const FAMILIES = [
   { table: "congress_committees", path: (c) => `/committee/${c}`, listKey: "committees",
     key: (r) => String(r.systemCode),
     cols: { system_code: (r) => r.systemCode, name: (r) => r.name ?? null, chamber: (r) => r.chamber ?? null,
-            committee_type: (r) => r.committeeTypeCode ?? null, parent: (r) => r.parent?.systemCode ?? null } },
+            committee_type: (r) => r.committeeTypeCode ?? null, parent: (r) => r.parent?.systemCode ?? null },
+    // The record: whether it still sits, its names through history with the
+    // establishing authority, its subcommittees, its website, and how much of
+    // each family it has referred to it. 236 requests, once; then the ones
+    // whose updateDate moves.
+    detail: { since: 3650, floor: 400, path: (r) => `/committee/${chamberPath(r)}/${r.systemCode}`, unwrap: (d) => d.committee,
+              cols: { is_current: (r) => (r.isCurrent == null ? null : String(r.isCurrent)),
+                      website_url: (r) => r.committeeWebsiteUrl ?? null,
+                      history: (r) => json(r.history), subcommittees: (r) => json(r.subcommittees),
+                      bills_count: (r) => r.bills?.count ?? null, reports_count: (r) => r.reports?.count ?? null,
+                      nominations_count: (r) => r.nominations?.count ?? null, communications_count: (r) => r.communications?.count ?? null } },
+    // What was referred to the committee. Bills come from govinfo from the bill
+    // side and reports name their committee in their own detail; nominations
+    // and communications name it nowhere else, so they are taken here. The
+    // lists reach back to the 114th and each row carries its congress.
+    children: [
+      { table: "congress_committee_nominations", listKey: "nominations", mode: "since",
+        when: (row) => row.chamber === "Senate" && Number(row.nominations_count ?? 1) > 0,
+        path: (row) => `/committee/senate/${row.system_code}/nominations`,
+        key: (r) => `${r.congress}-${r.number}-${r.partNumber ?? 0}`,
+        cols: { citation: (r) => r.citation ?? null, description: (r) => r.description ?? null,
+                received_date: (r) => r.receivedDate ?? null, latest_action: (r) => r.latestAction?.text ?? null,
+                latest_action_date: (r) => r.latestAction?.actionDate ?? null } },
+      { table: "congress_committee_communications", label: "committee house-communications", listKey: "houseCommunications", mode: "since",
+        when: (row) => row.chamber !== "Senate" && Number(row.communications_count ?? 1) > 0,
+        path: (row) => `/committee/${chamberPath(row)}/${row.system_code}/house-communication`,
+        key: (r) => `${r.congress}-H-${r.communicationType?.code ?? "?"}-${r.number}`,
+        cols: { chamber: (r) => r.chamber ?? "House", communication_type: (r) => r.communicationType?.name ?? null,
+                type_code: (r) => r.communicationType?.code ?? null, number: (r) => String(r.number ?? ""),
+                referral_date: (r) => r.referralDate ?? null } },
+      { table: "congress_committee_communications", label: "committee senate-communications", listKey: "senateCommunications", mode: "since",
+        when: (row) => row.chamber !== "House" && Number(row.communications_count ?? 1) > 0,
+        path: (row) => `/committee/${chamberPath(row)}/${row.system_code}/senate-communication`,
+        key: (r) => `${r.congress}-S-${r.communicationType?.code ?? "?"}-${r.number}`,
+        cols: { chamber: (r) => r.chamber ?? "Senate", communication_type: (r) => r.communicationType?.name ?? null,
+                type_code: (r) => r.communicationType?.code ?? null, number: (r) => String(r.number ?? ""),
+                referral_date: (r) => r.referralDate ?? null } },
+    ] },
   { table: "congress_committee_prints", path: (c) => `/committee-print/${c}`, listKey: "committeePrints",
     key: (r) => String(r.jacketNumber ?? `${r.congress}-${r.chamber}-${r.number}`),
-    cols: { jacket_number: (r) => String(r.jacketNumber ?? ""), chamber: (r) => r.chamber ?? null, number: (r) => String(r.number ?? "") } },
+    cols: { jacket_number: (r) => String(r.jacketNumber ?? ""), chamber: (r) => r.chamber ?? null, number: (r) => String(r.number ?? "") },
+    detail: { since: 3650, floor: 1000, path: (r) => `/committee-print/${r.congress}/${chamberPath(r)}/${r.jacketNumber}`,
+              unwrap: (d) => (Array.isArray(d.committeePrint) ? d.committeePrint[0] : d.committeePrint),
+              cols: { title: (r) => r.title ?? null, citation: (r) => r.citation ?? null, committees: (r) => json(r.committees),
+                      committee_code: (r) => r.committees?.[0]?.systemCode ?? null, associated_bills: (r) => json(r.associatedBills),
+                      text_count: (r) => r.text?.count ?? null } },
+    children: [
+      { table: "congress_print_texts", listKey: "text", when: (row) => Number(row.text_count ?? 1) > 0,
+        path: (row) => `/committee-print/${row.congress}/${chamberPath(row)}/${row.jacket_number}/text`,
+        key: (r, row) => `${row.key}|${r.url ?? r.formats?.[0]?.url ?? ""}`,
+        cols: { format_type: (r) => r.type ?? null, url: (r) => r.url ?? null, formats: (r) => json(r.formats) } },
+    ] },
   { table: "congress_treaties", path: (c) => `/treaty/${c}`, listKey: "treaties",
     key: (r) => `${r.congress}-${r.number}-${r.suffix ?? ""}`,
     cols: { number: (r) => String(r.number ?? ""), suffix: (r) => r.suffix ?? null, topic: (r) => r.topic ?? null,
-            transmitted_date: (r) => r.transmittedDate ?? null } },
+            transmitted_date: (r) => r.transmittedDate ?? null },
+    detail: { since: 3650, floor: 200, path: (r) => ownPath(r), unwrap: (d) => d.treaty,
+              cols: { title: (r) => r.titles?.[0]?.title ?? null, titles: (r) => json(r.titles), parts: (r) => json(r.parts),
+                      countries_parties: (r) => json(r.countriesParties), index_terms: (r) => json(r.indexTerms),
+                      resolution_text: (r) => r.resolutionText ?? null, in_force_date: (r) => r.inForceDate ?? null,
+                      actions_count: (r) => r.actions?.count ?? null, old_number: (r) => r.oldNumber ?? null } },
+    children: [
+      { table: "congress_treaty_actions", listKey: "actions", when: (row) => Number(row.actions_count ?? 1) > 0,
+        path: (row) => `${ownPath(row.payload)}/actions`, key: (r, row) => `${row.key}|${r.actionDate}|${String(r.text ?? "").slice(0, 80)}`,
+        cols: { action_date: (r) => r.actionDate ?? null, text: (r) => r.text ?? null, action_type: (r) => r.type ?? null,
+                committees: (r) => json(r.committees) } },
+      { table: "congress_treaty_committees", listKey: "treatyCommittees", when: () => true,
+        path: (row) => `${ownPath(row.payload)}/committees`, key: (r, row) => `${row.key}|${r.systemCode}`,
+        cols: { system_code: (r) => r.systemCode ?? null, name: (r) => r.name ?? null, chamber: (r) => r.chamber ?? null,
+                activities: (r) => json(r.activities) } },
+    ] },
   { table: "congress_committee_meetings", path: (c) => `/committee-meeting/${c}`, listKey: "committeeMeetings",
     key: (r) => String(r.eventId),
     cols: { event_id: (r) => String(r.eventId), chamber: (r) => r.chamber ?? null },
@@ -182,13 +317,30 @@ const FAMILIES = [
   { table: "congress_hearings", path: (c) => `/hearing/${c}`, listKey: "hearings",
     key: (r) => String(r.jacketNumber ?? `${r.congress}-${r.chamber}-${r.number}`),
     cols: { jacket_number: (r) => String(r.jacketNumber ?? ""), chamber: (r) => r.chamber ?? null, number: (r) => String(r.number ?? "") },
-    thin: "transcripts are behind a detail request each (932)" },
+    // The hearing: its title, its date, the committee that held it, and where
+    // the transcript is, as formatted text and as PDF. 934 requests, once.
+    // The transcript text itself is fetched by hearing-texts.mjs from the
+    // formatted-text URL, the way the text walk fetches a bill.
+    detail: { since: 3650, floor: 2000, path: (r) => `/hearing/${r.congress}/${chamberPath(r)}/${r.jacketNumber}`, unwrap: (d) => d.hearing,
+              cols: { title: (r) => r.title ?? null, citation: (r) => r.citation ?? null,
+                      hearing_date: (r) => r.dates?.[0]?.date ?? null, dates: (r) => json(r.dates),
+                      committee_code: (r) => r.committees?.[0]?.systemCode ?? null, committee_name: (r) => r.committees?.[0]?.name ?? null,
+                      committees: (r) => json(r.committees), formats: (r) => json(r.formats),
+                      text_url: (r) => r.formats?.find((f) => /text/i.test(f.type))?.url ?? null,
+                      pdf_url: (r) => r.formats?.find((f) => /pdf/i.test(f.type))?.url ?? null,
+                      loc_id: (r) => r.libraryOfCongressIdentifier ?? null } } },
   { table: "congress_house_votes", path: (c) => `/house-vote/${c}`, listKey: "houseRollCallVotes",
     key: (r) => String(r.identifier),
     cols: { identifier: (r) => String(r.identifier), session_number: (r) => String(r.sessionNumber ?? ""),
             roll_call_number: (r) => String(r.rollCallNumber ?? ""), legislation_type: (r) => r.legislationType ?? null,
             legislation_number: (r) => r.legislationNumber ?? null, result: (r) => r.result ?? null,
-            vote_type: (r) => r.voteType ?? null, start_date: (r) => r.startDate ?? null } },
+            vote_type: (r) => r.voteType ?? null, start_date: (r) => r.startDate ?? null },
+    // The vote's own record: the question, the party totals, the amendment
+    // where it was one. Positions stay with house-votes.mjs.
+    detail: { since: 3650, floor: 1000, path: (r) => `/house-vote/${r.congress}/${r.sessionNumber}/${r.rollCallNumber}`, unwrap: (d) => d.houseRollCallVote,
+              cols: { vote_question: (r) => r.voteQuestion ?? null, vote_party_total: (r) => json(r.votePartyTotal),
+                      amendment_author: (r) => r.amendmentAuthor ?? null, amendment_type: (r) => r.amendmentType ?? null,
+                      amendment_number: (r) => r.amendmentNumber ?? null, legislation_url: (r) => r.legislationUrl ?? null } } },
   // Not congress-scoped: /crsreport is the whole library, 14,076 of them.
   { table: "congress_crs_reports", path: () => `/crsreport`, listKey: "CRSReports",
     key: (r) => String(r.id),
@@ -205,15 +357,65 @@ const FAMILIES = [
     detail: { since: 30, path: (r) => `/daily-congressional-record/${r.volumeNumber}/${r.issueNumber}`,
               unwrap: (d) => (Array.isArray(d.issue) ? d.issue[0] : d.issue),
               cols: { articles_count: (r) => String(r.fullIssue?.articles?.count ?? ""),
-                      entire_issue: (r) => (r.fullIssue?.entireIssue ? JSON.stringify(r.fullIssue.entireIssue) : null) } } },
+                      entire_issue: (r) => (r.fullIssue?.entireIssue ? JSON.stringify(r.fullIssue.entireIssue) : null) } },
+    // The Record's contents: every article of every issue, by section, with
+    // its text and PDF. One request per issue.
+    children: [
+      { table: "congress_record_articles", listKey: "articles", when: (row) => Number(row.articles_count || 1) > 0,
+        path: (row) => `/daily-congressional-record/${row.volume_number}/${row.issue_number}/articles`,
+        // The list is sections, each with its articles; flatten so a row is an article.
+        flatten: (list) => list.flatMap((section) => (section.sectionArticles ?? []).map((a) => ({ ...a, section: section.name }))),
+        key: (r, row) => `${row.key}|${r.section}|${String(r.title ?? "").slice(0, 120)}|${r.startPage ?? ""}`,
+        cols: { section: (r) => r.section ?? null, title: (r) => r.title ?? null, start_page: (r) => r.startPage ?? null,
+                end_page: (r) => r.endPage ?? null, text: (r) => json(r.text) } },
+    ] },
+  // The list is a number and a type. The abstract, the committee it was referred
+  // to, and the Record date live in the detail: 9,205 requests, once, then the
+  // ones that move. Both chambers share one table and one detail shape.
   { table: "congress_communications", label: "house-communications", path: (c) => `/house-communication/${c}`, listKey: "houseCommunications",
     key: (r) => `${r.congress}-H-${r.communicationType?.code ?? "?"}-${r.number}`,
     cols: { chamber: (r) => r.chamber ?? "House", communication_type: (r) => r.communicationType?.name ?? null,
-            type_code: (r) => r.communicationType?.code ?? null, number: (r) => String(r.number ?? "") } },
+            type_code: (r) => r.communicationType?.code ?? null, number: (r) => String(r.number ?? "") },
+    detail: { since: 3650, floor: 12000, path: (r) => ownPath(r), unwrap: (d) => d.houseCommunication ?? d["house-communication"] ?? d.communication,
+              cols: { abstract: (r) => r.abstract ?? null, referred_to: (r) => json(r.committees), committee_code: (r) => r.committees?.[0]?.systemCode ?? null,
+                      committee_name: (r) => r.committees?.[0]?.name ?? null, record_date: (r) => r.congressionalRecordDate ?? null,
+                      report_nature: (r) => r.reportNature ?? null, submitting_agency: (r) => r.submittingAgency ?? null,
+                      submitting_official: (r) => r.submittingOfficial ?? null, legal_authority: (r) => r.legalAuthority ?? null,
+                      matching_requirements: (r) => json(r.matchingRequirements), is_rulemaking: (r) => r.isRulemaking ?? null } } },
   { table: "congress_communications", label: "senate-communications", path: (c) => `/senate-communication/${c}`, listKey: "senateCommunications",
     key: (r) => `${r.congress}-S-${r.communicationType?.code ?? "?"}-${r.number}`,
     cols: { chamber: (r) => r.chamber ?? "Senate", communication_type: (r) => r.communicationType?.name ?? null,
-            type_code: (r) => r.communicationType?.code ?? null, number: (r) => String(r.number ?? "") } },
+            type_code: (r) => r.communicationType?.code ?? null, number: (r) => String(r.number ?? "") },
+    detail: { since: 3650, floor: 12000, path: (r) => ownPath(r), unwrap: (d) => d.senateCommunication ?? d["senate-communication"] ?? d.communication,
+              cols: { abstract: (r) => r.abstract ?? null, referred_to: (r) => json(r.committees), committee_code: (r) => r.committees?.[0]?.systemCode ?? null,
+                      committee_name: (r) => r.committees?.[0]?.name ?? null, record_date: (r) => r.congressionalRecordDate ?? null,
+                      report_nature: (r) => r.reportNature ?? null, submitting_agency: (r) => r.submittingAgency ?? null,
+                      submitting_official: (r) => r.submittingOfficial ?? null, legal_authority: (r) => r.legalAuthority ?? null,
+                      matching_requirements: (r) => json(r.matchingRequirements), is_rulemaking: (r) => r.isRulemaking ?? null } } },
+  // The congresses themselves: the sessions with their start and end dates,
+  // which is the only place the record says whether a chamber is sitting.
+  { table: "congress_congresses", path: () => `/congress`, listKey: "congresses",
+    key: (r) => String(r.number ?? String(r.name ?? "").replace(/\D/g, "")),
+    cols: { number: (r) => String(r.number ?? String(r.name ?? "").replace(/\D/g, "")), name: (r) => r.name ?? null,
+            start_year: (r) => r.startYear ?? null, end_year: (r) => r.endYear ?? null, sessions: (r) => json(r.sessions) },
+    detail: { since: 36500, floor: 200, path: (r) => `/congress/${r.number ?? String(r.name ?? "").replace(/\D/g, "")}`, unwrap: (d) => d.congress,
+              cols: { sessions: (r) => json(r.sessions), start_year: (r) => r.startYear ?? null, end_year: (r) => r.endYear ?? null } } },
+  // House reporting requirements and the communications that satisfy them.
+  { table: "congress_house_requirements", path: () => `/house-requirement`, listKey: "houseRequirements",
+    key: (r) => String(r.number),
+    cols: { number: (r) => String(r.number), update_date_text: (r) => r.updateDate ?? null },
+    detail: { since: 3650, floor: 3000, path: (r) => `/house-requirement/${r.number}`, unwrap: (d) => d.houseRequirement,
+              cols: { parent_agency: (r) => r.parentAgency ?? null, submitting_agency: (r) => r.submittingAgency ?? null,
+                      submitting_official: (r) => r.submittingOfficial ?? null, nature: (r) => r.nature ?? null,
+                      frequency: (r) => r.frequency ?? null, legal_authority: (r) => r.legalAuthority ?? null,
+                      active: (r) => r.activeRecord ?? null, matching_count: (r) => r.matchingCommunications?.count ?? null } },
+    children: [
+      { table: "congress_requirement_communications", listKey: "matchingCommunications", when: (row) => Number(row.matching_count ?? 1) > 0,
+        path: (row) => `/house-requirement/${row.number}/matching-communications`,
+        key: (r, row) => `${row.key}|${r.congress}-${r.communicationType?.code ?? "?"}-${r.number}`,
+        cols: { chamber: (r) => r.chamber ?? null, communication_type: (r) => r.communicationType?.name ?? null,
+                type_code: (r) => r.communicationType?.code ?? null, number: (r) => String(r.number ?? "") } },
+    ] },
 ];
 
 /* ---- main ---------------------------------------------------------------- */
@@ -325,9 +527,75 @@ for (const fam of FAMILIES) {
       }
     }
 
+    // The children pass: the lists that hang off each record. A child in
+    // `since` mode is walked for every parent on every run, with --since as
+    // fromDateTime, because the list grows on its own (a committee's
+    // nominations). The default mode walks a parent's children only when its
+    // own record has been re-fetched since the children were last taken, so a
+    // nomination that has not moved costs nothing tonight.
+    let childRows = 0;
+    if (fam.children && !has("--no-children")) {
+      await db.query(`alter table ${fam.table} add column if not exists children_fetched_at timestamptz`);
+      const childLimit = Number(val("--child-limit", "5000"));
+      for (const child of fam.children) {
+        const clabel = child.label ?? child.table;
+        const ccols = Object.keys(child.cols);
+        await db.query(`create table if not exists ${child.table} (
+          key text primary key,
+          parent_key text not null,
+          congress int,
+          update_date timestamptz,
+          payload jsonb not null,
+          updated_at timestamptz not null default now())`);
+        for (const c of ccols) await db.query(`alter table ${child.table} add column if not exists ${c} text`);
+        await db.query(`create index if not exists ${child.table}_parent_idx on ${child.table} (parent_key)`);
+        const parents = await db.query(
+          child.mode === "since"
+            ? `select * from ${fam.table} order by key limit $1`
+            : `select * from ${fam.table} where children_fetched_at is null or (detail_fetched_at is not null and detail_fetched_at > children_fetched_at) order by update_date desc nulls last limit $1`,
+          [childLimit],
+        );
+        let took = 0, wrote = 0;
+        for (const row of parents.rows) {
+          if (child.when && !child.when(row)) continue;
+          took += 1;
+          try {
+            for (let offset = 0; ; offset += PAGE) {
+              const q = `${child.path(row)}?limit=${PAGE}&offset=${offset}${since && child.mode === "since" ? `&fromDateTime=${encodeURIComponent(since)}` : ""}`;
+              const page = await api(q);
+              let list = page[child.listKey] ?? (Object.values(page).find((v) => Array.isArray(v)) ?? []);
+              if (!Array.isArray(list)) list = [list];
+              const items = child.flatten ? child.flatten(list) : list;
+              for (const r of items) {
+                const values = [child.key(r, row), row.key, r.congress ?? row.congress ?? CONGRESS, r.updateDate ?? null, JSON.stringify(r),
+                  ...ccols.map((c) => { const v = child.cols[c](r, row); return v == null ? null : String(v); })];
+                const placeholders = ccols.map((_, i) => `$${i + 6}`).join(", ");
+                const setters = ccols.map((c) => `${c} = excluded.${c}`).join(", ");
+                await db.query(
+                  `insert into ${child.table} (key, parent_key, congress, update_date, payload${ccols.length ? ", " + ccols.join(", ") : ""})
+                   values ($1,$2,$3,$4,$5${ccols.length ? ", " + placeholders : ""})
+                   on conflict (key) do update set parent_key = excluded.parent_key, congress = excluded.congress,
+                     update_date = excluded.update_date, payload = excluded.payload, updated_at = now()${ccols.length ? ", " + setters : ""}`,
+                  values,
+                );
+                wrote += 1;
+              }
+              if (list.length < PAGE) break;
+            }
+          } catch (e) { log(`  ${clabel} ${row.key}: ${String(e.message).slice(0, 80)}`); }
+        }
+        // Stamp the parents this pass covered, so the default mode can skip them next time.
+        if (child.mode !== "since" && parents.rows.length) {
+          await db.query(`update ${fam.table} set children_fetched_at = now() where key = any($1)`, [parents.rows.map((r) => r.key)]);
+        }
+        childRows += wrote;
+        log(`  ${clabel}: ${took} parents · ${wrote} rows`);
+      }
+    }
+
     const mins = (Date.now() - t0) / 60000;
-    results.push({ table: label, rows, written, detailed, requests: requests - before, mins: mins.toFixed(1), thin: fam.thin ?? null });
-    log(`${label}: ${rows} rows${detailed ? ` · ${detailed} detailed` : ""} · ${requests - before} requests · ${mins.toFixed(1)} min${fam.thin ? ` · thin (${fam.thin})` : ""}`);
+    results.push({ table: label, rows, written, detailed, childRows, requests: requests - before, mins: mins.toFixed(1), thin: fam.thin ?? null });
+    log(`${label}: ${rows} rows${detailed ? ` · ${detailed} detailed` : ""}${childRows ? ` · ${childRows} child rows` : ""} · ${requests - before} requests · ${mins.toFixed(1)} min${fam.thin ? ` · thin (${fam.thin})` : ""}`);
   } catch (e) {
     results.push({ table: label, rows, written, requests: requests - before, mins: ((Date.now() - t0) / 60000).toFixed(1), error: String(e.message).slice(0, 120) });
     log(`${label}: FAILED after ${rows} rows — ${String(e.message).slice(0, 140)}`);
