@@ -125,7 +125,28 @@ const FAMILIES = [
                       official_website_url: (r) => r.officialWebsiteUrl ?? null,
                       birth_year: (r) => r.birthYear ?? null,
                       party_history: (r) => (r.partyHistory ? JSON.stringify(r.partyHistory) : null),
-                      current_member: (r) => (r.currentMember == null ? null : String(r.currentMember)) } } },
+                      current_member: (r) => (r.currentMember == null ? null : String(r.currentMember)),
+                      sponsored_count: (r) => r.sponsoredLegislation?.count ?? null,
+                      cosponsored_count: (r) => r.cosponsoredLegislation?.count ?? null } },
+    // What each member put their name to, across every congress the API
+    // holds — the current one we already derive from the bill side; this is
+    // the history (Brendan, 2026-09-06: "derive or get? long term?"). Walked
+    // when the member's record is re-read, so a nightly costs nothing for a
+    // member who has not changed.
+    children: [
+      { table: "congress_member_sponsored", listKey: "sponsoredLegislation", when: (row) => Number(row.sponsored_count ?? 1) > 0,
+        path: (row) => `/member/${row.bioguide_id}/sponsored-legislation`,
+        key: (r, row) => `${row.key}|${r.congress}-${r.type}-${r.number ?? r.amendmentNumber ?? ""}`,
+        cols: { bioguide_id: (r, row) => row.bioguide_id, bill_type: (r) => r.type ?? null, number: (r) => String(r.number ?? r.amendmentNumber ?? ""),
+                title: (r) => r.title ?? null, introduced_date: (r) => r.introducedDate ?? null, policy_area: (r) => r.policyArea?.name ?? null,
+                latest_action: (r) => r.latestAction?.text ?? null, latest_action_date: (r) => r.latestAction?.actionDate ?? null } },
+      { table: "congress_member_cosponsored", listKey: "cosponsoredLegislation", when: (row) => Number(row.cosponsored_count ?? 1) > 0,
+        path: (row) => `/member/${row.bioguide_id}/cosponsored-legislation`,
+        key: (r, row) => `${row.key}|${r.congress}-${r.type}-${r.number ?? r.amendmentNumber ?? ""}`,
+        cols: { bioguide_id: (r, row) => row.bioguide_id, bill_type: (r) => r.type ?? null, number: (r) => String(r.number ?? r.amendmentNumber ?? ""),
+                title: (r) => r.title ?? null, introduced_date: (r) => r.introducedDate ?? null, policy_area: (r) => r.policyArea?.name ?? null,
+                latest_action: (r) => r.latestAction?.text ?? null, latest_action_date: (r) => r.latestAction?.actionDate ?? null } },
+    ] },
   { table: "congress_amendments", path: (c) => `/amendment/${c}`, listKey: "amendments",
     key: (r) => `${r.congress}-${r.type}-${r.number}`,
     cols: { amendment_type: (r) => r.type, number: (r) => String(r.number), description: (r) => r.description ?? null,
