@@ -97,6 +97,7 @@ async function api(q) {
 // field one could guess the separator for.
 const ownPath = (r) => (r?.url ? String(r.url).replace(/^https?:\/\/api\.congress\.gov\/v3/, "").replace(/\?.*$/, "") : null);
 const json = (v) => (v == null ? null : JSON.stringify(v));
+const yearOfCongress = (c) => (c - 1) * 2 + 1789;
 const chamberPath = (r) => String(r?.chamber ?? "").toLowerCase().replace("house of representatives", "house");
 
 /* ---- the families -------------------------------------------------------- */
@@ -382,7 +383,10 @@ const FAMILIES = [
     // The Record's contents: every article of every issue, by section, with
     // its text and PDF. One request per issue.
     children: [
-      { table: "congress_record_articles", listKey: "articles", when: (row) => Number(row.articles_count || 1) > 0,
+      // The issue list reaches back to 1995 (5,862 issues); tonight's walk is
+      // the current congress, and the archive is a --record-since run.
+      { table: "congress_record_articles", listKey: "articles",
+        when: (row) => Number(row.articles_count || 1) > 0 && String(row.issue_date ?? "") >= (val("--record-since", `${yearOfCongress(CONGRESS)}-01-03`)),
         path: (row) => `/daily-congressional-record/${row.volume_number}/${row.issue_number}/articles`,
         // The list is sections, each with its articles; flatten so a row is an article.
         flatten: (list) => list.flatMap((section) => (section.sectionArticles ?? []).map((a) => ({ ...a, section: section.name }))),
